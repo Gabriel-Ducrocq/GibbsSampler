@@ -1,0 +1,115 @@
+import numpy as np
+from healpy._healpy_sph_transform_lib import _alm2map
+
+
+cpdef double[:] generate_var_cl_cython(double[:] cls_):
+    cdef int L_max, size_real, size_complex, idx, l, m, i
+    cdef double pi
+    pi = np.pi
+    L_max = len(cls_) - 1
+    size_real = (L_max + 1)**2
+    size_complex = (L_max+1)*(L_max+2)/2
+    cdef double[:] alms_shape = np.zeros(size_complex)
+    cdef double[:] variance = np.zeros(size_real)
+    for l in range(L_max+1):
+        for m in range(l+1):
+            idx = m * (2 * L_max + 1 - m) // 2 + l
+            if l == 0:
+                alms_shape[idx] = cls_[l]
+            else:
+                alms_shape[idx] = cls_[l]*2*pi/(l*(l+1))
+
+    for i in range(L_max+1):
+        variance[i] = alms_shape[i]
+
+
+    for i in range(L_max+1, size_complex):
+        variance[2*i - (L_max+1)] = alms_shape[i]
+        variance[2*i - (L_max+1) +1] = alms_shape[i]
+
+    return variance
+
+
+cpdef double[:] generate_var_cl_log_cython(double[:] log_cls_):
+    cdef int L_max, size_real, size_complex, idx, l, m, i
+    L_max = len(log_cls_) - 1
+    size_real = (L_max + 1)**2
+    size_complex = (L_max+1)*(L_max+2)/2
+    cdef double[:] alms_shape = np.zeros(size_complex)
+    cdef double[:] variance = np.zeros(size_real)
+    cdef double[:] exp_log_cls_ = np.exp(log_cls_)
+    for l in range(L_max+1):
+        for m in range(l+1):
+            idx = m * (2 * L_max + 1 - m) // 2 + l
+            alms_shape[idx] = exp_log_cls_[l] - 1
+
+    for i in range(L_max+1):
+        variance[i] = alms_shape[i]
+
+
+    for i in range(L_max+1, size_complex):
+        variance[2*i - (L_max+1)] = alms_shape[i]
+        variance[2*i - (L_max+1) +1] = alms_shape[i]
+
+    return variance
+
+
+cpdef double[:] complex_to_real(double complex[:] alms):
+    cdef int len_alms, Lm, i, size_result
+    cdef double sqrtdeux
+    sqrtdeux = np.sqrt(2)
+    len_alms = len(alms)
+    Lm = (-3 + np.sqrt(9+8*(len_alms-1)))/2
+
+    cdef double[:] result = np.zeros((Lm + 1)**2)
+
+    for i in range(len(alms)):
+        if i <= Lm:
+            result[i] = alms[i].real
+        else:
+            result[2*i - (Lm+1)] = alms[i].real*sqrtdeux
+            result[2*i - (Lm+1) +1] = alms[i].imag*sqrtdeux
+
+    return result
+
+
+cpdef double complex[:] real_to_complex(double[:] alms):
+    cdef int L_MAX_SCALARS, len_alms, len_result, i
+    cdef double inv_sqrtdeux
+    inv_sqrtdeux = 1/np.sqrt(2)
+    len_alms = len(alms)
+    L_MAX_SCALARS = np.sqrt(len_alms) - 1
+    len_result = (L_MAX_SCALARS + 1)*(L_MAX_SCALARS + 2)/2
+    cdef double complex[:] results = np.zeros(int((L_MAX_SCALARS + 1)*(L_MAX_SCALARS + 2)/2), dtype=complex)
+
+
+    for i in range(len_result):
+        if i <= L_MAX_SCALARS:
+            results[i] = alms[i] + 0j
+        else:
+            results[i] = alms[2*i - (L_MAX_SCALARS + 1)]*inv_sqrtdeux + 1j * alms[2*i - (L_MAX_SCALARS + 1) + 1]*inv_sqrtdeux
+
+    return results
+
+
+cpdef double[:] remove_monopole_dipole_contributions(double[:] alms):
+    cdef int len_alms, Lm
+    len_alms = len(alms)
+    Lm = np.sqrt(len_alms) - 1
+    alms[0] = 0.0
+    alms[1] = 0.0
+    alms[Lm+1] = 0.0
+    alms[Lm+2] = 0.0
+    return alms
+
+
+cpdef double[:] synthesis_hp(double[:] alms, int nside):
+    cdef int Lm
+    cdef double complex[:] alms_complex
+    cdef double[:] s
+
+    Lm = np.sqrt(len(alms)) - 1
+    alms_complex = real_to_complex(alms)
+    s = _alm2map(np.asarray(alms_complex), nside, lmax=Lm, mmax=-1)
+
+    return s
