@@ -45,7 +45,7 @@ cpdef double[::1, :, :] generate_polarization_var_cl_cython(double[::1, :, :] cl
             if l == 0:
                 alms_shape.base[idx, :, :] = cls_.base[l, :, :]
             else:
-                alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))
+                alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))
 
     for i in range(L_max+1):
         variance.base[i, :, :] = alms_shape.base[i, :, :]

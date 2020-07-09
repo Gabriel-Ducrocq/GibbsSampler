@@ -87,8 +87,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
                     self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[1]], self.bl_fwhm)
 
-        b_weiner = np.hstack(zip(b_weiner_unpacked))
-        b_fluctuations = np.random.normal(size=3*(self.lmax+1)**2)
+        b_weiner = np.stack(b_weiner_unpacked, axis = 1)
+        b_fluctuations = np.random.normal(size=((self.lmax+1)**2, 3))
+
 
         time_to_solution = time.time() - start
         err = 0

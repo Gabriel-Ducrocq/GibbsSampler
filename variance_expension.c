@@ -2882,7 +2882,7 @@ static __Pyx_memviewslice __pyx_f_18variance_expension_generate_polarization_var
  *             if l == 0:
  *                 alms_shape.base[idx, :, :] = cls_.base[l, :, :]             # <<<<<<<<<<<<<<
  *             else:
- *                 alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))
+ *                 alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))
  */
         __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_cls_, 3, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 46, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
@@ -2942,12 +2942,12 @@ static __Pyx_memviewslice __pyx_f_18variance_expension_generate_polarization_var
       /* "variance_expension.pyx":48
  *                 alms_shape.base[idx, :, :] = cls_.base[l, :, :]
  *             else:
- *                 alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))             # <<<<<<<<<<<<<<
+ *                 alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))             # <<<<<<<<<<<<<<
  * 
  *     for i in range(L_max+1):
  */
       /*else*/ {
-        __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_alms_shape, 3, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
+        __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_cls_, 3, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_base); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 48, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
@@ -3012,7 +3012,7 @@ static __Pyx_memviewslice __pyx_f_18variance_expension_generate_polarization_var
   }
 
   /* "variance_expension.pyx":50
- *                 alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))
+ *                 alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))
  * 
  *     for i in range(L_max+1):             # <<<<<<<<<<<<<<
  *         variance.base[i, :, :] = alms_shape.base[i, :, :]
@@ -18246,7 +18246,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *             if l == 0:
  *                 alms_shape.base[idx, :, :] = cls_.base[l, :, :]             # <<<<<<<<<<<<<<
  *             else:
- *                 alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))
+ *                 alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))
  */
   __pyx_slice_ = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice_);

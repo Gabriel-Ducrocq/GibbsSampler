@@ -605,13 +605,6 @@ def remove_monopole_dipole_contributions(alms):
     alms[[0, 1, config.L_MAX_SCALARS+1, config.L_MAX_SCALARS+2]] = 0.0
     return alms
 
-
-def adjoint_synthesis(map):
-    alms_libsharp = libsharp.adjoint_synthesis(config.grid, config.order, map[None, None, :])
-    #return setting the alms for l =0 and 1 to zero
-    return remove_monopole_dipole_contributions(real_libsharp_to_real(alms_libsharp[0, 0, :]))
-
-
 def adjoint_synthesis_hp(map, bl_fwhm=None):
     alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS)
     if len(alms) == 1:

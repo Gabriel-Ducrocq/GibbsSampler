@@ -79,20 +79,42 @@ cpdef compute_inverse_matrices(double[:, :, :] sigmas_symm, int l, double[::1] o
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)
-cpdef compute_matrix_product(double[:, :, :] sigmas_symm, int l, double[::1] solution):
-     cdef:
-        double[::1,:, :] intermediate_result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[::1,:, :] result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[::1, :] sigm_current = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order = "F")
-        double[::1, :, :] cholesky = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[:, :] cholesky_temp = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double det = 0
-        char* type_output = 'L'
-        int n = sigmas_symm.shape[1]
-        int lda = sigmas_symm.shape[1]
-        int info = 0
+cpdef compute_matrix_product(double[:, :, :] dls_, double[::1, :] solutions):
+    cdef int L_max, size_real, size_complex, idx, l, m, i
+    cdef double pi
+    pi = np.pi
+    L_max = len(dls_) - 1
+    size_real = (L_max + 1)**2
+    size_complex = (L_max+1)*(L_max+2)/2
+    cdef double[::1, :, :] alms_shape = np.zeros((size_complex, 3, 3), order="F")
+    cdef double[::1, :, :] variance = np.zeros((size_real, 3, 3), order="F")
+    cdef double[::1, :] result = np.zeros((size_real, 3), order="F")
+    for l in range(L_max+1):
+        for m in range(l+1):
+            idx = m * (2 * L_max + 1 - m) // 2 + l
+            if l == 0:
+                alms_shape.base[idx, :, :] = dls_.base[l, :, :]
+            else:
+                alms_shape.base[idx, :, :] = dls_.base[idx, :, :]*2*pi/(l*(l+1))
 
-        
+    for i in range(L_max+1):
+        result.base[i, 0] = alms_shape.base[i, 0, 0]*solutions[i, 0] + alms_shape.base[i, 0, 1]*solutions[i, 1]
+        result.base[i, 1] = alms_shape.base[i, 1, 0]*solutions[i, 0] + alms_shape.base[i, 0, 1]*solutions[i, 1]
+        result.base[i, 2] = alms_shape.base[i, 2, 2]*solutions[i, 2]
+
+    for i in range(L_max+1, size_complex):
+        result.base[2*i - (L_max+1), 0] = alms_shape.base[i, 0, 0]*solutions[2*i - (L_max+1), 0] + alms_shape.base[i, 0, 1]*solutions[2*i - (L_max+1), 1]
+        result.base[2*i - (L_max+1), 1] = alms_shape.base[i, 1, 0]*solutions[2*i - (L_max+1), 0] + alms_shape.base[i, 0, 1]*solutions[2*i - (L_max+1), 1]
+        result.base[2*i - (L_max+1), 2] = alms_shape.base[i, 2, 2]*solutions[2*i - (L_max+1), 2]
+
+        result.base[2*i - (L_max+1) + 1, 0] = alms_shape.base[i, 0, 0]*solutions[2*i - (L_max+1) + 1, 0] + alms_shape.base[i, 0, 1]*solutions[2*i - (L_max+1) + 1, 1]
+        result.base[2*i - (L_max+1) + 1, 1] = alms_shape.base[i, 1, 0]*solutions[2*i - (L_max+1) + 1, 0] + alms_shape.base[i, 0, 1]*solutions[2*i - (L_max+1) + 1, 1]
+        result.base[2*i - (L_max+1) + 1, 2] = alms_shape.base[i, 2, 2]*solutions[2*i - (L_max+1) + 1, 2]
+
+    return result
+
+
+
 
 
 

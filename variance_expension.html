@@ -899,9 +899,9 @@ static PyObject *__pyx_pf_18variance_expension_2generate_polarization_var_cl_cyt
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_slice_);
   <span class='refnanny'>__Pyx_GIVEREF</span>(__pyx_slice_);
 </pre><pre class="cython line score-0">&#xA0;<span class="">047</span>:             else:</pre>
-<pre class="cython line score-66" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">048</span>:                 alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))</pre>
+<pre class="cython line score-66" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">048</span>:                 alms_shape.base[idx, :, :] = cls_.base[idx, :, :]*2*pi/(l*(l+1))</pre>
 <pre class='cython code score-66 '>      /*else*/ {
-        __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_alms_shape, 3, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);;<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)</span>
+        __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_cls_, 3, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);;<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)</span>
         <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
         __pyx_t_5 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(__pyx_t_1, __pyx_n_s_base);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 48, __pyx_L1_error)</span>
         <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
