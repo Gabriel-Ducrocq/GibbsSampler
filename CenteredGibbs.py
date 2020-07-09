@@ -7,7 +7,7 @@ import numpy as np
 from scipy.stats import invgamma
 import time
 import config
-
+from linear_algebra import compute_inverse_matrices
 
 
 
@@ -68,10 +68,16 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, isotropic=True):
+        super().__init__(pix_map, noise_temp, bl_map, lmax, Npix, isotropic=True)
+        self.noise_temp = np.ones(self.lmax)*noise_temp
+        self.noise_pol = np.ones(self.lmax)*noise_pol
+        self.noise = np.hstack(zip(self.noise_temp, self.noise_pol, self.noise_pol))
+        self.inv_noise = 1/self.noise
+        self.pix_part = (self.Npix/(4*np.pi))*self.bl_map**2*self.inv_noise
 
     def sample(self, all_cls):
-        inv_var_cls = np.zeros(len(var_cls))
-        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
+        inv_all_l, chol_all_l = compute_inverse_matrices(all_cls, self.lmax+1, )
 
         b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \

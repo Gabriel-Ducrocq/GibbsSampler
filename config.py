@@ -40,7 +40,7 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 8
+NSIDE = 512
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000

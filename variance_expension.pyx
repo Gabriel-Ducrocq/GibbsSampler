@@ -30,28 +30,33 @@ cpdef double[:] generate_var_cl_cython(double[:] cls_):
     return variance
 
 
-cpdef double[:] generate_var_cl_log_cython(double[:] log_cls_):
+cpdef double[::1, :, :] generate_polarization_var_cl_cython(double[::1, :, :] cls_):
     cdef int L_max, size_real, size_complex, idx, l, m, i
-    L_max = len(log_cls_) - 1
+    cdef double pi
+    pi = np.pi
+    L_max = len(cls_) - 1
     size_real = (L_max + 1)**2
     size_complex = (L_max+1)*(L_max+2)/2
-    cdef double[:] alms_shape = np.zeros(size_complex)
-    cdef double[:] variance = np.zeros(size_real)
-    cdef double[:] exp_log_cls_ = np.exp(log_cls_)
+    cdef double[::1, :, :] alms_shape = np.zeros((size_complex, 3, 3), order="F")
+    cdef double[::1, :, :] variance = np.zeros((size_real, 3, 3), order="F")
     for l in range(L_max+1):
         for m in range(l+1):
             idx = m * (2 * L_max + 1 - m) // 2 + l
-            alms_shape[idx] = exp_log_cls_[l] - 1
+            if l == 0:
+                alms_shape.base[idx, :, :] = cls_.base[l, :, :]
+            else:
+                alms_shape.base[idx, :, :] = alms_shape.base[idx, :, :]*2*pi/(l*(l+1))
 
     for i in range(L_max+1):
-        variance[i] = alms_shape[i]
+        variance.base[i, :, :] = alms_shape.base[i, :, :]
 
 
     for i in range(L_max+1, size_complex):
-        variance[2*i - (L_max+1)] = alms_shape[i]
-        variance[2*i - (L_max+1) +1] = alms_shape[i]
+        variance.base[2*i - (L_max+1), :, :] = alms_shape.base[i, :, :]
+        variance.base[2*i - (L_max+1) +1, :, :] = alms_shape.base[i, :, :]
 
     return variance
+
 
 
 cpdef double[:] complex_to_real(double complex[:] alms):

@@ -546,8 +546,7 @@ def complex_to_real_libsharp(alms):
     return np.array([a for alm in temp for a in alm])
 
 
-def real_to_complex(alms):
-    m_0 = alms[:config.L_MAX_SCALARS+1] + np.zeros(config.L_MAX_SCALARS+1)*1j
+def real_to_complex(alms):    m_0 = alms[:config.L_MAX_SCALARS+1] + np.zeros(config.L_MAX_SCALARS+1)*1j
     m_pos = alms[config.L_MAX_SCALARS+1:]
     m_pos = (m_pos[::2] + 1j*m_pos[1::2])/np.sqrt(2)
     return np.concatenate([m_0, m_pos])
