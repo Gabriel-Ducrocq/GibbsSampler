@@ -95,7 +95,7 @@ size_alm = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 offset = np.array([float(i) for i in range(1000)])
 list_mat = []
 list_inv = []
-for i in range(1000):
+for i in range(1000000):
     mat = np.random.normal(size=(3,3))
     mat = np.dot(mat.T, mat)
     mat[0, 2] = mat[1, 2] = mat[2, 0] = mat[2, 1] = 0
@@ -103,13 +103,14 @@ for i in range(1000):
 
 start = time.time()
 list_chol= []
-for i in range(1000):
+for i in range(1000000):
     mat = list_mat[i]
-    inv_mat = np.linalg.inv(mat) + np.eye(3)*offset[i]
-    inv_inv_mat = np.linalg.inv(inv_mat)
-    chol = np.linalg.cholesky(inv_inv_mat)
-    list_inv.append(inv_inv_mat)
-    list_chol.append(chol)
+    np.dot(mat, np.ones(3))
+    #inv_mat = np.linalg.inv(mat) + np.eye(3)*offset[i]
+    #inv_inv_mat = np.linalg.inv(inv_mat)
+    #chol = np.linalg.cholesky(inv_inv_mat)
+    #list_inv.append(inv_inv_mat)
+    #list_chol.append(chol)
 
 end = time.time()
 print("PYTHON")

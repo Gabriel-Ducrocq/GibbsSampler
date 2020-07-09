@@ -77,6 +77,24 @@ cpdef compute_inverse_matrices(double[:, :, :] sigmas_symm, int l, double[::1] o
 
 
 
+@cython.boundscheck(False)  # Deactivate bounds checking
+@cython.wraparound(False)
+cpdef compute_matrix_product(double[:, :, :] sigmas_symm, int l, double[::1] solution):
+     cdef:
+        double[::1,:, :] intermediate_result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
+        double[::1,:, :] result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
+        double[::1, :] sigm_current = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order = "F")
+        double[::1, :, :] cholesky = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
+        double[:, :] cholesky_temp = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
+        double det = 0
+        char* type_output = 'L'
+        int n = sigmas_symm.shape[1]
+        int lda = sigmas_symm.shape[1]
+        int info = 0
+
+        
+
+
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)
