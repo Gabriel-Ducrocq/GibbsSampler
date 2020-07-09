@@ -68,32 +68,30 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, isotropic=True):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
         super().__init__(pix_map, noise_temp, bl_map, lmax, Npix, isotropic=True)
         self.noise_temp = np.ones(self.lmax)*noise_temp
         self.noise_pol = np.ones(self.lmax)*noise_pol
-        self.noise = np.hstack(zip(self.noise_temp, self.noise_pol, self.noise_pol))
-        self.inv_noise = 1/self.noise
-        self.pix_part = (self.Npix/(4*np.pi))*self.bl_map**2*self.inv_noise
+        self.noise_alm = np.hstack(zip(self.noise_temp, self.noise_pol, self.noise_pol))
+        self.inv_noise_alm = 1/self.noise_alm
+        self.pix_part_variance = (self.Npix/(4*np.pi))*self.bl_map**2*self.inv_noise
+        self.noise_pix = np.concatenate([self.noise_temp, self.noise_pol, self.noise_pol])
+        self.inv_noise_temp = 1/self.noise_temp
+        self.inv_noise_pol = 1/self.noise_pol
+        self.bl_fwhm = bl_fwhm
 
     def sample(self, all_cls):
-        inv_all_l, chol_all_l = compute_inverse_matrices(all_cls, self.lmax+1, )
-
-        b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
-        b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
-                         self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
-                                                              * np.sqrt(self.inv_noise))
-
-
         start = time.time()
-        Sigma = 1/(inv_var_cls + self.inv_noise * (config.Npix / (4 * np.pi)) * config.bl_map ** 2)
-        weiner = Sigma * b_weiner
-        flucs = Sigma * b_fluctuations
-        map = weiner + flucs
-        err = 0
-        map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
-        time_to_solution = time.time() - start
+        inv_all_l, chol_all_l = compute_inverse_matrices(all_cls, self.lmax+1, self.pix_part_variance)
 
+        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
+                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[1]], self.bl_fwhm)
+
+        b_weiner = np.hstack(zip(b_weiner_unpacked))
+        b_fluctuations = np.random.normal(size=3*(self.lmax+1)**2)
+
+        time_to_solution = time.time() - start
+        err = 0
         return map, time_to_solution, err
 
 

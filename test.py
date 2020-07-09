@@ -92,10 +92,10 @@ size_alm = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 #print(np.abs((pix_back[2] - pix_pol[2])/pix_pol[2]))
 #print(np.abs((pix_back - pix_pol)/pix_pol))
 """
-offset = np.array([float(i) for i in range(1000000)])
+offset = np.array([float(i) for i in range(1000)])
 list_mat = []
 list_inv = []
-for i in range(1000000):
+for i in range(1000):
     mat = np.random.normal(size=(3,3))
     mat = np.dot(mat.T, mat)
     mat[0, 2] = mat[1, 2] = mat[2, 0] = mat[2, 1] = 0
@@ -103,7 +103,7 @@ for i in range(1000000):
 
 start = time.time()
 list_chol= []
-for i in range(1000000):
+for i in range(1000):
     mat = list_mat[i]
     inv_mat = np.linalg.inv(mat) + np.eye(3)*offset[i]
     inv_inv_mat = np.linalg.inv(inv_mat)
@@ -118,7 +118,7 @@ print(end-start)
 mat = np.stack(list_mat, axis = 0)
 mat = np.ascontiguousarray(mat)
 start = time.time()
-r, e = compute_inverse_matrices(mat, 1000000, offset)
+r, e = compute_inverse_matrices(mat, 1000, offset)
 end = time.time()
 print("CYTHON")
 print(end-start)
@@ -127,10 +127,17 @@ print(end-start)
 print(np.asarray(r)[0, :, :])
 print(list_inv[0])
 print("\n")
-for i in range(100):
+for i in range(1):
     print(np.nanmax(np.abs(np.asarray(r)[i, :, :] - list_inv[i])/list_inv[i]))
     print("\n")
 
 
+
+alms = hp.map2alm(np.random.normal(size=config.Npix), lmax=config.L_MAX_SCALARS)
+print(alms)
+a = np.ones(len(alms)) + 1j*np.ones(len(alms))
+r1, r2, r3 = hp.sphtfunc.smoothalm([a, a, a], fwhm=config.beam_fwhm)
+
+print(r1-r3)
 
 

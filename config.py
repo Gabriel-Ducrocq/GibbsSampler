@@ -119,12 +119,7 @@ print(mask_non_centered)
 
 N_metropolis = 1
 
-rescaling_map2alm = np.ones(dimension_h) * (Npix / (4 * np.pi))  # *np.sqrt(2)
-rescaling_map2alm[:L_MAX_SCALARS + 1] = (Npix / (4 * np.pi))
-rescaling_alm2map = np.ones(dimension_h)  # /np.sqrt(2)
-rescaling_alm2map[:L_MAX_SCALARS + 1] = 1
-rescaling_analysis = np.ones(dimension_h)  # *np.sqrt(2)
-rescaling_analysis[:L_MAX_SCALARS + 1] = 1
+rescaling_map2alm = (Npix / (4 * np.pi))
 
 print("L_cut")
 print(l_cut)

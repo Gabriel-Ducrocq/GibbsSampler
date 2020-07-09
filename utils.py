@@ -583,15 +583,6 @@ def real_libsharp_to_real(alms_libsharp):
 
 
 
-def synthesis(alms, type_input="real"):
-    if type_input == "complex":
-        alms_libsharp = complex_to_real_libsharp(alms)
-    else:
-        alms_libsharp = real_to_real_libsharp(alms)
-
-    map = libsharp.synthesis(config.grid, config.order, alms_libsharp[None, None, :])
-    return map[0, 0, :]
-
 
 def synthesis_hp2(alms):
     alms = alms*config.rescaling_alm2map
@@ -621,37 +612,29 @@ def adjoint_synthesis(map):
     return remove_monopole_dipole_contributions(real_libsharp_to_real(alms_libsharp[0, 0, :]))
 
 
-def adjoint_synthesis_hp(map):
+def adjoint_synthesis_hp(map, bl_fwhm=None):
     alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS)
-    alms = remove_monopole_dipole_contributions(complex_to_real(alms))
-    alms *= config.rescaling_map2alm
-    return alms
+    if len(alms) == 1:
+        alms = remove_monopole_dipole_contributions(complex_to_real(alms))
+        alms *= config.rescaling_map2alm
+        return alms
+    else:
+        if bl_fwhm is not None:
+            alms= hp.sphtfunc.smoothalm(alms, bl_fwhm)
 
-
-def analysis(map):
-    alms_libsharp = libsharp.analysis(config.grid, config.order, map[None, None, :])
-    return remove_monopole_dipole_contributions(real_libsharp_to_real(alms_libsharp[0, 0, :]))
-
+        alms_T, alms_E, alms_B = alms
+        alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm
+        alms_E = remove_monopole_dipole_contributions(complex_to_real(alms_E))*config.rescaling_map2alm
+        alms_B = remove_monopole_dipole_contributions(complex_to_real(alms_B))*config.rescaling_map2alm
+        return alms_T, alms_E, alms_B
 
 def analysis_hp(map):
     return remove_monopole_dipole_contributions(
         complex_to_real(hp.map2alm(map, lmax=config.L_MAX_SCALARS))*config.rescaling_analysis)
 
-
-def generate_var_cl2(cls_):
-    var_cl_full = np.concatenate([cls_,
-                    np.array([cl for m in range(1, config.L_MAX_SCALARS+1) for cl in cls_[m:] for _ in range(2)])])
-    return var_cl_full
-
 def generate_var_cl(cls_):
     var_cl_full = generate_var_cl_cython(cls_)
     return np.asarray(var_cl_full)
-
-
-def generate_var_cl_log(log_cls_):
-    var_cl_full = generate_var_cl_log_cython(log_cls_)
-    return np.asarray(var_cl_full)
-
 
 def trace_normal(inv_var_cls, h_s, l, d):
     h_min = np.min(h_s[:, l])
