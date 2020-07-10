@@ -2,9 +2,43 @@ import numpy as np
 from scipy.sparse import block_diag
 from scipy.sparse.linalg import inv, spsolve
 import time
-from linear_algebra import product_cls_inverse, compute_cholesky, compute_inverse_matrices
+#from linear_algebra import product_cls_inverse, compute_cholesky, compute_inverse_matrices
 import config
+import utils
 import healpy as hp
+from CenteredGibbs import PolarizedCenteredConstrainedRealization
+
+theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale=config.COSMO_PARAMS_SIGMA_PRIOR)
+cls_tt, cls_ee, cls_bb, cls_te = utils.generate_cls(theta_, pol = True)
+pix_map = hp.synfast([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
+                     nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
+
+
+pol_sampler = PolarizedCenteredConstrainedRealization(pix_map, 40, 0.44, config.bl_map, config.L_MAX_SCALARS,
+                                                      config.Npix, config.beam_fwhm, isotropic=True)
+
+cls_bb = cls_ee
+list_matrices = []
+for i in range(config.L_MAX_SCALARS+1):
+    m = np.zeros((3, 3))
+    m[0, 0] = cls_tt[i]
+    m[1, 0] = m[0, 1] = cls_te[i]
+    m[1, 1] = cls_ee[i]
+    m[2, 2] = cls_bb[i]
+    list_matrices.append(m)
+
+input_cls = np.stack(list_matrices, axis = 0)
+print(input_cls[2, :, :])
+print("Compilation time")
+solution, _, _ = pol_sampler.sample2(input_cls)
+print("No compilation time")
+solution, _, _ = pol_sampler.sample2(input_cls)
+
+print(solution)
+
+
+
+
 
 """
 start = time.time()
@@ -92,6 +126,7 @@ size_alm = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 #print(np.abs((pix_back[2] - pix_pol[2])/pix_pol[2]))
 #print(np.abs((pix_back - pix_pol)/pix_pol))
 """
+"""
 offset = np.array([float(i) for i in range(1000)])
 list_mat = []
 list_inv = []
@@ -140,5 +175,4 @@ a = np.ones(len(alms)) + 1j*np.ones(len(alms))
 r1, r2, r3 = hp.sphtfunc.smoothalm([a, a, a], fwhm=config.beam_fwhm)
 
 print(r1-r3)
-
-
+"""

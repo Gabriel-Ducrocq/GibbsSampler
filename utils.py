@@ -16,7 +16,7 @@ def generate_theta():
     return np.random.normal(config.COSMO_PARAMS_MEAN, config.COSMO_PARAMS_SIGMA)
 
 
-def generate_cls(theta):
+def generate_cls(theta, pol = False):
     params = {'output': config.OUTPUT_CLASS,
               'l_max_scalars': config.L_MAX_SCALARS,
               'lensing': config.LENSING}
@@ -25,11 +25,19 @@ def generate_cls(theta):
     cosmo.set(params)
     cosmo.compute()
     cls = cosmo.raw_cl(config.L_MAX_SCALARS)
-    #10^12 parce que les cls sont exprimés en kelvin carré, du coup ça donne une stdd en 10^6
-    cls["tt"] *= 2.7255e6**2
-    cosmo.struct_cleanup()
-    cosmo.empty()
-    return cls["tt"]
+    # 10^12 parce que les cls sont exprimés en kelvin carré, du coup ça donne une stdd en 10^6
+    cls_tt = cls["tt"]*2.7255e6**2
+    if not pol:
+        cosmo.struct_cleanup()
+        cosmo.empty()
+        return cls_tt
+    else:
+        cls_ee = cls["ee"]*2.7255e6**2
+        cls_bb = cls["bb"]*2.7255e6**2
+        cls_te = cls["te"]*2.7255e6**2
+        cosmo.struct_cleanup()
+        cosmo.empty()
+        return cls_tt, cls_ee, cls_bb, cls_te
 
 
 class LinOp():
@@ -546,7 +554,8 @@ def complex_to_real_libsharp(alms):
     return np.array([a for alm in temp for a in alm])
 
 
-def real_to_complex(alms):    m_0 = alms[:config.L_MAX_SCALARS+1] + np.zeros(config.L_MAX_SCALARS+1)*1j
+def real_to_complex(alms):
+    m_0 = alms[:config.L_MAX_SCALARS+1] + np.zeros(config.L_MAX_SCALARS+1)*1j
     m_pos = alms[config.L_MAX_SCALARS+1:]
     m_pos = (m_pos[::2] + 1j*m_pos[1::2])/np.sqrt(2)
     return np.concatenate([m_0, m_pos])

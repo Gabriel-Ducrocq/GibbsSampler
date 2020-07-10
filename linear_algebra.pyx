@@ -40,18 +40,18 @@ def product_cls_inverse(double[:,:,:] sigmas_symm, double[:,::1] b, int l):
 cpdef compute_inverse_matrices(double[:, :, :] sigmas_symm, int l, double[::1] offset):
 
     cdef:
-        double[::1,:, :] intermediate_result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[::1,:, :] result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[::1, :] sigm_current = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order = "F")
-        double[::1, :, :] cholesky = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double[:, :] cholesky_temp = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F")
-        double det = 0
+        double[::1,:, :] intermediate_result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F", dtype=float)
+        double[::1,:, :] result = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F", dtype=float)
+        double[::1, :] sigm_current = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order = "F", dtype=float)
+        double[::1, :, :] cholesky = np.zeros((l, sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F", dtype=float)
+        double[:, :] cholesky_temp = np.zeros((sigmas_symm.shape[1], sigmas_symm.shape[1]), order="F", dtype=float)
+        double det = 1
         char* type_output = 'L'
         int n = sigmas_symm.shape[1]
         int lda = sigmas_symm.shape[1]
         int info = 0
 
-    for i in range(l):
+    for i in range(2, l):
          sigm_current = sigmas_symm[i,:,:].copy_fortran()
          det = sigm_current[0, 0]*sigm_current[1, 1] - sigm_current[1, 0]*sigm_current[0, 1]
          intermediate_result.base[i, 0, 0] = sigm_current[1, 1]/det + offset[i]
@@ -79,7 +79,7 @@ cpdef compute_inverse_matrices(double[:, :, :] sigmas_symm, int l, double[::1] o
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)
-cpdef compute_matrix_product(double[:, :, :] dls_, double[::1, :] solutions):
+cpdef compute_matrix_product(double[:, :, :] dls_, double[:, :] solutions):
     cdef int L_max, size_real, size_complex, idx, l, m, i
     cdef double pi
     pi = np.pi
@@ -95,7 +95,7 @@ cpdef compute_matrix_product(double[:, :, :] dls_, double[::1, :] solutions):
             if l == 0:
                 alms_shape.base[idx, :, :] = dls_.base[l, :, :]
             else:
-                alms_shape.base[idx, :, :] = dls_.base[idx, :, :]*2*pi/(l*(l+1))
+                alms_shape.base[idx, :, :] = dls_.base[l, :, :]*2*pi/(l*(l+1))
 
     for i in range(L_max+1):
         result.base[i, 0] = alms_shape.base[i, 0, 0]*solutions[i, 0] + alms_shape.base[i, 0, 1]*solutions[i, 1]
