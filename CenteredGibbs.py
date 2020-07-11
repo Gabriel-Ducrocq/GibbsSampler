@@ -4,7 +4,7 @@ from ClsSampler import ClsSampler
 import utils
 import healpy as hp
 import numpy as np
-from scipy.stats import invgamma
+from scipy.stats import invgamma, invwishart
 import time
 import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
@@ -40,9 +40,29 @@ class CenteredClsSampler(ClsSampler):
 
         return sampled_cls
 
+class PolarizedCenteredClsSampler(ClsSampler):
 
+    def sample(self, alms):
+        alms_TT_complex = utils.real_to_complex(alms[:, 0])
+        alms_EE_complex = utils.real_to_complex(alms[:, 1])
+        alms_BB_complex = utils.real_to_complex(alms[:, 2])
+        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex], lmax=self.lmax)
 
+        sampled_power_spec = np.zeros((self.lmax+1, 3, 3))
+        for i in range(2, self.lmax+1):
+            deg_freed = 2*i-2
+            param_mat = np.zeros((2, 2))
+            param_mat[0, 0] = spec_TT[i]
+            param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
+            param_mat[1, 1] = spec_EE[i]
+            param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
+            sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
+            beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
+            sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)
+            sampled_power_spec[i, :2, :2] = sampled_TT_TE_EE
+            sampled_power_spec[i, 2, 2] = sampled_BB
 
+        return sampled_power_spec
 
 
 class CenteredConstrainedRealization(ConstrainedRealization):
@@ -71,7 +91,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 complex_dim = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 
 
-@njit(fastmath=True, parallel=True)
+@njit(parallel=True)
 def matrix_product(dls_, b):
     alms_shape = np.zeros((complex_dim, 3, 3))
     result = np.zeros(((config.L_MAX_SCALARS+1)**2, 3))
@@ -82,34 +102,34 @@ def matrix_product(dls_, b):
             if l == 0:
                 alms_shape[idx, :, :] = dls_[l, :, :]
             else:
-                alms_shape[idx, :, :] = dls_[l, :, :] * 2 * np.pi / (l * (l + 1))
+                alms_shape[idx, :, :] = dls_[l, :, :] #* 2 * np.pi / (l * (l + 1))
 
     for i in prange(config.L_MAX_SCALARS + 1):
         result[i, 0] = alms_shape[i, 0, 0] * b[i, 0] + alms_shape[i, 0, 1] * b[i, 1]
-        result[i, 1] = alms_shape[i, 1, 0] * b[i, 0] + alms_shape[i, 0, 1] * b[i, 1]
+        result[i, 1] = alms_shape[i, 1, 0] * b[i, 0] + alms_shape[i, 1, 1] * b[i, 1]
         result[i, 2] = alms_shape[i, 2, 2] * b[i, 2]
 
     for i in prange(config.L_MAX_SCALARS+1, complex_dim):
         result[2*i - (config.L_MAX_SCALARS+1), 0] = alms_shape[i, 0, 0]*b[2*i - (config.L_MAX_SCALARS+1), 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1), 1]
-        result[2*i - (config.L_MAX_SCALARS+1), 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1), 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1), 1]
+        result[2*i - (config.L_MAX_SCALARS+1), 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1), 0] + alms_shape[i, 1, 1]*b[2*i - (config.L_MAX_SCALARS+1), 1]
         result[2*i - (config.L_MAX_SCALARS+1), 2] = alms_shape[i, 2, 2]*b[2*i - (config.L_MAX_SCALARS+1), 2]
 
         result[2*i - (config.L_MAX_SCALARS+1) + 1, 0] = alms_shape[i, 0, 0]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 1]
-        result[2*i - (config.L_MAX_SCALARS+1) + 1, 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 1]
+        result[2*i - (config.L_MAX_SCALARS+1) + 1, 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 0] + alms_shape[i, 1, 1]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 1]
         result[2*i - (config.L_MAX_SCALARS+1) + 1, 2] = alms_shape[i, 2, 2]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 2]
 
     return result
 
-@njit(fastmath=True, parallel=True)
-def compute_inverse_and_cholesky(all_dls, pix_part_variance):
-    inv_dls = np.zeros((len(all_dls), 3, 3))
-    chol_dls = np.zeros((len(all_dls), 3, 3))
+@njit(parallel=True)
+def compute_inverse_and_cholesky(all_cls, pix_part_variance):
+    inv_cls = np.zeros((len(all_cls), 3, 3))
+    chol_cls = np.zeros((len(all_cls), 3, 3))
 
-    for i in prange(2, len(all_dls)):
-        inv_dls[i, :, :] = np.linalg.inv(all_dls[i]) + np.diag(pix_part_variance[i])
-        chol_dls[i, :, :] = np.linalg.cholesky(inv_dls[i])
+    for i in prange(2, len(all_cls)):
+        inv_cls[i, :, :] = np.linalg.inv(all_cls[i, :, :]) + np.diag(pix_part_variance[i, :])
+        chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
 
-    return inv_dls, chol_dls
+    return inv_cls,chol_cls
 
 
 
@@ -130,6 +150,62 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.bl_fwhm = bl_fwhm
         self.complex_dim = int((config.L_MAX_SCALARS +1)*(config.L_MAX_SCALARS+2)/2)
 
+    def sample(self, all_dls):
+        start = time.time()
+        all_cls = all_dls * 2 * np.pi / (self.lmax * (self.lmax + 1))
+        inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
+
+
+        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
+                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
+
+
+        b_weiner = np.ascontiguousarray(np.stack(b_weiner_unpacked, axis = 1))
+        b_fluctuations = np.ascontiguousarray(np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3)).reshape((-1, 3)))
+
+        fluctuations = matrix_product(chol_cls, b_fluctuations)
+        weiner_map = matrix_product(inv_cls, b_weiner)
+        map = weiner_map + fluctuations
+        time_to_solution = time.time() - start
+        err = 0
+        #print("Time to solution")
+        #print(time_to_solution)
+        return map, time_to_solution, err
+
+
+
+class CenteredGibbs(GibbsSampler):
+
+    def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000):
+        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
+        if not polarization:
+            self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, lmax, Npix, isotropic=True)
+            self.cls_sampler = CenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
+        else:
+            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
     def sample(self, all_cls):
         start = time.time()
         inv_all_l, chol_all_l = compute_inverse_matrices(all_cls, config.L_MAX_SCALARS+1, self.pix_part_variance)
@@ -151,38 +227,4 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         print("Time to solution")
         print(time_to_solution)
         return map, time_to_solution, err
-
-    def sample2(self, all_dls):
-        start = time.time()
-        inv_dls, chol_dls = compute_inverse_and_cholesky(all_dls, self.pix_part_variance)
-
-
-        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
-
-
-        b_weiner = np.stack(b_weiner_unpacked, axis = 1)
-        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3)).reshape((-1, 3), order="F")
-
-        fluctuations = matrix_product(chol_dls, b_fluctuations)
-        weiner_map = matrix_product(inv_dls, b_weiner)
-        map = weiner_map + fluctuations
-        time_to_solution = time.time() - start
-        err = 0
-        print("Time to solution")
-        print(time_to_solution)
-        return map, time_to_solution, err
-
-
-
-class CenteredGibbs(GibbsSampler):
-
-    def __init__(self, pix_map, noise, beam, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000):
-        super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
-        self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise, self.bl_map, lmax, Npix, isotropic=True)
-        self.cls_sampler = CenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise)
-
-
-
-
-
+"""

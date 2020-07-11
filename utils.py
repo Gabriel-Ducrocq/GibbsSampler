@@ -18,13 +18,15 @@ def generate_theta():
 
 def generate_cls(theta, pol = False):
     params = {'output': config.OUTPUT_CLASS,
+              "modes":"s,t",
+              "r":0.001,
               'l_max_scalars': config.L_MAX_SCALARS,
               'lensing': config.LENSING}
     d = {name:val for name, val in zip(config.COSMO_PARAMS_NAMES, theta)}
     params.update(d)
     cosmo.set(params)
     cosmo.compute()
-    cls = cosmo.raw_cl(config.L_MAX_SCALARS)
+    cls = cosmo.lensed_cl(config.L_MAX_SCALARS)
     # 10^12 parce que les cls sont exprimés en kelvin carré, du coup ça donne une stdd en 10^6
     cls_tt = cls["tt"]*2.7255e6**2
     if not pol:

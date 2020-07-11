@@ -15,15 +15,15 @@ from PNCP import PNCPGibbs
 from ASIS import ASIS
 
 
-def generate_dataset(planck=False):
+def generate_dataset(polarization=True):
     theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
-    cls_ = utils.generate_cls(theta_)
-    var_cl_full = utils.generate_var_cl(cls_)
-
-    alms_true = np.random.normal(scale=np.sqrt(var_cl_full)) * config.bl_map
-    s_true = utils.synthesis_hp(alms_true)
-    d = s_true + np.random.normal(scale=np.sqrt(config.var_noise))
-    return theta_, cls_, s_true, alms_true, d
+    cls_ = utils.generate_cls(theta_, polarization)
+    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm)
+    d = map_true
+    d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
+    d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
+    d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
+    return theta_, cls_, map_true,  d
 
 
 
@@ -37,36 +37,49 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, alm_, pix_map = generate_dataset()
+    theta_, cls_, s_true, pix_map = generate_dataset()
 
-    snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar * 4 * np.pi / config.Npix)
+    snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
+    plt.title("TT")
+    plt.show()
+
+    snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
+    plt.plot(snr)
+    plt.axhline(y=1)
+    plt.title("EE")
+    plt.show()
+
+    snr = cls_[2] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
+    plt.plot(snr)
+    plt.axhline(y=1)
+    plt.title("BB")
+    plt.show()
+
+    snr = cls_[3] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
+    plt.plot(snr)
+    plt.axhline(y=1)
+    plt.title("TE")
     plt.show()
 
 
-    d = np.load("test.npy", allow_pickle=True)
-    d = d.item()
-    h_cls_nc = d["h_cls_nc"]
-    h_cls_centered = d["h_cls_centered"]
-    h_cls_pncp = d["h_cls_pncp"]
-    pix_map = d["pix_map"]
-    cls_ = d["cls_"]
-
-
-    non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
 
-    centered_gibbs = CenteredGibbs(pix_map, config.noise_covar, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    centered_gibbs = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, n_iter=100000)
 
-    pncp_sampler = PNCPGibbs(pix_map, config.noise_covar, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                              config.Npix, config.proposal_variances_pncp, config.l_cut, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 100000, n_iter_metropolis=1)
 
-    asis_sampler = ASIS(pix_map, config.noise_covar, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    asis_sampler = ASIS(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                             config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=100000)
 
+
+    polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+                                   config.Npix, n_iter=100, polarization=True)
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
@@ -74,9 +87,18 @@ if __name__ == "__main__":
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
     #h_asis, _, _ = asis_sampler.run(cls_init)
 
-    #d = {"h_cls_nc":h_cls_nc, "h_cls_centered":h_cls_centered, "h_cls_pncp":h_cls_pncp, "h_cls_asis":h_asis ,
-    #     "pix_map":pix_map, "cls_":cls_}
-    #np.save("test.npy", d, allow_pickle=True)
+    init_cls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
+    init_cls[:, 0, 0] = cls_[0]
+    init_cls[:, 1, 1] = cls_[1]
+    init_cls[:, 2, 2] = cls_[2]
+    init_cls[:, 1, 0] = cls_[3]
+    init_cls[:, 0, 1] = cls_[3]
+    init_cls *= config.L_MAX_SCALARS*(config.L_MAX_SCALARS+1)/(2*np.pi)
+    h_cls_pol, _ = polarized_centered.run(init_cls)
+
+
+    d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization.npy", d, allow_pickle=True)
 
     d = np.load("test.npy", allow_pickle=True)
     d = d.item()

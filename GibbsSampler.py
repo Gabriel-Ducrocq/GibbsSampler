@@ -39,11 +39,18 @@ class GibbsSampler():
             if i % 10000 == 0:
                 print("Default Gibbs, iteration:", i)
 
-            cls = utils.unfold_bins(binned_cls, self.bins)
             start_time = time.process_time()
-            var_cls_full = utils.generate_var_cl(cls)
+            if not self.polarization:
+                cls = utils.unfold_bins(binned_cls, self.bins)
+                var_cls_full = utils.generate_var_cl(cls)
+            else:
+                cls = binned_cls
+                var_cls_full = cls
+
+
             alm_map, time_to_solution, err = self.constrained_sampler.sample(var_cls_full)
             binned_cls = self.cls_sampler.sample(alm_map)
+
             end_time = time.process_time()
             h_cls.append(binned_cls)
             h_time_seconds.append(end_time - start_time)

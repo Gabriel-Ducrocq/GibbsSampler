@@ -6,17 +6,37 @@ import time
 import config
 import utils
 import healpy as hp
-from CenteredGibbs import PolarizedCenteredConstrainedRealization
+from CenteredGibbs import PolarizedCenteredConstrainedRealization, PolarizedCenteredClsSampler
 
 theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale=config.COSMO_PARAMS_SIGMA_PRIOR)
 cls_tt, cls_ee, cls_bb, cls_te = utils.generate_cls(theta_, pol = True)
-pix_map = hp.synfast([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
-                     nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
+alms = hp.synalm([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
+                    lmax=config.L_MAX_SCALARS, new=True)
+
+alms_TT = utils.complex_to_real(alms[0])
+alms_EE = utils.complex_to_real(alms[1])
+alms_BB = utils.complex_to_real(alms[2])
+list_alms = np.stack([alms_TT, alms_EE, alms_BB], axis = 1)
+#pol_sampler = PolarizedCenteredClsSampler(pix_map, config.L_MAX_SCALARS, config.bins, config.bl_map, config.noise_covar_temp)
+#pol_sampler.sample(list_alms)
+
+print("CLS TT")
+print(cls_tt[1000:])
+print("\n")
+r = hp.alm2cl(alms[0, :], lmax=config.L_MAX_SCALARS)
+print(r[1000:])
 
 
+print(alms.shape)
+
+
+
+"""
 pol_sampler = PolarizedCenteredConstrainedRealization(pix_map, 40, 0.44, config.bl_map, config.L_MAX_SCALARS,
                                                       config.Npix, config.beam_fwhm, isotropic=True)
 
+print("BB")
+print(cls_bb)
 cls_bb = cls_ee
 list_matrices = []
 for i in range(config.L_MAX_SCALARS+1):
@@ -37,7 +57,7 @@ solution, _, _ = pol_sampler.sample2(input_cls)
 print(solution)
 
 
-
+"""
 
 
 """

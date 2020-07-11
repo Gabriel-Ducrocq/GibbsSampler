@@ -40,7 +40,7 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 512
+NSIDE = 8
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
@@ -67,11 +67,12 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # Pour nside = 8 et L_cut = 10: noise_covar = noise_covar_one_pix[7]*50000
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
-#noise_covar = 40**2
-noise_covar = 400**2
-var_noise = np.ones(Npix) * noise_covar
-inv_var_noise = np.ones(Npix) / noise_covar
-var_noise_sph = np.ones(dimension_h) * noise_covar / 2
+#noise_covar_temp = 40**2
+noise_covar_temp = 40**2
+noise_covar_pol = 0.44**2
+var_noise_temp = np.ones(Npix) * noise_covar_temp
+var_noise_pol = np.ones(Npix) * noise_covar_pol
+inv_var_noise = np.ones(Npix) / noise_covar_temp
 
 l_cut = 5
 print("L_CUT")
@@ -160,7 +161,7 @@ def compute_init_values(unbinned_vars):
 
 
 scale = [((l*(l+1))**2*2/(4*np.pi**2*(2*l+1))) for l in range(0, L_MAX_SCALARS+1)]
-unbinned_variances = (w*noise_covar/bl_gauss**2)**2*scale
+unbinned_variances = (w*noise_covar_temp/bl_gauss**2)**2*scale
 binned_variances = compute_init_values(unbinned_variances)
 binned_variances[600:-2] *= 4
 binned_variances[-2:-1] *= 1
