@@ -35,8 +35,9 @@ class GibbsSampler():
         h_cls = []
         h_time_seconds = []
         binned_cls = cls_init
+        h_cls.append(binned_cls)
         for i in range(self.n_iter):
-            if i % 10000 == 0:
+            if i % 1 == 0:
                 print("Default Gibbs, iteration:", i)
 
             start_time = time.process_time()

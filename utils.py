@@ -624,7 +624,7 @@ def adjoint_synthesis_hp(map, bl_fwhm=None):
         return alms
     else:
         if bl_fwhm is not None:
-            alms= hp.sphtfunc.smoothalm(alms, bl_fwhm)
+            alms = hp.sphtfunc.smoothalm(alms, bl_fwhm)
 
         alms_T, alms_E, alms_B = alms
         alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm

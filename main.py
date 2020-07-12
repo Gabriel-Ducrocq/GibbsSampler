@@ -18,7 +18,7 @@ from ASIS import ASIS
 def generate_dataset(polarization=True):
     theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
-    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm)
+    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
     d = map_true
     d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
     d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
@@ -39,6 +39,10 @@ if __name__ == "__main__":
 
     theta_, cls_, s_true, pix_map = generate_dataset()
 
+    range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+    plt.plot(cls_[1]*range_l)
+    plt.show()
+    """
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     plt.axhline(y=1)
     plt.title("TE")
     plt.show()
-
+    """
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
@@ -79,7 +83,7 @@ if __name__ == "__main__":
 
 
     polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=100, polarization=True)
+                                   config.Npix, n_iter=10000, polarization=True)
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
@@ -94,12 +98,34 @@ if __name__ == "__main__":
     init_cls[:, 1, 0] = cls_[3]
     init_cls[:, 0, 1] = cls_[3]
     init_cls *= config.L_MAX_SCALARS*(config.L_MAX_SCALARS+1)/(2*np.pi)
-    h_cls_pol, _ = polarized_centered.run(init_cls)
+    print("INIT DL")
+    i=j=0
+    print(init_cls[4, i, j])
+    #h_cls_pol, _ = polarized_centered.run(init_cls)
 
 
-    d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_polarization.npy", d, allow_pickle=True)
+    #d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_polarization.npy", d, allow_pickle=True)
 
+
+    d = np.load("test_polarization.npy", allow_pickle=True)
+    d = d.item()
+    h_cls = d["h_cls_centered"]
+
+    l_interest = 4
+    i = 1
+    j = 1
+    print("INIT DL")
+    print(init_cls[l_interest, i, j])
+    print(h_cls[:5, l_interest, i, j])
+    plt.plot(h_cls[:, l_interest, i, j])
+    plt.axhline(y=init_cls[l_interest, i, j])
+    plt.show()
+
+    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 50)
+    plt.show()
+
+    """
     d = np.load("test.npy", allow_pickle=True)
     d = d.item()
     h_cls_centered = d["h_cls_centered"]
@@ -122,3 +148,4 @@ if __name__ == "__main__":
     plt.hist(h_cls_asis[:, l_interest], label="ASIS", alpha=0.5, bins=n_bins, density=True)
     plt.legend(loc="upper right")
     plt.show()
+    """

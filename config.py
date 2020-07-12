@@ -40,7 +40,7 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 8
+NSIDE = 2
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
@@ -69,7 +69,7 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp = 40**2
 noise_covar_temp = 40**2
-noise_covar_pol = 0.44**2
+noise_covar_pol = 0.00044**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 inv_var_noise = np.ones(Npix) / noise_covar_temp

@@ -9,6 +9,7 @@ import time
 import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
+import scipy
 
 
 
@@ -40,6 +41,9 @@ class CenteredClsSampler(ClsSampler):
 
         return sampled_cls
 
+
+alm_obj = hp.Alm()
+
 class PolarizedCenteredClsSampler(ClsSampler):
 
     def sample(self, alms):
@@ -47,6 +51,31 @@ class PolarizedCenteredClsSampler(ClsSampler):
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
         alms_BB_complex = utils.real_to_complex(alms[:, 2])
         spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex], lmax=self.lmax)
+
+        l_interest = 2
+        list_vector = []
+        mat = 0
+        for m in range(l_interest+1):
+            idx = alm_obj.getidx(self.lmax, l_interest, m)
+            print(alms_TT_complex[idx], alms_EE_complex[idx])
+            vector = np.array([alms_TT_complex[idx], alms_EE_complex[idx]])
+            if m == 0:
+                mm = np.zeros((2, 2))
+                mm[0, 0] = vector[0]*vector[0].conj()
+                mm[1, 0] = vector[1]*vector[0].conj()
+                mm[0, 1] = vector[0] * vector[1].conj()
+                mm[1, 1] = vector[1] * vector[1].conj()
+                mat += mm
+            else:
+                mm = np.zeros((2, 2))
+                mm[0, 0] = vector[0]*vector[0].conj()
+                mm[1, 0] = vector[1]*vector[0].conj()
+                mm[0, 1] = vector[0] * vector[1].conj()
+                mm[1, 1] = vector[1] * vector[1].conj()
+                mat += 2*mm
+
+
+        print("\n")
 
         sampled_power_spec = np.zeros((self.lmax+1, 3, 3))
         for i in range(2, self.lmax+1):
@@ -56,6 +85,21 @@ class PolarizedCenteredClsSampler(ClsSampler):
             param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
             param_mat[1, 1] = spec_EE[i]
             param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
+            print(i)
+            print(param_mat)
+            if i == 2:
+                print(mat*i*(i+1)/(2*np.pi))
+                print("DET")
+                mm = mat*i*(i+1)/(2*np.pi)
+                det = np.linalg.det(mm)
+                print(det)
+                if det == 0.0:
+                    print(alms)
+                    print("\n")
+                    ar = np.stack([alms_TT_complex, alms_EE_complex, alms_BB_complex], axis=1)
+                    print(ar)
+
+            print("\n")
             sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
             beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
             sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)
@@ -91,6 +135,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 complex_dim = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 
 
+"""
 @njit(parallel=True)
 def matrix_product(dls_, b):
     alms_shape = np.zeros((complex_dim, 3, 3))
@@ -119,20 +164,57 @@ def matrix_product(dls_, b):
         result[2*i - (config.L_MAX_SCALARS+1) + 1, 2] = alms_shape[i, 2, 2]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 2]
 
     return result
+"""
 
-@njit(parallel=True)
+@njit(parallel=False)
+def matrix_product(dls_, b):
+    alms_shape = np.zeros((complex_dim, 3, 3))
+    result = np.zeros(((config.L_MAX_SCALARS+1)**2, 3))
+
+    for l in prange(config.L_MAX_SCALARS + 1):
+        for m in range(l + 1):
+            idx = m * (2 * config.L_MAX_SCALARS + 1 - m) // 2 + l
+            if l == 0:
+                alms_shape[idx, :, :] = dls_[l, :, :]
+            else:
+                alms_shape[idx, :, :] = dls_[l, :, :]
+
+    for i in prange(config.L_MAX_SCALARS + 1):
+        result[i, :] = np.dot(alms_shape[i, :, :], b[i, :])
+
+    for i in prange(config.L_MAX_SCALARS + 1, complex_dim):
+        result[2*i - (config.L_MAX_SCALARS+1), :] = np.dot(alms_shape[i, :, :], b[2*i - (config.L_MAX_SCALARS+1), :])
+        result[2*i - (config.L_MAX_SCALARS+1) +1, :] = np.dot(alms_shape[i, :, :],
+                                                               b[2 * i - (config.L_MAX_SCALARS + 1) + 1, :])
+
+
+    return result
+
+#@njit(parallel=False)
 def compute_inverse_and_cholesky(all_cls, pix_part_variance):
     inv_cls = np.zeros((len(all_cls), 3, 3))
     chol_cls = np.zeros((len(all_cls), 3, 3))
 
     for i in prange(2, len(all_cls)):
-        inv_cls[i, :, :] = np.linalg.inv(all_cls[i, :, :]) + np.diag(pix_part_variance[i, :])
+        print(i)
+        print("DET all cls")
+        print(np.linalg.det(all_cls[i, :2, :2]))
+        print(all_cls[i, :2, :2])
+        m = all_cls[i, :2, :2]
+        print("HAND DET")
+        print(str(m[0, 0])+"*"+str(m[1, 1])+"-"+str(m[1, 0])+"**2")
+        print("Condition number")
+        print(np.linalg.cond(m))
+        print(m[0, 0]*m[1, 1] - m[1, 0]**2)
+        inv_cls[i, :2, :2] = scipy.linalg.inv(all_cls[i, :2, :2])
+        inv_cls[i, 2, 2] = 1/all_cls[i, 2, 2]
+        inv_cls[i, :, :] += np.diag(pix_part_variance[i, :])
+        print("DET INV CLS")
+        print(np.linalg.det(inv_cls[i, :, :]))
+        inv_cls[i, :, :] = np.linalg.inv(inv_cls[i, :, :])
         chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
 
     return inv_cls,chol_cls
-
-
-
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
@@ -141,32 +223,41 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
-        self.noise_alm = np.hstack(zip(self.noise_temp*np.ones((config.L_MAX_SCALARS+1)**2), self.noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)
-                                       , self.noise_pol*np.ones((config.L_MAX_SCALARS+1)**2))).reshape(-1, 3)
-        self.inv_noise_alm = 1/self.noise_alm
         self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
                                         self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
                                         self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
+
         self.bl_fwhm = bl_fwhm
-        self.complex_dim = int((config.L_MAX_SCALARS +1)*(config.L_MAX_SCALARS+2)/2)
 
     def sample(self, all_dls):
         start = time.time()
         all_cls = all_dls * 2 * np.pi / (self.lmax * (self.lmax + 1))
-        inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
+        print("ALL CLS PREVIOUS")
+        print(all_cls)
+        inv_cls, chol_cls = compute_inverse_and_cholesky(all_dls, self.pix_part_variance)
 
 
         b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
                     self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
 
 
-        b_weiner = np.ascontiguousarray(np.stack(b_weiner_unpacked, axis = 1))
-        b_fluctuations = np.ascontiguousarray(np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3)).reshape((-1, 3)))
+        b_weiner = np.stack(b_weiner_unpacked, axis = 1)
+        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3))
 
-        fluctuations = matrix_product(chol_cls, b_fluctuations)
         weiner_map = matrix_product(inv_cls, b_weiner)
+        fluctuations = matrix_product(chol_cls, b_fluctuations)
         map = weiner_map + fluctuations
         time_to_solution = time.time() - start
+        print("INV CLS PREVIOUS")
+        print(inv_cls)
+        print("CHOL PREVIOUS")
+        print(chol_cls)
+        print("B FLUCS PREVIOUS")
+        print(b_fluctuations)
+        print("FLUCTUATIONS PREVIOUS")
+        print(fluctuations)
+        print("MAP PREVIOUS")
+        print(map)
         err = 0
         #print("Time to solution")
         #print(time_to_solution)

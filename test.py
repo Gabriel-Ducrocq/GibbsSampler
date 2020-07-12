@@ -8,26 +8,67 @@ import utils
 import healpy as hp
 from CenteredGibbs import PolarizedCenteredConstrainedRealization, PolarizedCenteredClsSampler
 
+
+
+
+"""
+#### Testing correct shuffling of vector
+li = ["a_"+str(l) for l in range(config.L_MAX_SCALARS+1)]
+print(li)
+alms_shape = [None for l in range(int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2))]
+for l in range(config.L_MAX_SCALARS + 1):
+    for m in range(l + 1):
+        idx = m * (2 * config.L_MAX_SCALARS + 1 - m) // 2 + l
+        if l == 0:
+            alms_shape[idx] = li[l]
+        else:
+            alms_shape[idx] = li[l]
+            
+print("ALMS")
+print(alms_shape)
+"""
+
+
+
 theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale=config.COSMO_PARAMS_SIGMA_PRIOR)
 cls_tt, cls_ee, cls_bb, cls_te = utils.generate_cls(theta_, pol = True)
-alms = hp.synalm([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
-                    lmax=config.L_MAX_SCALARS, new=True)
+pix_map = hp.synfast([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
+                    lmax=config.L_MAX_SCALARS, new=True, fwhm=config.beam_fwhm, nside=config.NSIDE)
 
-alms_TT = utils.complex_to_real(alms[0])
-alms_EE = utils.complex_to_real(alms[1])
-alms_BB = utils.complex_to_real(alms[2])
-list_alms = np.stack([alms_TT, alms_EE, alms_BB], axis = 1)
+pix_map[0] = np.zeros(len(pix_map[0]))
+pix_map[1] = np.zeros(len(pix_map[1]))
+pix_map[2] = np.zeros(len(pix_map[2]))
+
+#alms_TT = utils.complex_to_real(alms[0])
+#alms_EE = utils.complex_to_real(alms[1])
+#alms_BB = utils.complex_to_real(alms[2])
+#list_alms = np.stack([alms_TT, alms_EE, alms_BB], axis = 1)
+all_dls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
+all_dls[:, 0, 0] = cls_tt
+all_dls[:, 1, 1] = cls_ee
+all_dls[:, 2, 2] = cls_bb
+all_dls[:, 1, 0] = all_dls[:, 0, 1] = cls_te
+all_dls *= config.L_MAX_SCALARS*(config.L_MAX_SCALARS+1)/(2*np.pi)
+
+var_part = np.zeros((int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2), 3))
+var_part = np.random.uniform(size=(int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2), 3))
+from CenteredGibbs import compute_inverse_and_cholesky
+invs, chols = compute_inverse_and_cholesky(all_dls, var_part)
+
+i = 2
+print(invs[i])
+print(np.linalg.inv(np.linalg.inv(all_dls[i, :, :]) + np.diag(var_part[i,:])))
+print("Chol")
+print(chols[i])
+print(np.linalg.cholesky(np.linalg.inv(np.linalg.inv(all_dls[i, :, :]) + np.diag(var_part[i,:]))))
+
+
 #pol_sampler = PolarizedCenteredClsSampler(pix_map, config.L_MAX_SCALARS, config.bins, config.bl_map, config.noise_covar_temp)
+#pol_sampler = PolarizedCenteredConstrainedRealization(pix_map, config.noise_covar_temp, config.noise_covar_pol,
+#                                                      config.bl_map, config.L_MAX_SCALARS, config.Npix, config.beam_fwhm, isotropic=True)
+#map = pol_sampler.sample(all_dls)
 #pol_sampler.sample(list_alms)
 
-print("CLS TT")
-print(cls_tt[1000:])
-print("\n")
-r = hp.alm2cl(alms[0, :], lmax=config.L_MAX_SCALARS)
-print(r[1000:])
-
-
-print(alms.shape)
 
 
 
