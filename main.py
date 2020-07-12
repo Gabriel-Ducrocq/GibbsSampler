@@ -101,11 +101,11 @@ if __name__ == "__main__":
     print("INIT DL")
     i=j=0
     print(init_cls[4, i, j])
-    #h_cls_pol, _ = polarized_centered.run(init_cls)
+    h_cls_pol, _ = polarized_centered.run(init_cls)
 
 
-    #d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    #np.save("test_polarization.npy", d, allow_pickle=True)
+    d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization.npy", d, allow_pickle=True)
 
 
     d = np.load("test_polarization.npy", allow_pickle=True)
@@ -113,8 +113,8 @@ if __name__ == "__main__":
     h_cls = d["h_cls_centered"]
 
     l_interest = 4
-    i = 1
-    j = 1
+    i = 2
+    j = 2
     print("INIT DL")
     print(init_cls[l_interest, i, j])
     print(h_cls[:5, l_interest, i, j])

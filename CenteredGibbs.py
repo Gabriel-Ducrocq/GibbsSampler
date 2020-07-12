@@ -196,21 +196,9 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
     chol_cls = np.zeros((len(all_cls), 3, 3))
 
     for i in prange(2, len(all_cls)):
-        print(i)
-        print("DET all cls")
-        print(np.linalg.det(all_cls[i, :2, :2]))
-        print(all_cls[i, :2, :2])
-        m = all_cls[i, :2, :2]
-        print("HAND DET")
-        print(str(m[0, 0])+"*"+str(m[1, 1])+"-"+str(m[1, 0])+"**2")
-        print("Condition number")
-        print(np.linalg.cond(m))
-        print(m[0, 0]*m[1, 1] - m[1, 0]**2)
         inv_cls[i, :2, :2] = scipy.linalg.inv(all_cls[i, :2, :2])
         inv_cls[i, 2, 2] = 1/all_cls[i, 2, 2]
         inv_cls[i, :, :] += np.diag(pix_part_variance[i, :])
-        print("DET INV CLS")
-        print(np.linalg.det(inv_cls[i, :, :]))
         inv_cls[i, :, :] = np.linalg.inv(inv_cls[i, :, :])
         chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
 
@@ -231,10 +219,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
     def sample(self, all_dls):
         start = time.time()
-        all_cls = all_dls * 2 * np.pi / (self.lmax * (self.lmax + 1))
-        print("ALL CLS PREVIOUS")
-        print(all_cls)
-        inv_cls, chol_cls = compute_inverse_and_cholesky(all_dls, self.pix_part_variance)
+        rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
+        all_cls = all_dls
+        for i in range(self.lmax+1):
+            all_cls[i, :, :] *= rescaling[i]
+
+        inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
 
 
         b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
@@ -248,16 +238,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         fluctuations = matrix_product(chol_cls, b_fluctuations)
         map = weiner_map + fluctuations
         time_to_solution = time.time() - start
-        print("INV CLS PREVIOUS")
-        print(inv_cls)
-        print("CHOL PREVIOUS")
-        print(chol_cls)
-        print("B FLUCS PREVIOUS")
-        print(b_fluctuations)
-        print("FLUCTUATIONS PREVIOUS")
-        print(fluctuations)
-        print("MAP PREVIOUS")
-        print(map)
         err = 0
         #print("Time to solution")
         #print(time_to_solution)
