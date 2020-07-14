@@ -19,7 +19,7 @@ class ClsSampler():
 
 
 class MHClsSampler(ClsSampler):
-    def __init__(self, pix_map, lmax, bins, bl_map, noise, metropolis_blocks, proposal_variances, n_iter = 1):
+    def __init__(self, pix_map, lmax, bins, bl_map, noise, metropolis_blocks, proposal_variances, n_iter = 1, polarization=True):
         super().__init__(pix_map, lmax, bins, bl_map, noise)
         if metropolis_blocks == None:
             self.metropolis_blocks = list(range(2, len(self.bins)))
@@ -28,11 +28,12 @@ class MHClsSampler(ClsSampler):
 
         self.n_iter = n_iter
         self.proposal_variances = proposal_variances
+        self.polarization = polarization
 
     def propose_cl(self, cls_old, l_start, l_end):
         """
 
-        :param cls_old: old cls sample
+        :param cls_old: old cls sample or polarization mode on, coefficients of the lower triang chol matrix
         :param l_start: starting index of the block
         :param l_end: ending index (not included) of the block
         :return: propose cls
@@ -41,9 +42,23 @@ class MHClsSampler(ClsSampler):
         proposal variance also starts at l = 2. But then we need to take the first element of this array, hence setting
         l_start - 2:l_end - 2
         """
-        clip_low = -cls_old[l_start:l_end] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2])
-        return truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end],
-                             scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2]))
+        if not self.polarization:
+            clip_low = -cls_old[l_start:l_end] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2])
+            return truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end],
+                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2]))
+        else:
+            clip_low = -cls_old[l_start:l_end, :, :] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, :, :])
+            new_chol_cls = truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end, :, :],
+                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, :, :]))
+
+            new_chol_cls[1, 0] = np.random.normal(loc=cls_old[l_start:l_end, 1, 0],
+                                scale = np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 0]))
+            new_chol_cls[0, 2] = new_chol_cls[2, 0] = 0.0
+            new_chol_cls[1, 2] = new_chol_cls[2, 1] = 0.0
+            new_chol_cls[0, 1] = 0.0
+            return new_chol_cls
+
+
 
     def compute_log_proposal(self, cl_old, cl_new):
         return None

@@ -167,10 +167,20 @@ binned_variances[600:-2] *= 4
 binned_variances[-2:-1] *= 1
 binned_variances[-1] *= 0.1
 
-preliminary_run =False
+
+unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
+binned_variances_pol = compute_init_values(unbinned_variances_pol)
+binned_variances_pol[600:-2] *= 4
+binned_variances_pol[-2:-1] *= 1
+binned_variances_pol[-1] *= 0.1
+
+binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_pol, unbinned_variances_pol], axis = 1)
+preliminary_run =True
 
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:]
+    proposal_variances_nc_polarized = np.ones((L_MAX_SCALARS+1, 3, 3))
+    proposal_variances_nc_polarized = proposal_variances_nc_polarized[2:]*0.0000000001
     proposal_variances_asis = binned_variances[2:]
     proposal_variances_pncp = binned_variances[2:]
 else:

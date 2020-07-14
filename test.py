@@ -7,8 +7,60 @@ import config
 import utils
 import healpy as hp
 from CenteredGibbs import PolarizedCenteredConstrainedRealization, PolarizedCenteredClsSampler
+from NonCenteredGibbs import PolarizedNonCenteredConstrainedRealization
+import matplotlib.pyplot as plt
+
+d = np.load("test_polarization.npy", allow_pickle=True)
+d = d.item()
+pix_map = d["pix_map"]
+
+theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
+cls_TT, cls_EE, cls_BB, cls_TE = utils.generate_cls(theta_, True)
+
+all_cls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
+all_cls[:, 0, 0] = cls_TT
+all_cls[:, 0, 1] = all_cls[:, 1, 0] = cls_TE
+all_cls[:, 1, 1] = cls_EE
+all_cls[:, 2, 2] = cls_BB
+
+all_dls = all_cls.copy()
+all_chol_dls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
+all_chol_cls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
+for i in range(2, config.L_MAX_SCALARS+1):
+    all_dls[i, :, :] *= i*(i+1)/(2*np.pi)
+    all_chol_dls[i, :, :] = np.linalg.cholesky(all_dls[i, :, :])
+    all_chol_cls[i, :, :] = np.linalg.cholesky(all_cls[i, :, :])
 
 
+centered = PolarizedCenteredConstrainedRealization(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.bl_map,
+                                                   config.L_MAX_SCALARS, config.Npix, config.beam_fwhm)
+non_centered = PolarizedNonCenteredConstrainedRealization(pix_map, config.noise_covar_temp, config.noise_covar_pol,
+                                                          config.bl_map, config.L_MAX_SCALARS, config.Npix, config.beam_fwhm)
+
+cpt = 10
+h_centered = []
+h_nc = []
+k = 0
+for l in range(10000):
+    s, _, _ = centered.sample(all_dls.copy())
+    h_centered.append(s[cpt, k])
+    s_nc, _ , all_chol_cls_bis = non_centered.sample(all_chol_dls.copy())
+    s_centered = utils.matrix_product(all_chol_cls, s_nc)
+    h_nc.append(s_centered[cpt, k])
+
+
+plt.plot(h_centered, alpha=0.5)
+plt.plot(h_nc, alpha=0.5)
+plt.show()
+
+plt.hist(h_centered, density=True, label="Centered", alpha=0.5, bins=50)
+plt.hist(h_nc, density=True, label="NonCentered", alpha=0.5, bins=50)
+plt.legend(loc="upper right")
+plt.show()
+
+
+print(np.var(h_centered))
+print(np.var(h_nc))
 
 
 """
@@ -29,7 +81,7 @@ print(alms_shape)
 """
 
 
-
+"""
 theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale=config.COSMO_PARAMS_SIGMA_PRIOR)
 cls_tt, cls_ee, cls_bb, cls_te = utils.generate_cls(theta_, pol = True)
 pix_map = hp.synfast([cls_tt, cls_ee, cls_ee, cls_te, np.zeros(len(cls_tt)), np.zeros(len(cls_tt))],
@@ -69,7 +121,7 @@ print(np.linalg.cholesky(np.linalg.inv(np.linalg.inv(all_dls[i, :, :]) + np.diag
 #map = pol_sampler.sample(all_dls)
 #pol_sampler.sample(list_alms)
 
-
+"""
 
 
 """

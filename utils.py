@@ -9,6 +9,7 @@ import time
 import healpy as hp
 from classy import Class
 from variance_expension import generate_var_cl_cython, synthesis_hp as synthesis_cython
+from numba import njit, prange
 
 cosmo = Class()
 
@@ -110,6 +111,48 @@ linearOp = LinOp()
 LinearOpExchange = LinOpExchange()
 LinearOpPNCP = LinOpPNCP()
 LinearOpNC = LinOpNonCentered()
+
+
+#@njit(parallel=False)
+def matrix_product(dls_, b):
+    L_MAX_SCALARS = dls_.shape[0] - 1
+    complex_dim = int((L_MAX_SCALARS+1)*(L_MAX_SCALARS+2)/2)
+    alms_shape = np.zeros((complex_dim, 3, 3))
+    result = np.zeros(((L_MAX_SCALARS+1)**2, 3))
+
+    for l in prange(L_MAX_SCALARS + 1):
+        for m in range(l + 1):
+            idx = m * (2 * L_MAX_SCALARS + 1 - m) // 2 + l
+            if l == 0:
+                alms_shape[idx, :, :] = dls_[l, :, :]
+            else:
+                alms_shape[idx, :, :] = dls_[l, :, :]
+
+    for i in prange(L_MAX_SCALARS + 1):
+        result[i, :] = np.dot(alms_shape[i, :, :], b[i, :])
+
+    for i in prange(L_MAX_SCALARS + 1, complex_dim):
+        result[2*i - (L_MAX_SCALARS+1), :] = np.dot(alms_shape[i, :, :], b[2*i - (L_MAX_SCALARS+1), :])
+        result[2*i - (L_MAX_SCALARS+1) +1, :] = np.dot(alms_shape[i, :, :],
+                                                               b[2 * i - (L_MAX_SCALARS + 1) + 1, :])
+
+    return result
+
+#@njit(parallel=False)
+def compute_inverse_and_cholesky(all_cls, pix_part_variance):
+    inv_cls = np.zeros((len(all_cls), 3, 3))
+    chol_cls = np.zeros((len(all_cls), 3, 3))
+
+    for i in prange(2, len(all_cls)):
+        inv_cls[i, :2, :2] = scipy.linalg.inv(all_cls[i, :2, :2])
+        inv_cls[i, 2, 2] = 1/all_cls[i, 2, 2]
+        inv_cls[i, :, :] += np.diag(pix_part_variance[i, :])
+        inv_cls[i, :, :] = np.linalg.inv(inv_cls[i, :, :])
+        chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
+
+    return inv_cls,chol_cls
+
+
 
 
 def generate_normal_NonCentered_diag(d, var_cls, isotropic=False):

@@ -68,7 +68,8 @@ if __name__ == "__main__":
     plt.show()
     """
 
-    non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
+                                          config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
 
     centered_gibbs = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
@@ -86,6 +87,11 @@ if __name__ == "__main__":
                                    config.Npix, n_iter=10000, polarization=True)
 
 
+    polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
+                                                    config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=10000, polarization=True)
+
+
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
     #h_cls_centered, _ = centered_gibbs.run(cls_init)
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
@@ -96,7 +102,7 @@ if __name__ == "__main__":
     init_cls[:, 1, 1] = cls_[1]
     init_cls[:, 2, 2] = cls_[2]
     init_cls[:, 1, 0] = cls_[3]
-    init_cls[:, 0, 1] = cls_[3]
+    #init_cls[:, 0, 1] = cls_[3]
     init_cls *= config.L_MAX_SCALARS*(config.L_MAX_SCALARS+1)/(2*np.pi)
     print("INIT DL")
     i=j=0
@@ -104,8 +110,11 @@ if __name__ == "__main__":
     #h_cls_pol, _ = polarized_centered.run(init_cls)
 
 
-    #d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    #np.save("test_polarization.npy", d, allow_pickle=True)
+    h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
+
+
+    d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization.npy", d, allow_pickle=True)
 
 
     d = np.load("test_polarization.npy", allow_pickle=True)
@@ -122,7 +131,7 @@ if __name__ == "__main__":
     plt.axhline(y=init_cls[l_interest, i, j])
     plt.show()
 
-    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 50)
+    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 100)
     plt.show()
 
     """
