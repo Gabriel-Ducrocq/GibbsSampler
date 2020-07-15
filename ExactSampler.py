@@ -30,11 +30,11 @@ class ExactSampler():
                                         (1/self.noise_Q)*np.ones((self.lmax+1)**2)*self.bl_map**2,
                                         (1/self.noise_Q)*np.ones((self.lmax+1)**2)*self.bl_map**2], axis = 1)
 
+
         self.Sigma = 1/self.pix_part_variance
         alms_T, alms_E, alms_B = utils.adjoint_synthesis_hp([pix_map[0]/self.noise_I, pix_map[1]/self.noise_Q,
                                                                      pix_map[2]/self.noise_Q], self.bl_fwhm)
         temp = np.stack([alms_T, alms_E, alms_B], axis = 1)
-
         self.mu = self.Sigma*temp
 
     def sample_skymap(self):

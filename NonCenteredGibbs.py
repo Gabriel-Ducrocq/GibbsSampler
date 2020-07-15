@@ -74,7 +74,6 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
 
         centered_skymap, time_to_solution, err = self.pol_centered_constraint_realizer.sample(all_dls)
         non_centered_skymap = utils.matrix_product(all_inv_chol_cls, centered_skymap)
-
         return non_centered_skymap, time_to_solution, err
 
 
@@ -168,18 +167,24 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         self.noise_I = noise_I
         self.noise_Q = noise_Q
 
-
     def compute_log_proposal(self, chol_cl_old, chol_cl_new):
     ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
-        clip_low = -chol_cl_old[2:, :, :] / np.sqrt(self.proposal_variances)
-        all_proba = truncnorm.logpdf(chol_cl_new[2:], a=clip_low, b=np.inf, loc=chol_cl_old[2:],
-                                   scale=np.sqrt(self.proposal_variances))
-        all_proba[:, 0, 1] = all_proba[:, 0, 2] = all_proba[:, 1, 2] = 0.0
-        all_proba[:, 2, 0] = all_proba[:, 2, 1] = 0.0
-        return np.sum(all_proba)
+        clip_low_TT = -chol_cl_old[2:, 0, 0] / np.sqrt(self.proposal_variances[:, 0, 0])
+        probas_TT = truncnorm.logpdf(chol_cl_new[2:, 0, 0], a=clip_low_TT, b=np.inf, loc=chol_cl_old[2:, 0, 0],
+                                   scale=np.sqrt(self.proposal_variances[:, 0, 0]))
+
+        clip_low_EE = -chol_cl_old[2:, 1, 1] / np.sqrt(self.proposal_variances[:, 1, 1])
+        probas_EE = truncnorm.logpdf(chol_cl_new[2:, 1, 1], a=clip_low_EE, b=np.inf, loc=chol_cl_old[2:, 1, 1],
+                                 scale=np.sqrt(self.proposal_variances[:, 1, 1]))
+
+        clip_low_BB = -chol_cl_old[2:, 2, 2] / np.sqrt(self.proposal_variances[:, 2, 2])
+        probas_bb = truncnorm.logpdf(chol_cl_new[2:, 2, 2], a=clip_low_BB, b=np.inf, loc=chol_cl_old[2:, 2, 2],
+                                 scale=np.sqrt(self.proposal_variances[:, 2, 2]))
+
+        return np.sum(probas_TT) + np.sum(probas_EE) + np.sum(probas_bb)
 
     def compute_log_prior(self, chol_cls):
-        return np.sum(2*np.log(chol_cls[:, 0, 0]) + np.log(chol_cls[:, 1, 1]) + np.log(chol_cls[:, 2, 2]))
+        return np.sum(2*np.log(chol_cls[2:, 0, 0]) + np.log(chol_cls[2:, 1, 1]) + np.log(chol_cls[2:, 2, 2]))
 
     def compute_log_likelihood(self, chol_cls, s_nonCentered):
         prod = self.bl_map.reshape((len(self.bl_map), -1)) *utils.matrix_product(chol_cls, s_nonCentered)
@@ -199,6 +204,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         part1 = new_lik - old_lik
         part2 = self.compute_log_proposal(chol_cls_new, chol_cls_old) - self.compute_log_proposal(chol_cls_old,
                                                                                             chol_cls_new)
+
         part3 = self.compute_log_prior(chol_cls_new) - self.compute_log_prior(chol_cls_old)
         return part1 + part2 + part3, new_lik
 
@@ -215,7 +221,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         accept = []
         chol_cls_old = np.zeros((len(chol_dls_old), 3, 3))
         for i in range(1, len(chol_dls_old)):
-            chol_cls_old[i, :, :] *= np.sqrt(2*np.pi/(i*(i+1)))
+            chol_cls_old[i, :, :] = chol_dls_old[i, :, ]*np.sqrt(2*np.pi/(i*(i+1)))
 
         old_lik = self.compute_log_likelihood(chol_cls_old, alm_map_non_centered)
         for i, l_start in enumerate(self.metropolis_blocks[:-1]):
@@ -224,7 +230,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
                 chol_dls_new_block = self.propose_cl(chol_dls_old, l_start, l_end)
                 chol_dls_new = chol_dls_old.copy()
                 chol_dls_new[l_start:l_end] = chol_dls_new_block
-                chol_cls_new = chol_dls_new
+                chol_cls_new = chol_dls_new.copy()
                 for i in range(1, len(chol_dls_new)):
                     chol_cls_new[i, :, :] *= np.sqrt((2*np.pi)/(i*(i+1)))
 
@@ -273,15 +279,26 @@ class NonCenteredGibbs(GibbsSampler):
             if not self.polarization:
                 alm_map, time_to_solution, err = self.constrained_sampler.sample(var_cls_full)
                 binned_cls, var_cls_full, accept = self.cls_sampler.sample(alm_map, binned_cls, var_cls_full)
+                h_cls.append(binned_cls)
             else:
                 alm_map, time_to_solution, err = self.constrained_sampler.sample(binned_cls)
                 binned_cls, accept = self.cls_sampler.sample(alm_map, binned_cls)
+                full_dls = binned_cls.copy()
+                full_dls[:, 0, 0] = binned_cls[:, 0, 0]**2
+                full_dls[:, 0, 1] = full_dls[:, 1, 0] = binned_cls[:, 0, 0]*binned_cls[:, 1, 0]
+                full_dls[:, 1, 1] = binned_cls[:, 1, 1]**2 + binned_cls[:, 1, 0]**2
+                full_dls[:, 2, 2] = binned_cls[:, 2, 2]**2
+                h_cls.append(full_dls)
 
             end_time = time.process_time()
-            h_cls.append(binned_cls)
             h_time_seconds.append(end_time - start_time)
             h_accept.append(accept)
 
-        print("Non centered gibbs acceptance rate:", np.mean(np.array(h_accept)))
+        if self.polarization:
+            acceptance_rate = np.mean(np.array(h_accept), axis = 0)
+        else:
+            acceptance_rate = np.mean(np.array(h_accept))
+
+        print("Non centered gibbs acceptance rate:", acceptance_rate)
 
         return np.array(h_cls), h_time_seconds

@@ -42,7 +42,7 @@ if __name__ == "__main__":
     range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     plt.plot(cls_[1]*range_l)
     plt.show()
-    """
+
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     plt.axhline(y=1)
     plt.title("TE")
     plt.show()
-    """
+
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
                                           config.NSIDE, config.L_MAX_SCALARS,
@@ -101,9 +101,11 @@ if __name__ == "__main__":
     init_cls[:, 0, 0] = cls_[0]
     init_cls[:, 1, 1] = cls_[1]
     init_cls[:, 2, 2] = cls_[2]
-    init_cls[:, 1, 0] = cls_[3]
+    init_cls[:, 1, 0] = init_cls[:, 0, 1] = cls_[3]
     #init_cls[:, 0, 1] = cls_[3]
-    init_cls *= config.L_MAX_SCALARS*(config.L_MAX_SCALARS+1)/(2*np.pi)
+    for i in range(config.L_MAX_SCALARS+1):
+        init_cls[i, :, :] *= i*(i+1)/(2*np.pi)
+
     print("INIT DL")
     i=j=0
     print(init_cls[4, i, j])
@@ -113,20 +115,19 @@ if __name__ == "__main__":
     h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
 
-    d = {"h_cls_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_polarization.npy", d, allow_pickle=True)
+    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization_non_centered.npy", d, allow_pickle=True)
 
 
-    d = np.load("test_polarization.npy", allow_pickle=True)
+    d = np.load("test_polarization_non_centered.npy", allow_pickle=True)
     d = d.item()
-    h_cls = d["h_cls_centered"]
+    h_cls = d["h_cls_non_centered"]
+
+    print(h_cls.shape)
 
     l_interest = 4
-    i = 0
-    j = 1
-    print("INIT DL")
-    print(init_cls[l_interest, i, j])
-    print(h_cls[:5, l_interest, i, j])
+    i = 2
+    j = 2
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
     plt.show()

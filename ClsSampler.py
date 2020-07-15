@@ -47,15 +47,29 @@ class MHClsSampler(ClsSampler):
             return truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end],
                                  scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2]))
         else:
-            clip_low = -cls_old[l_start:l_end, :, :] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, :, :])
-            new_chol_cls = truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end, :, :],
-                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, :, :]))
+            new_chol_cls = np.zeros((l_end - l_start, 3, 3))
+            ### Sampling cls_TT:
+            clip_low_TT = -cls_old[l_start:l_end, 0, 0] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 0, 0])
+            new_cls_TT = truncnorm.rvs(a=clip_low_TT, b=np.inf, loc=cls_old[l_start:l_end, 0, 0],
+                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 0, 0]))
 
-            new_chol_cls[1, 0] = np.random.normal(loc=cls_old[l_start:l_end, 1, 0],
-                                scale = np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 0]))
-            new_chol_cls[0, 2] = new_chol_cls[2, 0] = 0.0
-            new_chol_cls[1, 2] = new_chol_cls[2, 1] = 0.0
-            new_chol_cls[0, 1] = 0.0
+            ### Sampling cls_EE
+            clip_low_EE = -cls_old[l_start:l_end, 1, 1] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 1])
+            new_cls_EE = truncnorm.rvs(a=clip_low_EE, b=np.inf, loc=cls_old[l_start:l_end, 1, 1],
+                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 1]))
+
+            ### Sampling cls_BB
+            clip_low_BB = -cls_old[l_start:l_end, 2, 2] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 2, 2])
+            news_cls_BB = truncnorm.rvs(a=clip_low_BB, b=np.inf, loc=cls_old[l_start:l_end, 2, 2],
+                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 2, 2]))
+
+            ### Sampling cls_TE
+            new_cls_TE = np.random.normal(loc=cls_old[l_start:l_end, 1, 0], scale= np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 0]))
+
+            new_chol_cls[:, 0, 0] = new_cls_TT
+            new_chol_cls[:, 1, 1] = new_cls_EE
+            new_chol_cls[:, 2, 2] = news_cls_BB
+            new_chol_cls[:, 1, 0] = new_cls_TE
             return new_chol_cls
 
 

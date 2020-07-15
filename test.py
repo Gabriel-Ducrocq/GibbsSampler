@@ -44,7 +44,7 @@ k = 0
 for l in range(10000):
     s, _, _ = centered.sample(all_dls.copy())
     h_centered.append(s[cpt, k])
-    s_nc, _ , all_chol_cls_bis = non_centered.sample(all_chol_dls.copy())
+    s_nc, _ , _ = non_centered.sample(all_chol_dls.copy())
     s_centered = utils.matrix_product(all_chol_cls, s_nc)
     h_nc.append(s_centered[cpt, k])
 
