@@ -284,15 +284,15 @@ def trace_likelihood_beam(h_cl, d, l):
     power_spec = hp.alm2cl(d_sph, lmax=config.L_MAX_SCALARS)
     observed_cl = power_spec[l]/config.bl_gauss[l]**2
     norm, err = scipy.integrate.quad(stats.invgamma.pdf, a=0, b=np.inf, args=((2*l-1)/2,
-                -(4*np.pi/config.Npix)*config.noise_covar/config.bl_gauss[l]**2,(2*l+1)*observed_cl/2))
+                -(4*np.pi/config.Npix)*config.noise_covar_pol/config.bl_gauss[l]**2,(2*l+1)*observed_cl/2))
 
     y = []
-    xs = np.arange(0, np.max(h_cl),1)
+    xs = np.linspace(0, np.max(h_cl),10000)
     print("MAX RANGE")
     print(np.max(h_cl))
     for x in xs:
         res = stats.invgamma.pdf(x, a=(2*l-1)/2,
-                    loc=-(4*np.pi/config.Npix)*config.noise_covar/config.bl_gauss[l]**2, scale = (2*l+1)*observed_cl/2)
+                    loc=-(4*np.pi/config.Npix)*config.noise_covar_pol/config.bl_gauss[l]**2, scale=(2*l+1)*observed_cl/2)
         y.append(res)
 
     return np.array(y), xs, norm
@@ -677,7 +677,7 @@ def adjoint_synthesis_hp(map, bl_fwhm=None):
 
 def analysis_hp(map):
     return remove_monopole_dipole_contributions(
-        complex_to_real(hp.map2alm(map, lmax=config.L_MAX_SCALARS))*config.rescaling_analysis)
+        complex_to_real(hp.map2alm(map, lmax=config.L_MAX_SCALARS)))
 
 def generate_var_cl(cls_):
     var_cl_full = generate_var_cl_cython(cls_)

@@ -52,31 +52,6 @@ class PolarizedCenteredClsSampler(ClsSampler):
         alms_BB_complex = utils.real_to_complex(alms[:, 2])
         spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex], lmax=self.lmax)
 
-        l_interest = 2
-        list_vector = []
-        mat = 0
-        for m in range(l_interest+1):
-            idx = alm_obj.getidx(self.lmax, l_interest, m)
-            print(alms_TT_complex[idx], alms_EE_complex[idx])
-            vector = np.array([alms_TT_complex[idx], alms_EE_complex[idx]])
-            if m == 0:
-                mm = np.zeros((2, 2))
-                mm[0, 0] = vector[0]*vector[0].conj()
-                mm[1, 0] = vector[1]*vector[0].conj()
-                mm[0, 1] = vector[0] * vector[1].conj()
-                mm[1, 1] = vector[1] * vector[1].conj()
-                mat += mm
-            else:
-                mm = np.zeros((2, 2))
-                mm[0, 0] = vector[0]*vector[0].conj()
-                mm[1, 0] = vector[1]*vector[0].conj()
-                mm[0, 1] = vector[0] * vector[1].conj()
-                mm[1, 1] = vector[1] * vector[1].conj()
-                mat += 2*mm
-
-
-        print("\n")
-
         sampled_power_spec = np.zeros((self.lmax+1, 3, 3))
         for i in range(2, self.lmax+1):
             deg_freed = 2*i-2
@@ -85,21 +60,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
             param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
             param_mat[1, 1] = spec_EE[i]
             param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
-            print(i)
-            print(param_mat)
-            if i == 2:
-                print(mat*i*(i+1)/(2*np.pi))
-                print("DET")
-                mm = mat*i*(i+1)/(2*np.pi)
-                det = np.linalg.det(mm)
-                print(det)
-                if det == 0.0:
-                    print(alms)
-                    print("\n")
-                    ar = np.stack([alms_TT_complex, alms_EE_complex, alms_BB_complex], axis=1)
-                    print(ar)
 
-            print("\n")
             sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
             beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
             sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)

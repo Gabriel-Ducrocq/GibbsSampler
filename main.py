@@ -61,7 +61,7 @@ if __name__ == "__main__":
     plt.title("BB")
     plt.show()
 
-    snr = cls_[3] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
+    snr = cls_[3] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
     plt.title("TE")
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
                                                     config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=10000, polarization=True)
+                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=100000, polarization=True)
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
@@ -108,35 +108,45 @@ if __name__ == "__main__":
 
     #h_cls_pol, _ = polarized_centered.run(init_cls)
 
-    print("INIT DL 1")
-    print(init_cls[4, 0, 0])
+    #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
-    h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
-
-    print("INIT DL 2")
-    print(init_cls[4, 0, 0])
-
-    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_polarization_non_centered.npy", d, allow_pickle=True)
+    #d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_polarization_centered.npy", d, allow_pickle=True)
 
 
-    d = np.load("test_polarization_non_centered.npy", allow_pickle=True)
+    d = np.load("test_polarization_centered.npy", allow_pickle=True)
     d = d.item()
     h_cls = d["h_cls_non_centered"]
+    pix_map = d["pix_map"]
 
 
+    pix_map_alm = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
+    map_alm_B = pix_map_alm[2]
+    all_pow_spec = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
 
     l_interest = 4
     i = 0
     j = 1
-    print("INIT DL 3")
-    print(h_cls_pol[0, l_interest, i, j])
+
+    alpha = (2*l_interest-1)/2
+    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    yy = []
+    xx = []
+    for x in np.linspace(0, 0.002, 1000):
+        xx.append(x)
+        y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = - (config.noise_covar_pol*4*np.pi/config.Npix)\
+                                                                   *(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2))
+        yy.append(y)
+
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
     plt.show()
 
-    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 100)
+    plt.hist(h_cls[:, l_interest, i, j]*2*np.pi/(l_interest*(l_interest+1)), density=True, bins = 100)
+    plt.plot(xx, yy)
     plt.show()
+
+    print(yy)
 
     """
     d = np.load("test.npy", allow_pickle=True)
