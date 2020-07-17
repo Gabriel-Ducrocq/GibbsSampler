@@ -47,30 +47,42 @@ class MHClsSampler(ClsSampler):
             return truncnorm.rvs(a=clip_low, b=np.inf, loc=cls_old[l_start:l_end],
                                  scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2]))
         else:
-            new_chol_cls = np.zeros((l_end - l_start, 3, 3))
+            new_dls = np.zeros((l_end - l_start, 3, 3))
             ### Sampling cls_TT:
-            clip_low_TT = -cls_old[l_start:l_end, 0, 0] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 0, 0])
-            new_cls_TT = truncnorm.rvs(a=clip_low_TT, b=np.inf, loc=cls_old[l_start:l_end, 0, 0],
-                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 0, 0]))
+            clip_low_TT = -cls_old[l_start:l_end, 0, 0] / np.sqrt(self.proposal_variances["TT"][l_start - 2:l_end - 2])
+            new_dls_TT = truncnorm.rvs(a=clip_low_TT, b=np.inf, loc=cls_old[l_start:l_end, 0, 0],
+                                 scale=np.sqrt(self.proposal_variances["TT"][l_start - 2:l_end - 2]))
 
             ### Sampling cls_EE
-            clip_low_EE = -cls_old[l_start:l_end, 1, 1] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 1])
-            new_cls_EE = truncnorm.rvs(a=clip_low_EE, b=np.inf, loc=cls_old[l_start:l_end, 1, 1],
-                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 1]))
+            clip_low_EE = -cls_old[l_start:l_end, 1, 1] / np.sqrt(self.proposal_variances["EE"][l_start - 2:l_end - 2])
+            new_dls_EE = truncnorm.rvs(a=clip_low_EE, b=np.inf, loc=cls_old[l_start:l_end, 1, 1],
+                                 scale=np.sqrt(self.proposal_variances["EE"][l_start - 2:l_end - 2]))
 
             ### Sampling cls_BB
-            clip_low_BB = -cls_old[l_start:l_end, 2, 2] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 2, 2])
-            news_cls_BB = truncnorm.rvs(a=clip_low_BB, b=np.inf, loc=cls_old[l_start:l_end, 2, 2],
-                                 scale=np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 2, 2]))
+            clip_low_BB = -cls_old[l_start:l_end, 2, 2] / np.sqrt(self.proposal_variances["BB"][l_start - 2:l_end - 2])
+            news_dls_BB = truncnorm.rvs(a=clip_low_BB, b=np.inf, loc=cls_old[l_start:l_end, 2, 2],
+                                 scale=np.sqrt(self.proposal_variances["BB"][l_start - 2:l_end - 2]))
 
             ### Sampling cls_TE
-            new_cls_TE = np.random.normal(loc=cls_old[l_start:l_end, 1, 0], scale= np.sqrt(self.proposal_variances[l_start - 2:l_end - 2, 1, 0]))
+            upp_bound = np.sqrt(new_dls_TT*new_dls_EE)
+            low_bound = -np.sqrt(new_dls_TT*new_dls_EE)
+            clip_high_TE = (upp_bound-cls_old[l_start:l_end, 1, 0])/np.sqrt(self.proposal_variances["TE"][l_start-2:l_end-2])
+            clip_low_TE = (low_bound-cls_old[l_start:l_end, 1, 0])/np.sqrt(self.proposal_variances["TE"][l_start-2:l_end-2])
+            new_dls_TE = truncnorm.rvs(a=clip_low_TE, b=clip_high_TE, loc=cls_old[l_start:l_end, 1, 0],
+                                 scale=np.sqrt(self.proposal_variances["TE"][l_start-2:l_end-2]))
 
-            new_chol_cls[:, 0, 0] = new_cls_TT
-            new_chol_cls[:, 1, 1] = new_cls_EE
-            new_chol_cls[:, 2, 2] = news_cls_BB
-            new_chol_cls[:, 1, 0] = new_cls_TE
-            return new_chol_cls
+            new_dls[:, 0, 0] = new_dls_TT
+            new_dls[:, 1, 1] = new_dls_EE
+            new_dls[:, 2, 2] = news_dls_BB
+            new_dls[:, 1, 0] = new_dls_TE
+            new_dls[:, 0, 1] = new_dls_TE
+
+            new_cholesky = new_dls.copy()
+            for i in range(l_end-l_start):
+                l = l_start + i
+                new_cholesky[i, :, : ] = np.linalg.cholesky(new_dls[i, :, :]*(2*np.pi/(l*(l+1))))
+
+            return new_dls, new_cholesky
 
 
 

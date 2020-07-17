@@ -40,7 +40,7 @@ if __name__ == "__main__":
     theta_, cls_, s_true, pix_map = generate_dataset()
 
     range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-    plt.plot(cls_[1]*range_l)
+    plt.plot(cls_[0]*range_l)
     plt.show()
 
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
@@ -106,14 +106,15 @@ if __name__ == "__main__":
     for i in range(config.L_MAX_SCALARS+1):
         init_cls[i, :, :] *= i*(i+1)/(2*np.pi)
 
-    print("INIT DL")
-    i=j=0
-    print(init_cls[4, i, j])
     #h_cls_pol, _ = polarized_centered.run(init_cls)
 
+    print("INIT DL 1")
+    print(init_cls[4, 0, 0])
 
     h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
+    print("INIT DL 2")
+    print(init_cls[4, 0, 0])
 
     d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
     np.save("test_polarization_non_centered.npy", d, allow_pickle=True)
@@ -123,11 +124,13 @@ if __name__ == "__main__":
     d = d.item()
     h_cls = d["h_cls_non_centered"]
 
-    print(h_cls.shape)
+
 
     l_interest = 4
-    i = 2
-    j = 2
+    i = 0
+    j = 1
+    print("INIT DL 3")
+    print(h_cls_pol[0, l_interest, i, j])
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
     plt.show()
