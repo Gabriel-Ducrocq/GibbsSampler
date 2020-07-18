@@ -26,7 +26,6 @@ def generate_dataset(polarization=True):
     return theta_, cls_, map_true,  d
 
 
-
 if __name__ == "__main__":
     np.random.seed()
     cls_init = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
@@ -89,7 +88,7 @@ if __name__ == "__main__":
 
     polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
                                                     config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=100000, polarization=True)
+                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=10000, polarization=True)
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
@@ -108,10 +107,10 @@ if __name__ == "__main__":
 
     #h_cls_pol, _ = polarized_centered.run(init_cls)
 
-    #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
+    h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
-    #d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    #np.save("test_polarization_centered.npy", d, allow_pickle=True)
+    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization_centered.npy", d, allow_pickle=True)
 
 
     d = np.load("test_polarization_centered.npy", allow_pickle=True)
@@ -122,32 +121,52 @@ if __name__ == "__main__":
 
     pix_map_alm = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
     map_alm_B = pix_map_alm[2]
-    all_pow_spec = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
+    map_alm_T = pix_map_alm[0]
+    all_pow_spec_B = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
+    all_pow_spec_T = hp.alm2cl(map_alm_T, lmax=config.L_MAX_SCALARS)
 
-    l_interest = 4
-    i = 0
-    j = 1
+    l_interest = 3
+    i = 2
+    j = 2
 
     alpha = (2*l_interest-1)/2
-    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_B[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    loc = - (config.noise_covar_pol*4*np.pi/config.Npix)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2)
     yy = []
     xx = []
-    for x in np.linspace(0, 0.002, 1000):
+    opposite_norm = scipy.stats.invgamma.cdf(0, a = alpha, loc=loc, scale=beta)
+    norm = 1 - opposite_norm
+    for x in np.linspace(0, 0.5, 10000):
         xx.append(x)
         y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = - (config.noise_covar_pol*4*np.pi/config.Npix)\
                                                                    *(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2))
-        yy.append(y)
+        yy.append(y/norm)
 
+    """
+    alpha = (2*l_interest-3)/2
+    beta = ((2*l_interest+1)/2)*all_pow_spec_T[l_interest]/config.bl_map[0]**2
+    yy = []
+    xx = []
+    for x in np.linspace(0, 1000, 10000):
+        xx.append(x)
+        y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta)
+        #y = (y - config.noise_covar_temp*config.w)*l_interest*(l_interest+1)/(2*np.pi)
+        yy.append(y)
+    """
+    print("NORM")
+    print(norm)
+    alms = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
+    cls_hat_TT, cls_hat_EE, cls_hat_BB, _, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
+    plt.axhline(y=cls_hat_BB[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
 
-    plt.hist(h_cls[:, l_interest, i, j]*2*np.pi/(l_interest*(l_interest+1)), density=True, bins = 100)
+    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 70)
     plt.plot(xx, yy)
+    plt.axvline(x=init_cls[l_interest, i, j])
+    plt.axvline(x=cls_hat_BB[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
-
-    print(yy)
-
     """
     d = np.load("test.npy", allow_pickle=True)
     d = d.item()

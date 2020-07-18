@@ -60,8 +60,8 @@ class PolarizedCenteredClsSampler(ClsSampler):
             param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
             param_mat[1, 1] = spec_EE[i]
             param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
-
             sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
+
             beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
             sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)
             sampled_power_spec[i, :2, :2] = sampled_TT_TE_EE
@@ -181,16 +181,16 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def sample(self, all_dls):
         start = time.time()
         rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
-        all_cls = all_dls
+        all_cls = all_dls.copy()
         for i in range(self.lmax+1):
             all_cls[i, :, :] *= rescaling[i]
+
 
         inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
 
 
         b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
-
+                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_map)
 
         b_weiner = np.stack(b_weiner_unpacked, axis = 1)
         b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3))
@@ -200,8 +200,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         map = weiner_map + fluctuations
         time_to_solution = time.time() - start
         err = 0
-        #print("Time to solution")
-        #print(time_to_solution)
         return map, time_to_solution, err
 
 

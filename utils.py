@@ -659,20 +659,22 @@ def remove_monopole_dipole_contributions(alms):
     alms[[0, 1, config.L_MAX_SCALARS+1, config.L_MAX_SCALARS+2]] = 0.0
     return alms
 
-def adjoint_synthesis_hp(map, bl_fwhm=None):
+def adjoint_synthesis_hp(map, bl_map=None):
     alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS)
     if len(alms.shape) == 1:
         alms = remove_monopole_dipole_contributions(complex_to_real(alms))
         alms *= config.rescaling_map2alm
         return alms
     else:
-        if bl_fwhm is not None:
-            alms = hp.sphtfunc.smoothalm(alms, bl_fwhm)
-
         alms_T, alms_E, alms_B = alms
         alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm
         alms_E = remove_monopole_dipole_contributions(complex_to_real(alms_E))*config.rescaling_map2alm
         alms_B = remove_monopole_dipole_contributions(complex_to_real(alms_B))*config.rescaling_map2alm
+        if bl_map is not None:
+            alms_T *= bl_map
+            alms_E *= bl_map
+            alms_B *= bl_map
+
         return alms_T, alms_E, alms_B
 
 def analysis_hp(map):
