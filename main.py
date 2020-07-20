@@ -107,10 +107,10 @@ if __name__ == "__main__":
 
     #h_cls_pol, _ = polarized_centered.run(init_cls)
 
-    h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
+    #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
-    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_polarization_centered.npy", d, allow_pickle=True)
+    #d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_polarization_centered.npy", d, allow_pickle=True)
 
 
     d = np.load("test_polarization_centered.npy", allow_pickle=True)
@@ -124,23 +124,54 @@ if __name__ == "__main__":
     map_alm_T = pix_map_alm[0]
     all_pow_spec_B = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
     all_pow_spec_T = hp.alm2cl(map_alm_T, lmax=config.L_MAX_SCALARS)
+    all_pow_spec_TT, all_pow_spec_EE, all_pow_spec_BB, all_pow_spec_TE, _, _ = hp.alm2cl(pix_map_alm, lmax=config.L_MAX_SCALARS)
 
-    l_interest = 3
-    i = 2
-    j = 2
+    l_interest = 7
+    i = 1
+    j = 1
 
-    alpha = (2*l_interest-1)/2
-    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_B[l_interest]*(1/config.bl_gauss[l_interest]**2)
-    loc = - (config.noise_covar_pol*4*np.pi/config.Npix)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2)
+    #alpha = (2*l_interest-1)/2
+    #beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_B[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    #loc = - (config.noise_covar_pol*4*np.pi/config.Npix)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2)
+    #yy = []
+    #xx = []
+    #opposite_norm = scipy.stats.invgamma.cdf(0, a = alpha, loc=loc, scale=beta)
+    #norm = 1 - opposite_norm
+    #for x in np.linspace(0, 0.5, 10000):
+    #    xx.append(x)
+    #    y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = - (config.noise_covar_pol*4*np.pi/config.Npix)\
+    #                                                               *(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2))
+    #    yy.append(y/norm)
+
+
+
+    alpha = (2*l_interest-3)/2
+    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_TE[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    #loc = - (config.noise_covar_pol*4*np.pi/config.Npix)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2)
+    loc = 0
     yy = []
     xx = []
-    opposite_norm = scipy.stats.invgamma.cdf(0, a = alpha, loc=loc, scale=beta)
-    norm = 1 - opposite_norm
-    for x in np.linspace(0, 0.5, 10000):
+    #opposite_norm = scipy.stats.invgamma.cdf(0, a = alpha, loc=loc, scale=beta)
+    #norm = 1 - opposite_norm
+    for x in np.linspace(-3, 16, 10000):
         xx.append(x)
-        y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = - (config.noise_covar_pol*4*np.pi/config.Npix)\
-                                                                   *(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2))
-        yy.append(y/norm)
+        y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = loc)
+        #y = scipy.stats.invwishart.pdf(x, df = 2*l_interest-3, scale = np.array([[beta]]))
+        print(y)
+        yy.append(y)
+
+
+    scale_mat = np.zeros((2, 2))
+    scale_mat[0, 0] = all_pow_spec_TT[l_interest]
+    scale_mat[1, 1] = all_pow_spec_EE[l_interest]
+    scale_mat[1, 0] = all_pow_spec_TE[l_interest]
+    scale_mat[0, 1] = all_pow_spec_TE[l_interest]
+    scale_mat *= (2*l_interest+1)
+    h_true = []
+    for _ in range(10000):
+        sample = scipy.stats.invwishart.rvs(df=2*l_interest-2, scale = scale_mat)
+        h_true.append((sample[i, j]-config.w*config.noise_covar_pol)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_map[l_interest]**2))
+
 
     """
     alpha = (2*l_interest-3)/2
@@ -154,19 +185,23 @@ if __name__ == "__main__":
         yy.append(y)
     """
     print("NORM")
-    print(norm)
+    #print(norm)
     alms = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
-    cls_hat_TT, cls_hat_EE, cls_hat_BB, _, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
+    cls_hat_TT, cls_hat_EE, cls_hat_BB,  cls_hat_TE, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
-    plt.axhline(y=cls_hat_BB[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
+    plt.axhline(y=cls_hat_EE[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
 
-    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 70)
-    plt.plot(xx, yy)
+    plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 70, alpha=0.5, label="Gibbs")
+    plt.hist(h_true, density=True, bins = 100, label="True", alpha=0.5)
+    #plt.plot(xx, yy)
+    plt.legend(loc="upper right")
     plt.axvline(x=init_cls[l_interest, i, j])
-    plt.axvline(x=cls_hat_BB[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
+    plt.axvline(x=cls_hat_EE[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
+
+    print(yy)
     """
     d = np.load("test.npy", allow_pickle=True)
     d = d.item()

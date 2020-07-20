@@ -165,6 +165,7 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
     return inv_cls,chol_cls
 
+
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
         super().__init__(pix_map, noise_temp, bl_map, lmax, Npix, isotropic=True)
