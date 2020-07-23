@@ -151,6 +151,13 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 print("NORM")
                 print(norm)
                 print("Trying a second time")
+                norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
+                                                  args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+
+                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=10000 * maximum,
+                                                  args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+
+                norm = norm1 + norm2
                 low_bound = maximum - np.random.uniform(0, 0.5)
                 up_bound = maximum + np.random.uniform(0, 0.5)
                 sol = scipy.optimize.root_scalar(self.root_to_find, x0=low_bound, x1=up_bound,
