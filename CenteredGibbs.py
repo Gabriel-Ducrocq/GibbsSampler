@@ -150,10 +150,20 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 print(maximum)
                 print("NORM")
                 print(norm)
-                return None
+                print("Trying a second time")
+                low_bound = maximum - np.random.uniform(0, 0.5)
+                up_bound = maximum + np.random.uniform(0, 0.5)
+                sol = scipy.optimize.root_scalar(self.root_to_find, x0=low_bound, x1=up_bound,
+                                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+                has_converged = sol.converged
+                if not has_converged:
+                    print("Second time didn't converge either")
+                    return None
+                else:
+                    print("Second time converged")
 
-            dl_TT = sol.root
-            sampled_power_spec[i, 0, 0] = dl_TT
+            cl_TT = sol.root
+            sampled_power_spec[i, 0, 0] = cl_TT
 
         sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
         return sampled_power_spec
