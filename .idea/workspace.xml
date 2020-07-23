@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test2.py" beforeDir="false" afterPath="$PROJECT_DIR$/test2.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -39,8 +40,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="17" lean-forward="true" selection-start-line="17" selection-end-line="17" />
+            <state relative-caret-position="169">
+              <caret line="34" column="58" selection-start-line="34" selection-start-column="58" selection-end-line="34" selection-end-column="58" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -51,8 +52,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="493">
-              <caret line="158" column="37" lean-forward="true" selection-start-line="158" selection-start-column="37" selection-end-line="158" selection-end-column="37" />
+            <state relative-caret-position="178">
+              <caret line="139" lean-forward="true" selection-start-line="139" selection-end-line="139" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -63,8 +64,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test2.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150">
-              <caret line="51" column="36" selection-start-line="51" selection-start-column="36" selection-end-line="51" selection-end-column="36" />
+            <state relative-caret-position="149">
+              <caret line="93" column="15" lean-forward="true" selection-start-line="93" selection-start-column="15" selection-end-line="93" selection-end-column="15" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -119,7 +120,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>adjoint</find>
       <find>generate_</find>
       <find>cls</find>
       <find>generate_var</find>
@@ -149,6 +149,7 @@
       <find>integrate</find>
       <find>invgamma</find>
       <find>quad</find>
+      <find>maximum</find>
     </findStrings>
     <replaceStrings>
       <replace>config.L_MAX_SCALARS</replace>
@@ -173,8 +174,8 @@
         <option value="$PROJECT_DIR$/NonCenteredGibbs.py" />
         <option value="$PROJECT_DIR$/GibbsSampler.py" />
         <option value="$PROJECT_DIR$/config.py" />
-        <option value="$PROJECT_DIR$/test2.py" />
         <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/test2.py" />
         <option value="$PROJECT_DIR$/CenteredGibbs.py" />
       </list>
     </option>
@@ -330,8 +331,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.test2" />
         <item itemvalue="Python.CenteredGibbs" />
+        <item itemvalue="Python.test2" />
         <item itemvalue="Python.ClsSampler" />
         <item itemvalue="Python.ExactSampler" />
       </list>
@@ -604,16 +605,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test2.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="51" column="36" selection-start-line="51" selection-start-column="36" selection-end-line="51" selection-end-column="36" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="142">
@@ -624,10 +615,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/test2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="149">
+          <caret line="93" column="15" lean-forward="true" selection-start-line="93" selection-start-column="15" selection-end-line="93" selection-end-column="15" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="17" lean-forward="true" selection-start-line="17" selection-end-line="17" />
+        <state relative-caret-position="169">
+          <caret line="34" column="58" selection-start-line="34" selection-start-column="58" selection-end-line="34" selection-end-column="58" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
           </folding>
@@ -636,8 +637,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="493">
-          <caret line="158" column="37" lean-forward="true" selection-start-line="158" selection-start-column="37" selection-end-line="158" selection-end-column="37" />
+        <state relative-caret-position="178">
+          <caret line="139" lean-forward="true" selection-start-line="139" selection-end-line="139" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>

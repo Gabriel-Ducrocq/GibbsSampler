@@ -125,13 +125,13 @@ class PolarizedCenteredClsSampler(ClsSampler):
             norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
                                              args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
-            norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=np.inf,
+            norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=100*maximum,
                                              args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
             norm = norm1 + norm2
 
             if norm < 1e-15:
-                xx = np.linspace(ratio, ratio+10000, 10000)
+                xx = np.linspace(ratio, maximum*10, 10000)
                 yy = []
                 for x in xx:
                     #print(ratio, x)

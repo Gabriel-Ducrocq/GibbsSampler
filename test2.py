@@ -49,7 +49,7 @@ def sample(l, scale_mat):
     norm1, err = scipy.integrate.quad(compute_conditional_TT, a=ratio, b=maximum, args=(l, scale_mat, cl_EE, cl_TE))
     norm2, err = scipy.integrate.quad(compute_conditional_TT, a=maximum, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
     norm = norm1 + norm2
-    #norm, err = mpmath.quad(compute_conditional_TT, [ratio, np.inf], args=(l, scale_mat, cl_EE, cl_TE))
+    #norm, err = mpmath.quad(comput_conditional_TT, [ratio, np.inf], args=(l, scale_mat, cl_EE, cl_TE))
     norm2 = compute_norm(l, scale_mat, cl_EE, cl_TE)
     print("NORMS")
     print(norm)
@@ -88,16 +88,23 @@ def trace_pdf(l, scale_mat, cl_EE, cl_TE):
     low_bound = cl_TE ** 2 / cl_EE
     norm, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
     y = []
-    x = np.linspace(low_bound, 100000, 100000)
+    maximum = (cl_EE ** 2 * scale_mat[ 0, 0] + cl_TE ** 2 * scale_mat[1, 1] + cl_TE ** 2 * (
+                2 * l + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[ 0, 1]) / ((2 * l + 1) * cl_EE ** 2)
+    print("NORM")
+    print(norm)
+    x = np.linspace(low_bound/maximum, 50, 100000)
     for i in x:
         print(i)
 
-        integral = compute_conditional_TT(i, l, scale_mat, cl_EE, cl_TE)
+        integral = compute_conditional_TT(i*maximum, l, scale_mat, cl_EE, cl_TE)
         y.append(integral/norm)
         print("ERROR")
         print(err)
 
+    print("MAXIMUM")
+    print(maximum)
     plt.plot(x,y)
+    plt.axvline(x=maximum)
     plt.show()
 
 
@@ -130,7 +137,7 @@ print(b)
 
 
 #trace_cdf(0.07687580214076828, l_interest, scale_mat, 0.028135052007328482, -0.0088654407928456)
-#trace_pdf(l_interest, scale_mat, 0.028135052007328482, -0.0088654407928456)
+trace_pdf(l_interest, scale_mat, 0.028135052007328482, -0.0088654407928456)
 
 for i in range(1000):
     if i % 100 == 0:
