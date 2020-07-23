@@ -11,7 +11,6 @@ import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
 import scipy
-import mpmath
 import matplotlib.pyplot as plt
 
 

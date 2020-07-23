@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
 
     polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=100, polarization=True)
+                                   config.Npix, n_iter=10000, polarization=True)
 
 
     polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
