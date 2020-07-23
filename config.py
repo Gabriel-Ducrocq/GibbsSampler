@@ -70,8 +70,8 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 #noise_covar_temp = 40**2
 noise_covar_temp = 4**2
 noise_covar_pol = 0.00044**2
-#noise_covar_temp = 100**2
-#noise_covar_pol = 0.44**2
+#noise_covar_temp = 1000**2
+#noise_covar_pol = 4.4**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 inv_var_noise = np.ones(Npix) / noise_covar_temp
@@ -182,10 +182,10 @@ preliminary_run =True
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:]
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 0.05
-    proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 0.05
-    proposal_variances_nc_polarized["BB"] = np.ones(len(unbinned_variances)) * 0.05
-    proposal_variances_nc_polarized["TE"] = np.ones(len(unbinned_variances)) * 0.05
+    proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
+    proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60
+    proposal_variances_nc_polarized["BB"] = np.ones(len(unbinned_variances)) * 60
+    proposal_variances_nc_polarized["TE"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_asis = binned_variances[2:]
     proposal_variances_pncp = binned_variances[2:]
 else:

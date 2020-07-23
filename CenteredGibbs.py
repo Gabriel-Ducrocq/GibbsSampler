@@ -5,11 +5,14 @@ import utils
 import healpy as hp
 import numpy as np
 from scipy.stats import invgamma, invwishart
+from scipy.stats import t as student
 import time
 import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
 import scipy
+import mpmath
+import matplotlib.pyplot as plt
 
 
 
@@ -45,8 +48,7 @@ class CenteredClsSampler(ClsSampler):
 alm_obj = hp.Alm()
 
 class PolarizedCenteredClsSampler(ClsSampler):
-
-    def sample(self, alms):
+    def sample_unbinned(self, alms):
         alms_TT_complex = utils.real_to_complex(alms[:, 0])
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
         alms_BB_complex = utils.real_to_complex(alms[:, 2])
@@ -68,6 +70,107 @@ class PolarizedCenteredClsSampler(ClsSampler):
             sampled_power_spec[i, 2, 2] = sampled_BB
 
         return sampled_power_spec
+
+    def compute_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
+        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
+        if x <= cl_TE ** 2 / cl_EE:
+            return 0
+        else:
+            return invwishart.pdf(param_mat, df=2 * l - 2, scale=scale_mat)
+
+    def root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm):
+        low_bound = cl_TE ** 2 / cl_EE
+        integral, err = scipy.integrate.quad(self.compute_conditional_TT, a=low_bound, b=x,
+                                             args=(l, scale_mat, cl_EE, cl_TE))
+        return integral / norm - u
+
+    def sample_bin(self, alms):
+        alms_TT_complex = utils.real_to_complex(alms[:, 0])
+        alms_EE_complex = utils.real_to_complex(alms[:, 1])
+        alms_BB_complex = utils.real_to_complex(alms[:, 2])
+        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex],
+                                                             lmax=self.lmax)
+
+        rescale = np.array([(2 * i + 1) for i in range(0, config.L_MAX_SCALARS + 1)])
+        scale_mat = np.zeros((config.L_MAX_SCALARS+1, 2, 2))
+        scale_mat[:, 0, 0] = spec_TT*rescale
+        scale_mat[:, 1, 1] = spec_EE*rescale
+        scale_mat[:, 1, 0] = scale_mat[:, 0, 1] = spec_TE*rescale
+        alpha = np.array([(2*i-1)/2 for i in range(2,config.L_MAX_SCALARS+1)])
+        sampled_power_spec = np.zeros((self.lmax + 1, 3, 3))
+
+        beta_BB = spec_BB*rescale/2
+        sample_BB = invgamma.rvs(a=alpha, scale=beta_BB[2:])
+        sampled_power_spec[2:, 2, 2] = sample_BB
+
+        for i in self.bins["EE"]:
+            beta_EE = scale_mat[i, 1, 1]
+            cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
+            sampled_power_spec[i, 1, 1] = cl_EE
+
+        for i in self.bins["TE"]:
+            determinant = np.linalg.det(scale_mat[i, :, :])
+            student_TE = student.rvs(df=2 * i - 2)
+            cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
+                    scale_mat[i, 1, 1]
+            sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
+
+        for i in self.bins["TT"]:
+            u = np.random.uniform()
+            cl_EE = sampled_power_spec[i, 1, 1]
+            cl_TE = sampled_power_spec[i, 0, 1]
+            ratio = cl_TE ** 2 / cl_EE
+            maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
+                        2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
+
+            norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
+                                             args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+
+            norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=np.inf,
+                                             args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+
+            norm = norm1 + norm2
+
+            if norm < 1e-15:
+                xx = np.linspace(ratio, ratio+10000, 10000)
+                yy = []
+                for x in xx:
+                    #print(ratio, x)
+                    y = self.compute_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE)
+                    yy.append(y)
+
+                plt.plot(xx,yy)
+                plt.axvline(x=maximum)
+                plt.show()
+
+            sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+            has_converged = sol.converged
+            if not has_converged:
+                print("No root found")
+                print("MAXIMUM")
+                print(maximum)
+                print("NORM")
+                print(norm)
+                return None
+
+            dl_TT = sol.root
+            sampled_power_spec[i, 0, 0] = dl_TT
+
+        sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
+        return sampled_power_spec
+
+    def sample(self, alm_map):
+        if False:
+            return self.sample_unbinned(alm_map)
+        else:
+            return self.sample_bin(alm_map)
+
+
+
+
+
+
+
 
 
 class CenteredConstrainedRealization(ConstrainedRealization):

@@ -5,51 +5,164 @@ import matplotlib.pyplot as plt
 import config
 import utils
 from CenteredGibbs import PolarizedCenteredConstrainedRealization
-from scipy.stats import norm
-
-alm = np.ones((config.L_MAX_SCALARS+1)**2)
-alm = utils.real_to_complex(alm)
-alm_first = [alm,alm,alm]
-
-pix_map = hp.alm2map(alm_first, nside=config.NSIDE, lmax=config.L_MAX_SCALARS)*4*np.pi/(config.Npix)
-noise_I = config.Npix/(4*np.pi)
-noise_Q = 2
-
-def generate_var_cl(cls_):
-    var_cl_full = np.concatenate([cls_,
-                                  np.array(
-                                      [cl for m in range(1, config.L_MAX_SCALARS + 1) for cl in cls_[m:] for _ in range(2)])])
-    return var_cl_full
-
-bl_gauss = np.ones(config.L_MAX_SCALARS+1)
-bl_map = generate_var_cl(bl_gauss)
+from scipy.stats import norm, invgamma, invwishart
+from scipy.stats import t as student
+import scipy
+import time
+from scipy.special import gammaln, multigammaln
+import mpmath
 
 
 
-sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_I, noise_Q, bl_map, config.L_MAX_SCALARS, config.Npix, 0.1, isotropic=True)
+def compute_norm(l, scale_mat, cl_EE, cl_TE):
+    k = scale_mat[1, 1]*cl_TE**2/cl_EE - 2*scale_mat[0, 1]*cl_TE + scale_mat[0, 0]*cl_EE
 
-all_dls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
-for i in range(2, config.L_MAX_SCALARS+1):
-    all_dls[i, :, :] = np.diag([1, 1, 1])*i*(i+1)/(2*np.pi)*2
-
-h_s = []
-for i in range(10000):
-    s, _, _ = sampler.sample(all_dls.copy())
-    h_s.append(s)
+    return -(2*l-2)*np.log(2) - multigammaln((2*l-2)/2, 2) + ((2*l+1)/2)*np.log(2) - np.log(cl_EE) + ((2*l-2)/2)*np.log(np.linalg.det(scale_mat))\
+    - ((2*l-3)/2)*np.log(2*l+1) - ((2*l-1)/2)*np.log(k) + gammaln((2*l-1)/2) - ((2*l+1)/2)*scale_mat[1, 1]/cl_EE
 
 
-mu = np.pi/18
-x = np.linspace(-4, 4, 100000)
-l_interest = 2
-y = norm.pdf(x, loc = mu, scale=np.sqrt(2/3))
 
-h_s = np.array(h_s)
-plt.hist(h_s[:, l_interest, 0], density=True, bins = 30)
-plt.plot(x, y)
+def compute_conditional_TT(x, l, scale_mat, cl_EE, cl_TE):
+    param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
+    if x <= cl_TE**2/cl_EE:
+        return 0
+    else:
+        return invwishart.pdf(param_mat, df=2*l-2, scale=scale_mat)
+
+
+def root_to_find(x, u, l, scale_mat, cl_EE, cl_TE, norm):
+    low_bound = cl_TE**2/cl_EE
+    integral, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=x, args=(l, scale_mat, cl_EE, cl_TE))
+    return integral/norm - u
+
+
+def sample(l, scale_mat):
+    beta_EE = scale_mat[1, 1]
+    cl_EE = invgamma.rvs(a = (2*l-3)/2, scale = beta_EE/2)
+    student_TE = student.rvs(df = 2*l-2)
+    determinant = np.linalg.det(scale_mat)
+    cl_TE = (np.sqrt(determinant)*cl_EE*student_TE/np.sqrt(2*l-2) + scale_mat[0, 1]*cl_EE)/scale_mat[1, 1]
+    u = np.random.uniform()
+    ratio = cl_TE**2/cl_EE
+    maximum = (cl_EE ** 2 * scale_mat[ 0, 0] + cl_TE ** 2 * scale_mat[1, 1] + cl_TE ** 2 * (
+                2 * l + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[ 0, 1]) / ((2 * l + 1) * cl_EE ** 2)
+    norm1, err = scipy.integrate.quad(compute_conditional_TT, a=ratio, b=maximum, args=(l, scale_mat, cl_EE, cl_TE))
+    norm2, err = scipy.integrate.quad(compute_conditional_TT, a=maximum, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
+    norm = norm1 + norm2
+    #norm, err = mpmath.quad(compute_conditional_TT, [ratio, np.inf], args=(l, scale_mat, cl_EE, cl_TE))
+    norm2 = compute_norm(l, scale_mat, cl_EE, cl_TE)
+    print("NORMS")
+    print(norm)
+    print(np.exp(norm2))
+    #sol = scipy.optimize.bisect(root_to_find, a=ratio,b=1000, args=(u, l, scale_mat, cl_EE, cl_TE, norm))
+    sol = scipy.optimize.root_scalar(root_to_find, x0=maximum -0.1, x1=maximum+0.1, args=(u, l, scale_mat, cl_EE, cl_TE, norm))
+    print(sol)
+    print(cl_TE**2/cl_EE)
+    print("\n")
+    return sol, cl_EE, cl_TE, 1
+
+
+
+def trace_cdf(u, l, scale_mat, cl_EE, cl_TE):
+    low_bound = cl_TE ** 2 / cl_EE
+    #norm, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
+    log_norm = compute_norm(l, scale_mat, cl_EE, cl_TE)
+    norm = np.exp(log_norm)
+    y = []
+    x = np.linspace(low_bound, 100, 1000)
+    for i in x:
+        print(i)
+
+        integral, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=i,
+                                             args=(l, scale_mat, cl_EE, cl_TE))
+        y.append(integral/norm)
+        print("ERROR")
+        print(err)
+
+    plt.plot(x,y)
+    plt.axhline(y = 0)
+    plt.show()
+
+
+def trace_pdf(l, scale_mat, cl_EE, cl_TE):
+    low_bound = cl_TE ** 2 / cl_EE
+    norm, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
+    y = []
+    x = np.linspace(low_bound, 100000, 100000)
+    for i in x:
+        print(i)
+
+        integral = compute_conditional_TT(i, l, scale_mat, cl_EE, cl_TE)
+        y.append(integral/norm)
+        print("ERROR")
+        print(err)
+
+    plt.plot(x,y)
+    plt.show()
+
+
+
+map = [np.random.normal(size = config.Npix), np.random.normal(size = config.Npix), np.random.normal(size = config.Npix)]
+alms = hp.map2alm(map)
+pow_spec_TT, pow_spec_EE, _, pow_spec_TE, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
+
+l_interest = 7
+
+scale_mat = np.zeros((2, 2))
+scale_mat[0, 0] = pow_spec_TT[l_interest]
+scale_mat[1, 1] = pow_spec_EE[l_interest]
+scale_mat[1, 0] = scale_mat[0, 1] = pow_spec_TE[l_interest]
+scale_mat *= (2*l_interest+1)
+
+h_cond = []
+h_successes = []
+start = time.time()
+
+cl_EE = 0.028135052007328482
+cl_TE = -0.0088654407928456
+u = 0.07687580214076828
+ratio = cl_TE**2/cl_EE
+norm, err = scipy.integrate.quad(compute_conditional_TT, a=ratio, b=np.inf, args=(l_interest, scale_mat, cl_EE, cl_TE))
+b, err = scipy.integrate.quad(compute_conditional_TT, a=ratio, b=10000, args=(l_interest, scale_mat, cl_EE, cl_TE))
+b = b / norm - u
+print("B")
+print(b)
+
+
+#trace_cdf(0.07687580214076828, l_interest, scale_mat, 0.028135052007328482, -0.0088654407928456)
+#trace_pdf(l_interest, scale_mat, 0.028135052007328482, -0.0088654407928456)
+
+for i in range(1000):
+    if i % 100 == 0:
+        print("Numerical inversion, iteration",i)
+
+    cl_TT, cl_EE, cl_TE, success = sample(l_interest, scale_mat)
+    h_cond.append(cl_TT)
+    h_successes.append(success)
+
+end = time.time()
+print("Time numerical inversion:", end-start)
+
+h_direct = []
+for i in range(1000):
+    mat_sample = invwishart.rvs(df=2*l_interest-2, scale=scale_mat)
+    h_direct.append(mat_sample[0, 0])
+
+
+d = {"h_cond":np.array(h_cond), "h_direct":np.array(h_direct), "h_successes":np.array(h_successes)}
+np.save("numeric_inverse_test.npy", d, allow_pickle=True)
+
+d = np.load("numeric_inverse_test.npy", allow_pickle=True)
+d = d.item()
+h_cond = d["h_cond"]
+h_direct = d["h_direct"]
+h_successes = d["h_successes"]
+
+
+plt.hist(h_cond[h_successes==True], label="Cond", alpha=0.5, density=True, bins = 45)
+plt.hist(h_direct, label="Direct", alpha = 0.5, density=True, bins = 45)
+plt.legend(loc="upper right")
 plt.show()
 
-print((2*np.pi*l_interest)/(12*l_interest+np.pi))
-print(np.var(h_s[:, l_interest, 0]))
-print(mu)
-print(np.mean(h_s[:, l_interest, 0]))
 
+print(len(h_cond[h_successes==True]))

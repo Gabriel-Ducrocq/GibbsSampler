@@ -12,6 +12,7 @@ import healpy as hp
 from CenteredGibbs import CenteredGibbs
 from NonCenteredGibbs import NonCenteredGibbs
 from PNCP import PNCPGibbs
+from scipy.stats import invwishart
 from ASIS import ASIS
 
 
@@ -24,6 +25,16 @@ def generate_dataset(polarization=True):
     d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
     d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
     return theta_, cls_, map_true,  d
+
+
+def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
+    param_mat = np.array([[x_TT, x_TE], [x_TE, x_EE]])
+    if x_TT <= x_TE**2/x_EE:
+        return 0
+    else:
+        return invwishart.pdf(param_mat, df=2*l-2, scale=scale_mat)
+
+
 
 
 if __name__ == "__main__":
@@ -83,7 +94,7 @@ if __name__ == "__main__":
 
 
     polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=10000, polarization=True)
+                                   config.Npix, n_iter=100, polarization=True)
 
 
     polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
@@ -105,12 +116,16 @@ if __name__ == "__main__":
     for i in range(config.L_MAX_SCALARS+1):
         init_cls[i, :, :] *= i*(i+1)/(2*np.pi)
 
-    #h_cls_pol, _ = polarized_centered.run(init_cls)
+    start = time.time()
+    h_cls_pol, _ = polarized_centered.run(init_cls)
+    end = time.time()
+    print("TIME CENTERED:")
+    print(end-start)
 
     #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
-    #d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    #np.save("test_polarization_centered.npy", d, allow_pickle=True)
+    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_polarization_centered.npy", d, allow_pickle=True)
 
 
     d = np.load("test_polarization_centered.npy", allow_pickle=True)
@@ -127,8 +142,8 @@ if __name__ == "__main__":
     all_pow_spec_TT, all_pow_spec_EE, all_pow_spec_BB, all_pow_spec_TE, _, _ = hp.alm2cl(pix_map_alm, lmax=config.L_MAX_SCALARS)
 
     l_interest = 7
-    i = 1
-    j = 1
+    i = 0
+    j = 0
 
     #alpha = (2*l_interest-1)/2
     #beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_B[l_interest]*(1/config.bl_gauss[l_interest]**2)
@@ -157,7 +172,6 @@ if __name__ == "__main__":
         xx.append(x)
         y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = loc)
         #y = scipy.stats.invwishart.pdf(x, df = 2*l_interest-3, scale = np.array([[beta]]))
-        print(y)
         yy.append(y)
 
 
@@ -168,9 +182,13 @@ if __name__ == "__main__":
     scale_mat[0, 1] = all_pow_spec_TE[l_interest]
     scale_mat *= (2*l_interest+1)
     h_true = []
-    for _ in range(10000):
+    for m in range(100000):
+        if m % 1000 == 0:
+            print("True sampling iteration:", i)
+
         sample = scipy.stats.invwishart.rvs(df=2*l_interest-2, scale = scale_mat)
-        h_true.append((sample[i, j]-config.w*config.noise_covar_pol)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_map[l_interest]**2))
+        if sample[0, 0] > config.noise_covar_temp*config.w and sample[1, 1] > config.noise_covar_pol*config.w and (sample[0, 0] - config.noise_covar_temp*config.w)*(sample[1, 1]-config.noise_covar_pol*config.w) - sample[1, 0]**2 > 0:
+            h_true.append((sample[i, j]-config.w*config.noise_covar_temp)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_map[l_interest]**2))
 
 
     """
@@ -184,13 +202,14 @@ if __name__ == "__main__":
         #y = (y - config.noise_covar_temp*config.w)*l_interest*(l_interest+1)/(2*np.pi)
         yy.append(y)
     """
-    print("NORM")
-    #print(norm)
+    print("Len h_true")
+    print(len(h_true))
+    print(len(h_cls))
     alms = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
     cls_hat_TT, cls_hat_EE, cls_hat_BB,  cls_hat_TE, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
     plt.plot(h_cls[:, l_interest, i, j])
     plt.axhline(y=init_cls[l_interest, i, j])
-    plt.axhline(y=cls_hat_EE[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
+    plt.axhline(y=cls_hat_TT[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
 
     plt.hist(h_cls[:, l_interest, i, j], density=True, bins = 70, alpha=0.5, label="Gibbs")
@@ -198,7 +217,7 @@ if __name__ == "__main__":
     #plt.plot(xx, yy)
     plt.legend(loc="upper right")
     plt.axvline(x=init_cls[l_interest, i, j])
-    plt.axvline(x=cls_hat_EE[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
+    plt.axvline(x=cls_hat_TT[l_interest]*l_interest*(l_interest+1)/(2*np.pi), color="red")
     plt.show()
 
     print(yy)

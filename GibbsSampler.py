@@ -21,7 +21,11 @@ class GibbsSampler():
         self.cls_sampler = None
         self.n_iter = n_iter
         if bins == None:
-            self.bins = np.array([l for l in range(lmax+2)])
+            if not polarization:
+                self.bins = np.array([l for l in range(lmax+2)])
+            else:
+                bins = np.array([l for l in range(2, lmax + 1)])
+                self.bins = {"TT":bins, "EE":bins, "TE":bins, "BB":bins}
         else:
             self.bins = bins
 

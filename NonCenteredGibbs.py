@@ -193,7 +193,6 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         probas_te = truncnorm.logpdf(dl_new[l_start:l_end, 1, 0], a=clip_low_TE, b=clip_high_TE, loc=dl_old[l_start:l_end, 1, 0],
                                  scale=np.sqrt(self.proposal_variances["TE"][l_start - 2:l_end - 2]))
 
-
         return np.sum(probas_TT) + np.sum(probas_EE) + np.sum(probas_bb) + np.sum(probas_te)
 
     def compute_log_likelihood(self, chol_cls, s_nonCentered):
@@ -264,7 +263,6 @@ class NonCenteredGibbs(GibbsSampler):
                                                                                   self.bl_map, lmax, Npix, beam, isotropic=True)
             self.cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis)
-
 
     def run(self, cls_init):
         h_dls = []
