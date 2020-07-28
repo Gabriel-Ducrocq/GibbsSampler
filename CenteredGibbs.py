@@ -174,7 +174,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
                                                   args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
-                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=100*maximum,
+                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=1000*maximum,
                                                   args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
                 norm = norm1 + norm2
