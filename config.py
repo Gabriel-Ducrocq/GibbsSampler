@@ -16,7 +16,7 @@ def compute_observed_spectrum(d):
     return observed_cls
 
 
-# COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
+COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
 COSMO_PARAMS_MEAN_PRIOR = np.array([0.9665, 0.02242, 0.11933, 1.04101, 3.047, 0.0561])
 COSMO_PARAMS_SIGMA_PRIOR = np.array([0.0038, 0.00014, 0.00091, 0.00029, 0.014, 0.0071])
 COSMO_PARAMS_SIGMA_PRIOR_UNIF_inf = np.array([0.9665, 0.02242, 0.11933, 1.04101, 3.047]) \
@@ -27,9 +27,9 @@ COSMO_PARAMS_SIGMA_PROP = np.array([0.0038, 0.00014, 0.00091, 0.00029, 0.014, 0.
 LiteBIRD_sensitivities = np.array([36.1, 19.6, 20.2, 11.3, 10.3, 8.4, 7.0, 5.8, 4.7, 7.0, 5.8, 8.0, 9.1, 11.4, 19.6])
 COSMO_PARAMS_PLANCK = np.array([0.9635, 0.02213, 0.12068, 1.04096, 3.0413, 0.0523])
 
-COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "Omega_Lambda", "ln10^{10}A_s", "tau_reio"]
-COSMO_PARAMS_WMAP = [0.961, 0.02268, 0.1081, 0.751, 2.41, 0.089]
-COSMO_WAMP_MEAN = [0.963, 0.02273, 0.1099, 0.742, 2.41, 0.087]
+#COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "Omega_Lambda", "ln10^{10}A_s", "tau_reio"]
+#COSMO_PARAMS_WMAP = [0.961, 0.02268, 0.1081, 0.751, 2.41, 0.089]
+#COSMO_WAMP_MEAN = [0.963, 0.02273, 0.1099, 0.742, 2.41, 0.087]
 
 test_COSMO = [0.972, 0.02264, 0.1138, 1.04101, 3.047, 0.088]
 
@@ -68,7 +68,7 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp = 40**2
-noise_covar_temp = 4**2
+noise_covar_temp = 0.04**2
 noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
 #noise_covar_pol = 4.4**2

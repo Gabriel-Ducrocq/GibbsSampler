@@ -660,7 +660,7 @@ def remove_monopole_dipole_contributions(alms):
     return alms
 
 def adjoint_synthesis_hp(map, bl_map=None):
-    alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS)
+    alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
     if len(alms.shape) == 1:
         alms = remove_monopole_dipole_contributions(complex_to_real(alms))
         alms *= config.rescaling_map2alm

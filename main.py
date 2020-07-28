@@ -78,28 +78,28 @@ if __name__ == "__main__":
     plt.show()
 
 
-    non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
-                                          config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
+    #non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
+    #                                      config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
 
-    centered_gibbs = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=100000)
+    #centered_gibbs = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, n_iter=100000)
 
-    pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                             config.Npix, config.proposal_variances_pncp, config.l_cut, metropolis_blocks = None,
-                 polarization = False, bins = None, n_iter = 100000, n_iter_metropolis=1)
+    #pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                         config.Npix, config.proposal_variances_pncp, config.l_cut, metropolis_blocks = None,
+    #             polarization = False, bins = None, n_iter = 100000, n_iter_metropolis=1)
 
-    asis_sampler = ASIS(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=100000)
+    #asis_sampler = ASIS(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                        config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=100000)
 
 
     polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, n_iter=10000, polarization=True)
 
 
-    polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
-                                                    config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=10000, polarization=True)
+    #polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
+    #                                                config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, proposal_variances=config.proposal_variances_nc_polarized, n_iter=10000, polarization=True)
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)

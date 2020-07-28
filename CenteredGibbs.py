@@ -12,6 +12,7 @@ from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
 import scipy
 import matplotlib.pyplot as plt
+import qcinv
 
 
 
@@ -83,6 +84,10 @@ class PolarizedCenteredClsSampler(ClsSampler):
                                              args=(l, scale_mat, cl_EE, cl_TE))
         return integral / norm - u
 
+    def deriv_root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm):
+        return self.compute_conditional_TT(x, l, scale_mat, cl_EE, cl_TE)/norm
+
+
     def sample_bin(self, alms):
         alms_TT_complex = utils.real_to_complex(alms[:, 0])
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
@@ -122,6 +127,13 @@ class PolarizedCenteredClsSampler(ClsSampler):
             maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
                         2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
 
+            precision = -self.compute_conditional_TT(maximum, i, scale_mat[i], cl_EE, cl_TE) * (
+                        1 / (maximum * cl_EE - cl_TE ** 2) ** 2) * (((2 * i + 1) / 2) * cl_EE ** 2 - (
+                        scale_mat[i, 1, 1] * cl_TE ** 2 + scale_mat[i, 0, 0] * cl_EE ** 2 - 2 * scale_mat[i,
+                    0, 1] * cl_TE * cl_EE) * cl_EE / (maximum * cl_EE - cl_TE ** 2))
+            var = 1 / precision
+            stdd = np.sqrt(var)
+
             norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
                                              args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
@@ -130,7 +142,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
             norm = norm1 + norm2
 
-            if norm < 1e-15:
+            if False:
                 xx = np.linspace(ratio, maximum*10, 10000)
                 yy = []
                 for x in xx:
@@ -140,9 +152,12 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
                 plt.plot(xx,yy)
                 plt.axvline(x=maximum)
+                plt.axvline(x=max2, color="red")
                 plt.show()
 
-            sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+            sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum, fprime = self.deriv_root_to_find,
+                                             args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
             has_converged = sol.converged
             if not has_converged:
                 print("No root found")
@@ -154,14 +169,14 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
                                                   args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
-                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=10000 * maximum,
+                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=100*maximum,
                                                   args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
                 norm = norm1 + norm2
                 low_bound = maximum - np.random.uniform(0, 0.5)
                 up_bound = maximum + np.random.uniform(0, 0.5)
-                sol = scipy.optimize.root_scalar(self.root_to_find, x0=low_bound, x1=up_bound,
-                                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+                sol = scipy.optimize.root_scalar(self.root_to_find, x0 = low_bound, x1 = up_bound,
+                                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm), method="secant")
                 has_converged = sol.converged
                 if not has_converged:
                     print("Second time didn't converge either")
@@ -191,25 +206,59 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
 class CenteredConstrainedRealization(ConstrainedRealization):
 
-    def sample(self, var_cls):
+    def sample_no_mask(self, cls_, var_cls):
         inv_var_cls = np.zeros(len(var_cls))
         np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
-
         b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise))
 
         start = time.time()
-        Sigma = 1/(inv_var_cls + self.inv_noise * (config.Npix / (4 * np.pi)) * config.bl_map ** 2)
+        ###To change !!!!
+        ###Sigma = 1/(inv_var_cls + self.inv_noise * (self.Npix / (4 * np.pi)) * self.bl_map ** 2)
+        Sigma = 1 / (inv_var_cls + self.inv_noise[0] * (self.Npix / (4 * np.pi)) * self.bl_map ** 2)
         weiner = Sigma * b_weiner
         flucs = Sigma * b_fluctuations
         map = weiner + flucs
         err = 0
-        map[[0, 1, config.L_MAX_SCALARS + 1, config.L_MAX_SCALARS + 2]] = 0.0
+        map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
         time_to_solution = time.time() - start
+        #print("INPUT MAP 2 ALM DIAG")
+        #print(self.inv_noise * self.pix_map)
+        print("weiner 50")
+        print(utils.real_to_complex(b_weiner))
+        return map, time_to_solution, err, weiner
 
-        return map, time_to_solution, err
+
+    def sample_mask(self, cls_, var_cls):
+        self.s_cls.cltt = cls_
+        self.s_cls.lmax = self.lmax
+
+        inv_var_cls = np.zeros(len(var_cls))
+        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
+
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=('log_'))
+
+        #b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
+        b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
+                         self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise))
+
+        soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
+        #soltn_complex = utils.real_to_complex(b_fluctuations)
+        chain.solve(soltn_complex, self.pix_map)
+        hp.almxfl(soltn_complex, cls_, inplace=True)
+        soltn = utils.complex_to_real(soltn_complex)
+        return soltn, 0, 0,
+
+
+    def sample(self, cls_, var_cls):
+        if self.mask_path is not None:
+            return self.sample_mask(cls_, var_cls)
+        else:
+            return self.sample_no_mask(cls_, var_cls)
 
 
 complex_dim = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
@@ -287,7 +336,7 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
-        super().__init__(pix_map, noise_temp, bl_map, lmax, Npix, isotropic=True)
+        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, isotropic=True)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
@@ -298,7 +347,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.bl_fwhm = bl_fwhm
 
-    def sample(self, all_dls):
+    def sample(self, all_dls, var_all_dls):
         start = time.time()
         rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
         all_cls = all_dls.copy()

@@ -14,6 +14,10 @@ import mpmath
 
 
 
+def get_points(a, b, n):
+    return np.array([(1/2)*(a+b) + (1/2)*(a-b)*np.cos(((2*k-1)/(2*n))*np.pi) for k in range(0, n)])
+
+
 def compute_norm(l, scale_mat, cl_EE, cl_TE):
     k = scale_mat[1, 1]*cl_TE**2/cl_EE - 2*scale_mat[0, 1]*cl_TE + scale_mat[0, 0]*cl_EE
 
@@ -28,6 +32,10 @@ def compute_conditional_TT(x, l, scale_mat, cl_EE, cl_TE):
         return 0
     else:
         return invwishart.pdf(param_mat, df=2*l-2, scale=scale_mat)
+
+
+def compute_conditional_TT_rescaled(x, l, scale_mat, cl_EE, cl_TE, maximum):
+    return compute_conditional_TT(maximum*x, l, scale_mat, cl_EE, cl_TE)
 
 
 def root_to_find(x, u, l, scale_mat, cl_EE, cl_TE, norm):
@@ -49,8 +57,7 @@ def sample(l, scale_mat):
     norm1, err = scipy.integrate.quad(compute_conditional_TT, a=ratio, b=maximum, args=(l, scale_mat, cl_EE, cl_TE))
     norm2, err = scipy.integrate.quad(compute_conditional_TT, a=maximum, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
     norm = norm1 + norm2
-    #norm, err = mpmath.quad(comput_conditional_TT, [ratio, np.inf], args=(l, scale_mat, cl_EE, cl_TE))
-    norm2 = compute_norm(l, scale_mat, cl_EE, cl_TE)
+
     print("NORMS")
     print(norm)
     print(np.exp(norm2))
@@ -88,23 +95,48 @@ def trace_pdf(l, scale_mat, cl_EE, cl_TE):
     low_bound = cl_TE ** 2 / cl_EE
     norm, err = scipy.integrate.quad(compute_conditional_TT, a=low_bound, b=np.inf, args=(l, scale_mat, cl_EE, cl_TE))
     y = []
+    y_norm = []
     maximum = (cl_EE ** 2 * scale_mat[ 0, 0] + cl_TE ** 2 * scale_mat[1, 1] + cl_TE ** 2 * (
                 2 * l + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[ 0, 1]) / ((2 * l + 1) * cl_EE ** 2)
-    print("NORM")
-    print(norm)
-    x = np.linspace(low_bound/maximum, 50, 100000)
+
+    max2 = (cl_EE ** 2 * scale_mat[0, 0] + cl_TE ** 2 * scale_mat[1, 1] + cl_TE ** 2 * cl_EE - 2 * cl_TE * cl_EE *
+            scale_mat[0, 1]) / (cl_EE ** 2)
+
+    precision = -compute_conditional_TT (maximum, l, scale_mat, cl_EE, cl_TE)*(1/(maximum*cl_EE - cl_TE**2 )**2)*(((2*l+1)/2)*cl_EE**2 - (scale_mat[1, 1]*cl_TE**2 + scale_mat[0, 0]*cl_EE**2 - 2* scale_mat[0, 1]*cl_TE*cl_EE)*cl_EE/(maximum*cl_EE - cl_TE**2 ))
+    var = 1/precision
+    stdd = np.sqrt(var)
+    deg = 2**12 + 1
+    #cheb_nodes = get_points(ratio/maximum, (10*stdd+maximum)/maximum, deg-1)
+    #cheb_y = np.array([compute_conditional_TT_rescaled(node, l, scale_mat, cl_EE, cl_TE, maximum) for node in cheb_nodes])
+    #cheb_coefs = np.polynomial.chebyshev.chebfit(cheb_nodes, cheb_y, deg)
+    x = np.linspace(low_bound/maximum, (maximum+10*stdd)/maximum, 10000)
+    #cheb_y = np.array([np.polynomial.chebyshev.chebval(l, cheb_coefs) for l in x])
     for i in x:
         print(i)
-
-        integral = compute_conditional_TT(i*maximum, l, scale_mat, cl_EE, cl_TE)
-        y.append(integral/norm)
+        normal = scipy.stats.norm.pdf(i, loc=maximum, scale=np.sqrt(var))
+        y_norm.append(normal)
+        integral = compute_conditional_TT_rescaled(i, l, scale_mat, cl_EE, cl_TE, maximum)
+        y.append(integral)
         print("ERROR")
         print(err)
 
     print("MAXIMUM")
     print(maximum)
-    plt.plot(x,y)
+    print("NORM")
+    print(norm)
+    print("var")
+    print(var)
+    print("ERROR CHEB")
+    #print(max(np.abs(cheb_coefs[-5:])))
+    #plt.plot(cheb_coefs)
+    #plt.show()
+    print("All coefs")
+    #print(np.sort(np.abs(cheb_coefs)))
+    plt.plot(x,np.log(y), label="True function")
+    #plt.plot(x, y_norm, label="Normal approximation")
+    #plt.plot(x, cheb_y, label="Chebyshev")
     plt.axvline(x=maximum)
+    plt.legend(loc="upper right")
     plt.show()
 
 

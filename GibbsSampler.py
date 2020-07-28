@@ -53,7 +53,7 @@ class GibbsSampler():
                 var_cls_full = cls
 
 
-            alm_map, time_to_solution, err = self.constrained_sampler.sample(var_cls_full.copy())
+            alm_map, time_to_solution, err = self.constrained_sampler.sample(cls, var_cls_full.copy())
             binned_cls = self.cls_sampler.sample(alm_map)
 
             end_time = time.process_time()
