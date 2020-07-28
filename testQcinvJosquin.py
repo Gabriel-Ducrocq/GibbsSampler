@@ -15,7 +15,7 @@ observations = None
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
 
 
-nside=512
+nside=32
 lmax=2*nside
 npix = 12*nside**2
 
@@ -67,7 +67,6 @@ d += np.random.normal(scale=np.sqrt(noise_covar_temp))
 
 
 #### Setting solver's params
-
 class cl(object):
     pass
 
@@ -123,6 +122,17 @@ plt.boxplot(rel_error_pix, showfliers=False)
 plt.show()
 
 
+
+#from plancklens.filt.filt_cinv import cinv_t
+
+
+#hp.write_map("inv_noise.fits", inv_noise)
+#inv_noise = hp.read_map("inv_noise.fits")
+
+
+#s_cls = {}
+#s_cls["tt"] = cls_
+#obj = cinv_t( "test", lmax, nside, s_cls, bl_gauss, ["inv_noise.fits"])
 
 
 

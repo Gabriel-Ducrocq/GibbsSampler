@@ -14,6 +14,10 @@ import scipy
 import matplotlib.pyplot as plt
 import qcinv
 
+import warnings
+
+warnings.simplefilter('always', UserWarning)
+
 
 
 class CenteredClsSampler(ClsSampler):
@@ -141,7 +145,8 @@ class PolarizedCenteredClsSampler(ClsSampler):
                                              args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
 
             norm = norm1 + norm2
-
+            print("Norm, l=",i)
+            print(norm)
             if False:
                 xx = np.linspace(ratio, maximum*10, 10000)
                 yy = []
