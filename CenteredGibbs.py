@@ -185,7 +185,6 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 has_converged = sol.converged
                 if not has_converged:
                     print("Second time didn't converge either")
-                    return None
                 else:
                     print("Second time converged")
 
