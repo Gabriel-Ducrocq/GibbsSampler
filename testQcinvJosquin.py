@@ -15,7 +15,7 @@ observations = None
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
 
 
-nside=32
+nside=512
 lmax=2*nside
 npix = 12*nside**2
 
@@ -46,7 +46,7 @@ def generate_cls(theta, pol = False):
 
 
 COSMO_PARAMS_MEAN_PRIOR = np.array([0.9665, 0.02242, 0.11933, 1.04101, 3.047, 0.0561])
-noise_covar_temp = 0.1**2*np.ones(npix)
+noise_covar_temp = 10**2*np.ones(npix)
 inv_noise = (1/noise_covar_temp)
 
 beam_fwhm = 0.35

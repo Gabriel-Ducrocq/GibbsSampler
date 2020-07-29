@@ -48,7 +48,7 @@ if __name__ == "__main__":
     #cls_init_binned[:2] = 0
 
     theta_, cls_, s_true, pix_map = generate_dataset()
-
+    """
     range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     plt.plot(cls_[0]*range_l)
     plt.show()
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     plt.axhline(y=1)
     plt.title("TE")
     plt.show()
-
+    """
 
     #non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
     #                                      config.NSIDE, config.L_MAX_SCALARS,

@@ -82,10 +82,42 @@ class PolarizedCenteredClsSampler(ClsSampler):
         else:
             return invwishart.pdf(param_mat, df=2 * l - 2, scale=scale_mat)
 
-    def root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm):
+    def compute_log_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
+        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
+        if x <= cl_TE ** 2 / cl_EE:
+            return -np.inf
+        else:
+            return invwishart.logpdf(param_mat, df=2 * l - 2, scale=scale_mat)
+
+    def compute_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
+        return maximum*self.compute_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
+
+    def compute_log_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
+        return np.log(maximum) + self.compute_log_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
+
+    def find_upper_bound_rescaled(self, l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
+        x0 = 1
+        x1 = 1.618*x0
+        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
+        while log_ratio < 12.5:
+            x_new = x1 + 1.618*(x1 - x0)
+            x0 = x1
+            x1 = x_new
+            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
+
+
+        print("FOUND UPPER BOUND:")
+        print(x1)
+        print("AT VALUE")
+        print(log_ratio)
+
+        return x1
+
+
+    def root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm, maximum):
         low_bound = cl_TE ** 2 / cl_EE
-        integral, err = scipy.integrate.quad(self.compute_conditional_TT, a=low_bound, b=x,
-                                             args=(l, scale_mat, cl_EE, cl_TE))
+        integral, err = scipy.integrate.quad(self.compute_rescale_conditional_TT, a=low_bound, b=x,
+                                             args=(l, scale_mat, cl_EE, cl_TE, maximum))
         return integral / norm - u
 
     def deriv_root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm):
@@ -131,38 +163,59 @@ class PolarizedCenteredClsSampler(ClsSampler):
             maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
                         2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
 
-            precision = -self.compute_conditional_TT(maximum, i, scale_mat[i], cl_EE, cl_TE) * (
-                        1 / (maximum * cl_EE - cl_TE ** 2) ** 2) * (((2 * i + 1) / 2) * cl_EE ** 2 - (
-                        scale_mat[i, 1, 1] * cl_TE ** 2 + scale_mat[i, 0, 0] * cl_EE ** 2 - 2 * scale_mat[i,
-                    0, 1] * cl_TE * cl_EE) * cl_EE / (maximum * cl_EE - cl_TE ** 2))
-            var = 1 / precision
-            stdd = np.sqrt(var)
+            #precision = -self.compute_conditional_TT(maximum, i, scale_mat[i], cl_EE, cl_TE) * (
+            #            1 / (maximum * cl_EE - cl_TE ** 2) ** 2) * (((2 * i + 1) / 2) * cl_EE ** 2 - (
+            #            scale_mat[i, 1, 1] * cl_TE ** 2 + scale_mat[i, 0, 0] * cl_EE ** 2 - 2 * scale_mat[i,
+            #        0, 1] * cl_TE * cl_EE) * cl_EE / (maximum * cl_EE - cl_TE ** 2))
+            #var = 1 / precision
+            #stdd = np.sqrt(var)
+            max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
+            upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
 
-            norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
-                                             args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+            norm1, _ = scipy.integrate.quad(self.compute_rescale_conditional_TT, a = ratio, b = 1,
+                                            args=(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum))
 
-            norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=100*maximum,
-                                             args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
+            norm2, _ = scipy.integrate.quad(self.compute_rescale_conditional_TT, a = 1, b = upper_bound,
+                                            args=(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum))
+
 
             norm = norm1 + norm2
             print("Norm, l=",i)
             print(norm)
-            if False:
-                xx = np.linspace(ratio, maximum*10, 10000)
+
+            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum, fprime = self.deriv_root_to_find,
+            #                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+
+            N_first = 12
+            #cheb_points = [np.cos(np.pi*(2*k-1)/(2*2**N_first))*(1/2)*(upper_bound-ratio/maximum) + (1/2)*(ratio/maximum + upper_bound) for k in range(1, 2**N_first)]
+            #cheb_points = np.polynomial.chebyshev.chebpts2(2**N_first-1)*(1/2)*(upper_bound-ratio/maximum) + (1/2)*(ratio/maximum + upper_bound)
+            #y_cheb = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in cheb_points])
+            #cheb_coefs = np.polynomial.chebyshev.chebfit(cheb_points, y_cheb, 5)
+
+            xx = np.linspace(ratio/maximum, upper_bound, 2*6400)
+            y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
+            cs = scipy.interpolate.CubicSpline(xx,y_cs)
+            print("ENDED FITTING Splines")
+            if True:
+                xx = np.linspace(ratio/maximum, upper_bound, 100000)
                 yy = []
                 for x in xx:
                     #print(ratio, x)
-                    y = self.compute_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE)
+                    y = self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
                     yy.append(y)
 
-                plt.plot(xx,yy)
-                plt.axvline(x=maximum)
-                plt.axvline(x=max2, color="red")
+                print("ERRROR MAX")
+                print(np.max(np.abs(np.array(yy) - cs(xx))))
+                plt.plot(xx,yy, label="True")
+                plt.plot(xx, cs(xx), label="Splines")
+                plt.axvline(x=1)
+                plt.legend(loc = "upper right")
+                #plt.axhline(y=max_max*maximum)
                 plt.show()
 
-            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
-            sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum, fprime = self.deriv_root_to_find,
-                                             args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
+            sol = scipy.optimize.root_scalar(self.root_to_find, bracket = [ratio, upper_bound],
+                                             args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm, maximum))
             has_converged = sol.converged
             while not has_converged:
                 print("No root found")
@@ -188,7 +241,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
                 else:
                     print("Second time converged")
 
-            cl_TT = sol.root
+            cl_TT = sol.root*maximum
             sampled_power_spec[i, 0, 0] = cl_TT
 
         sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
