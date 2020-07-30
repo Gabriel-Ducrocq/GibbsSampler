@@ -105,12 +105,6 @@ class PolarizedCenteredClsSampler(ClsSampler):
             x1 = x_new
             log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
 
-
-        print("FOUND UPPER BOUND:")
-        print(x1)
-        print("AT VALUE")
-        print(log_ratio)
-
         return x1
 
 
@@ -156,92 +150,27 @@ class PolarizedCenteredClsSampler(ClsSampler):
             sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
 
         for i in self.bins["TT"]:
-            u = np.random.uniform()
             cl_EE = sampled_power_spec[i, 1, 1]
             cl_TE = sampled_power_spec[i, 0, 1]
             ratio = cl_TE ** 2 / cl_EE
             maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
                         2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
 
-            #precision = -self.compute_conditional_TT(maximum, i, scale_mat[i], cl_EE, cl_TE) * (
-            #            1 / (maximum * cl_EE - cl_TE ** 2) ** 2) * (((2 * i + 1) / 2) * cl_EE ** 2 - (
-            #            scale_mat[i, 1, 1] * cl_TE ** 2 + scale_mat[i, 0, 0] * cl_EE ** 2 - 2 * scale_mat[i,
-            #        0, 1] * cl_TE * cl_EE) * cl_EE / (maximum * cl_EE - cl_TE ** 2))
-            #var = 1 / precision
-            #stdd = np.sqrt(var)
             max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
             upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
-
-            norm1, _ = scipy.integrate.quad(self.compute_rescale_conditional_TT, a = ratio, b = 1,
-                                            args=(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum))
-
-            norm2, _ = scipy.integrate.quad(self.compute_rescale_conditional_TT, a = 1, b = upper_bound,
-                                            args=(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum))
-
-
-            norm = norm1 + norm2
-            print("Norm, l=",i)
-            print(norm)
-
-            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum-0.1, x1=maximum+0.1, args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
-            #sol = scipy.optimize.root_scalar(self.root_to_find, x0=maximum, fprime = self.deriv_root_to_find,
-            #                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm))
-
-            N_first = 12
-            #cheb_points = [np.cos(np.pi*(2*k-1)/(2*2**N_first))*(1/2)*(upper_bound-ratio/maximum) + (1/2)*(ratio/maximum + upper_bound) for k in range(1, 2**N_first)]
-            #cheb_points = np.polynomial.chebyshev.chebpts2(2**N_first-1)*(1/2)*(upper_bound-ratio/maximum) + (1/2)*(ratio/maximum + upper_bound)
-            #y_cheb = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in cheb_points])
-            #cheb_coefs = np.polynomial.chebyshev.chebfit(cheb_points, y_cheb, 5)
 
             xx = np.linspace(ratio/maximum, upper_bound, 2*6400)
             y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
             cs = scipy.interpolate.CubicSpline(xx,y_cs)
-            print("ENDED FITTING Splines")
-            if True:
-                xx = np.linspace(ratio/maximum, upper_bound, 100000)
-                yy = []
-                for x in xx:
-                    #print(ratio, x)
-                    y = self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
-                    yy.append(y)
+            u = np.random.uniform()
+            integs = np.array([cs.integrate(ratio/maximum, x) for x in xx])
+            integs /= integs[-1]
+            position = np.searchsorted(integs, u)
+            sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
 
-                print("ERRROR MAX")
-                print(np.max(np.abs(np.array(yy) - cs(xx))))
-                plt.plot(xx,yy, label="True")
-                plt.plot(xx, cs(xx), label="Splines")
-                plt.axvline(x=1)
-                plt.legend(loc = "upper right")
-                #plt.axhline(y=max_max*maximum)
-                plt.show()
-
-            sol = scipy.optimize.root_scalar(self.root_to_find, bracket = [ratio, upper_bound],
-                                             args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm, maximum))
-            has_converged = sol.converged
-            while not has_converged:
-                print("No root found")
-                print("MAXIMUM")
-                print(maximum)
-                print("NORM")
-                print(norm)
-                print("Trying a another time")
-                norm1, err = scipy.integrate.quad(self.compute_conditional_TT, a=ratio, b=maximum,
-                                                  args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
-
-                norm2, err = scipy.integrate.quad(self.compute_conditional_TT, a=maximum, b=1000*maximum,
-                                                  args=(i, scale_mat[i, :, :], cl_EE, cl_TE))
-
-                norm = norm1 + norm2
-                low_bound = maximum - np.random.uniform(0, 0.1)
-                up_bound = maximum + np.random.uniform(0, 0.1)
-                sol = scipy.optimize.root_scalar(self.root_to_find, x0 = low_bound, x1 = up_bound,
-                                                 args=(u, i, scale_mat[i, :, :], cl_EE, cl_TE, norm), method="secant")
-                has_converged = sol.converged
-                if not has_converged:
-                    print("Second time didn't converge either")
-                else:
-                    print("Second time converged")
-
-            cl_TT = sol.root*maximum
+            cl_TT = sample*maximum
+            print("Sampled Cl_TT, l=", i, "Cl_TT=",cl_TT)
+            print(cl_TT)
             sampled_power_spec[i, 0, 0] = cl_TT
 
         sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
