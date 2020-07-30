@@ -48,7 +48,6 @@ for i in range(10000):
         print("Numerical inversion, iteration",i)
 
     pow_spec_sampled = cls_sampler.sample_bin(alms.copy(), l_interest)
-    print("\n")
     h_cond.append(pow_spec_sampled)
 
 end = time.time()
