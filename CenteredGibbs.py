@@ -107,18 +107,19 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
         return x1
 
+    def find_lower_bound_rescaled(self,l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
+        hard_lower_bound = (cl_TE**2/cl_EE)/maximum
+        x0 = 1
+        x1 = (x0 + hard_lower_bound)/2
+        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
+        while log_ratio < 12.5:
+            x_new = (x1 + hard_lower_bound)/2
+            x1 = x_new
+            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
 
-    def root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm, maximum):
-        low_bound = cl_TE ** 2 / cl_EE
-        integral, err = scipy.integrate.quad(self.compute_rescale_conditional_TT, a=low_bound, b=x,
-                                             args=(l, scale_mat, cl_EE, cl_TE, maximum))
-        return integral / norm - u
+        return x1
 
-    def deriv_root_to_find(self, x, u, l, scale_mat, cl_EE, cl_TE, norm):
-        return self.compute_conditional_TT(x, l, scale_mat, cl_EE, cl_TE)/norm
-
-
-    def sample_bin(self, alms):
+    def sample_bin(self, alms, i):
         alms_TT_complex = utils.real_to_complex(alms[:, 0])
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
         alms_BB_complex = utils.real_to_complex(alms[:, 2])
@@ -137,44 +138,46 @@ class PolarizedCenteredClsSampler(ClsSampler):
         sample_BB = invgamma.rvs(a=alpha, scale=beta_BB[2:])
         sampled_power_spec[2:, 2, 2] = sample_BB
 
-        for i in self.bins["EE"]:
-            beta_EE = scale_mat[i, 1, 1]
-            cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
-            sampled_power_spec[i, 1, 1] = cl_EE
+        #for i in self.bins["EE"]:
+        beta_EE = scale_mat[i, 1, 1]
+        cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
+        sampled_power_spec[i, 1, 1] = cl_EE
 
-        for i in self.bins["TE"]:
-            determinant = np.linalg.det(scale_mat[i, :, :])
-            student_TE = student.rvs(df=2 * i - 2)
-            cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
+        #for i in self.bins["TE"]:
+        determinant = np.linalg.det(scale_mat[i, :, :])
+        student_TE = student.rvs(df=2 * i - 2)
+        cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
                     scale_mat[i, 1, 1]
-            sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
+        sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
 
-        for i in self.bins["TT"]:
-            cl_EE = sampled_power_spec[i, 1, 1]
-            cl_TE = sampled_power_spec[i, 0, 1]
-            ratio = cl_TE ** 2 / cl_EE
-            maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
+        #for i in self.bins["TT"]:
+        cl_EE = sampled_power_spec[i, 1, 1]
+        cl_TE = sampled_power_spec[i, 0, 1]
+        ratio = cl_TE ** 2 / cl_EE
+        maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
                         2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
 
-            max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
-            upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
+        max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
+        upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
+        lower_bound = self.find_lower_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
 
-            xx = np.linspace(ratio/maximum, upper_bound, 2*6400)
-            y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
-            cs = scipy.interpolate.CubicSpline(xx,y_cs)
-            u = np.random.uniform()
-            integs = np.array([cs.integrate(ratio/maximum, x) for x in xx])
-            integs /= integs[-1]
-            position = np.searchsorted(integs, u)
-            sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
+        xx = np.linspace(lower_bound, upper_bound, 2*6400)
+        y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
+        cs = scipy.interpolate.CubicSpline(xx,y_cs)
+        u = np.random.uniform()
+        integs = np.array([cs.integrate(lower_bound, x) for x in xx])
+        integs /= integs[-1]
+        position = np.searchsorted(integs, u)
+        sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
 
-            cl_TT = sample*maximum
-            print("Sampled Cl_TT, l=", i, "Cl_TT=",cl_TT)
-            print(cl_TT)
-            sampled_power_spec[i, 0, 0] = cl_TT
+        cl_TT = sample*maximum
 
-        sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
-        return sampled_power_spec
+        return cl_TT
+        #print("Sampled cl_TT", cl_TT)
+        #sampled_power_spec[i, 0, 0] = cl_TT
+
+        #sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
+        #return sampled_power_spec
 
     def sample(self, alm_map):
         if False:
