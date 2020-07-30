@@ -43,8 +43,8 @@ alm_BB = utils.complex_to_real(alms[2, :])
 alms = np.vstack([alm_TT, alm_EE, alm_BB]).T
 print(alms.shape)
 
-for i in range(10):
-    if i % 1 == 0:
+for i in range(10000):
+    if i % 10 == 0:
         print("Numerical inversion, iteration",i)
 
     pow_spec_sampled = cls_sampler.sample_bin(alms.copy(), l_interest)
@@ -55,7 +55,7 @@ end = time.time()
 print("Time numerical inversion:", end-start)
 
 h_direct = []
-for i in range(100000):
+for i in range(10000):
     mat_sample = invwishart.rvs(df=2*l_interest-2, scale=scale_mat)
     h_direct.append(mat_sample[0, 0])
 
