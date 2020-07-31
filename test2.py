@@ -17,7 +17,7 @@ map = [np.random.normal(size = config.Npix), np.random.normal(size = config.Npix
 alms = hp.map2alm(map)
 pow_spec_TT, pow_spec_EE, _, pow_spec_TE, _, _ = hp.alm2cl(alms, lmax=config.L_MAX_SCALARS)
 
-l_interest = 7
+l_interest = 4
 
 scale_mat = np.zeros((2, 2))
 scale_mat[0, 0] = pow_spec_TT[l_interest]
@@ -30,7 +30,7 @@ bins = {"TT": bins, "EE": bins, "TE": bins, "BB": bins}
 
 
 cls_sampler = PolarizedCenteredClsSampler(map, config.L_MAX_SCALARS, bins, config.bl_map, config.noise_covar_temp)
-l_interest = 4
+
 
 h_cond = []
 h_successes = []
@@ -43,8 +43,8 @@ alm_BB = utils.complex_to_real(alms[2, :])
 alms = np.vstack([alm_TT, alm_EE, alm_BB]).T
 print(alms.shape)
 
-"""
-for i in range(10000):
+
+for i in range(10):
     if i % 10 == 0:
         print("Numerical inversion, iteration",i)
 
@@ -61,8 +61,8 @@ for i in range(100000):
 
 
 d = {"h_cond":np.array(h_cond), "h_direct":np.array(h_direct), "h_successes":np.array(h_successes)}
-np.save("numeric_inverse_test.npy", d, allow_pickle=True)
-"""
+np.save("numeric_inverse_test_"+str(l_interest)+".npy", d, allow_pickle=True)
+
 d = np.load("numeric_inverse_test.npy", allow_pickle=True)
 d = d.item()
 h_cond = d["h_cond"]
@@ -73,4 +73,4 @@ h_successes = d["h_successes"]
 plt.hist(h_cond, label="Cond", alpha=0.5, density=True, bins = 20)
 plt.hist(h_direct[:], label="Direct", alpha = 0.5, density=True, bins = 100)
 plt.legend(loc="upper right")
-plt.show()
+plt.savefig(str(l_interest)+".png")
