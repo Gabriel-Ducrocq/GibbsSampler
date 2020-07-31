@@ -30,7 +30,7 @@ bins = {"TT": bins, "EE": bins, "TE": bins, "BB": bins}
 
 
 cls_sampler = PolarizedCenteredClsSampler(map, config.L_MAX_SCALARS, bins, config.bl_map, config.noise_covar_temp)
-l_interest = 7
+l_interest = 4
 
 h_cond = []
 h_successes = []
@@ -43,7 +43,7 @@ alm_BB = utils.complex_to_real(alms[2, :])
 alms = np.vstack([alm_TT, alm_EE, alm_BB]).T
 print(alms.shape)
 
-for i in range(10000):
+for i in range(1000):
     if i % 10 == 0:
         print("Numerical inversion, iteration",i)
 
@@ -54,7 +54,7 @@ end = time.time()
 print("Time numerical inversion:", end-start)
 
 h_direct = []
-for i in range(10000):
+for i in range(100000):
     mat_sample = invwishart.rvs(df=2*l_interest-2, scale=scale_mat)
     h_direct.append(mat_sample[0, 0])
 
@@ -70,6 +70,6 @@ h_successes = d["h_successes"]
 
 
 plt.hist(h_cond, label="Cond", alpha=0.5, density=True, bins = 20)
-plt.hist(h_direct[:1000], label="Direct", alpha = 0.5, density=True, bins = 20)
+plt.hist(h_direct[:], label="Direct", alpha = 0.5, density=True, bins = 100)
 plt.legend(loc="upper right")
-plt.savefig("test_inversion.png")
+plt.show()

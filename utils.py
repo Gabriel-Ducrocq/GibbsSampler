@@ -10,6 +10,7 @@ import healpy as hp
 from classy import Class
 from variance_expension import generate_var_cl_cython, synthesis_hp as synthesis_cython
 from numba import njit, prange
+import qcinv
 
 cosmo = Class()
 
@@ -151,8 +152,6 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
         chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
 
     return inv_cls,chol_cls
-
-
 
 
 def generate_normal_NonCentered_diag(d, var_cls, isotropic=False):

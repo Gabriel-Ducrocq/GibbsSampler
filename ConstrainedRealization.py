@@ -21,13 +21,13 @@ class ConstrainedRealization():
             self.mask = hp.read_map(mask_path)
             self.inv_noise *= self.mask
 
-            self.n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(self.inv_noise, self.bl_gauss)
-            self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, np.inf, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
+        self.n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(self.inv_noise, self.bl_gauss)
+        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, np.inf, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
 
-            class cl(object):
-                pass
+        class cl(object):
+            pass
 
-            self.s_cls = cl
+        self.s_cls = cl
 
     def sample(self, cls, var_cls):
         return None

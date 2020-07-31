@@ -217,12 +217,14 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         #print(self.inv_noise * self.pix_map)
         print("weiner 50")
         print(utils.real_to_complex(b_weiner))
-        return map, time_to_solution, err, weiner
+        return map, 1
 
 
-    def sample_mask(self, cls_, var_cls):
+    def sample_mask(self, cls_, var_cls, s_old, metropolis_step=True):
         self.s_cls.cltt = cls_
         self.s_cls.lmax = self.lmax
+        cl_inv = np.zeros(len(cls_))
+        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)]
 
         inv_var_cls = np.zeros(len(var_cls))
         np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
@@ -235,17 +237,36 @@ class CenteredConstrainedRealization(ConstrainedRealization):
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise))
 
-        soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
-        #soltn_complex = utils.real_to_complex(b_fluctuations)
-        chain.solve(soltn_complex, self.pix_map)
+        ####THINK ABOUT CHECKING THE STARTING POINT AND TO REMOVE MONOPOLE AND DIPOLE
+        if metropolis_step:
+            soltn_complex = -utils.real_to_complex(s_old)[:]
+        else:
+            soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
+
+        fluctuations_complex = utils.real_to_complex(b_fluctuations)
+        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+        soltn_complex = utils.real_to_complex(utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex)))
         hp.almxfl(soltn_complex, cls_, inplace=True)
-        soltn = utils.complex_to_real(soltn_complex)
-        return soltn, 0, 0,
+        if not metropolis_step:
+            soltn = utils.complex_to_real(soltn_complex)
+            return soltn, 1
+        else:
+            r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
+                                      + hp.almxfl(soltn_complex,cl_inv, inplace=False)
+            r = utils.complex_to_real(r)
+            soltn = utils.complex_to_real(soltn_complex)
+            proba = np.exp(np.dot(r,(s_old - soltn)))
+            if np.random.uniform() < proba:
+                return soltn, 1
+            else:
+                return s_old, 0
 
 
-    def sample(self, cls_, var_cls):
-        if self.mask_path is not None:
-            return self.sample_mask(cls_, var_cls)
+
+    def sample(self, cls_, var_cls, old_s, metropolis_step=True):
+        #if self.mask_path is not None:
+        if True:
+            return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
 
@@ -364,10 +385,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 class CenteredGibbs(GibbsSampler):
 
-    def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000):
+    def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
+                 polarization = False, bins=None, n_iter = 10000):
         super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
         if not polarization:
-            self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, lmax, Npix, isotropic=True)
+            self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
+                                                                      isotropic=True)
             self.cls_sampler = CenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
         else:
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)

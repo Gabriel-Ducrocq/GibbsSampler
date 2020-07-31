@@ -46,7 +46,7 @@ def generate_cls(theta, pol = False):
 
 
 COSMO_PARAMS_MEAN_PRIOR = np.array([0.9665, 0.02242, 0.11933, 1.04101, 3.047, 0.0561])
-noise_covar_temp = 10**2*np.ones(npix)
+noise_covar_temp = 1**2*np.ones(npix)
 inv_noise = (1/noise_covar_temp)
 
 beam_fwhm = 0.35

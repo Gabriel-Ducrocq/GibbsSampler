@@ -40,6 +40,9 @@ class GibbsSampler():
         h_time_seconds = []
         binned_cls = cls_init
         h_cls.append(binned_cls)
+        cls_ = utils.unfold_bins(binned_cls, self.bins)
+        var_cl_full = utils.generate_var_cl(cls_)
+        alm_map, _ = self.constrained_sampler.sample(cls_, var_cl_full, None, False)
         for i in range(self.n_iter):
             if i % 1 == 0:
                 print("Default Gibbs, iteration:", i)
@@ -53,7 +56,7 @@ class GibbsSampler():
                 var_cls_full = cls
 
 
-            alm_map, time_to_solution, err = self.constrained_sampler.sample(cls, var_cls_full.copy())
+            alm_map, accept = self.constrained_sampler.sample(cls, var_cls_full.copy(), alm_map)
             binned_cls = self.cls_sampler.sample(alm_map)
 
             end_time = time.process_time()

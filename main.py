@@ -21,10 +21,14 @@ def generate_dataset(polarization=True):
     cls_ = utils.generate_cls(theta_, polarization)
     map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
     d = map_true
-    d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
-    d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
-    d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
-    return theta_, cls_, map_true,  d
+    if polarization:
+        d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
+        d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
+        d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
+        return theta_, cls_, map_true,  d
+    else:
+        d += np.random.normal(scale=np.sqrt(config.var_noise_temp))
+        return theta_, cls_, map_true,  d
 
 
 def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
@@ -47,7 +51,7 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset()
+    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False)
     """
     range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     plt.plot(cls_[0]*range_l)
@@ -82,8 +86,9 @@ if __name__ == "__main__":
     #                                      config.NSIDE, config.L_MAX_SCALARS,
     #                               config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
 
-    #centered_gibbs = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-    #                               config.Npix, n_iter=100000)
+    noise = np.ones(config.Npix)*config.noise_covar_pol
+    centered_gibbs = CenteredGibbs(pix_map, noise, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+                                   config.Npix, n_iter=10000)
 
     #pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
     #                         config.Npix, config.proposal_variances_pncp, config.l_cut, metropolis_blocks = None,
@@ -93,8 +98,8 @@ if __name__ == "__main__":
     #                        config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=100000)
 
 
-    polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=10000, polarization=True)
+    #polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, n_iter=10000, polarization=True)
 
 
     #polarized_non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol,
@@ -103,7 +108,11 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    #h_cls_centered, _ = centered_gibbs.run(cls_init)
+    start = time.time()
+    h_cls_centered, _ = centered_gibbs.run(cls_init)
+    end = time.time()
+    print("Total time:")
+    print(end-start)
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
     #h_asis, _, _ = asis_sampler.run(cls_init)
 
