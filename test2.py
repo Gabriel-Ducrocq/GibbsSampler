@@ -44,7 +44,7 @@ alms = np.vstack([alm_TT, alm_EE, alm_BB]).T
 print(alms.shape)
 
 
-for i in range(10):
+for i in range(10000):
     if i % 10 == 0:
         print("Numerical inversion, iteration",i)
 
