@@ -15,7 +15,7 @@ observations = None
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
 
 
-nside=512
+nside=4
 lmax=2*nside
 npix = 12*nside**2
 
@@ -74,7 +74,7 @@ s_cls = cl
 s_cls.cltt = cls_
 
 
-n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(inv_noise, bl_gauss)
+n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(inv_noise, bl_gauss, marge_monopole=False)
 chain_descr = [
     [0, ["diag_cl"], lmax, nside, np.inf, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
 
@@ -107,6 +107,8 @@ weiner_map_diag = hp.almxfl(b_weiner, Sigma)
 ##Graphics
 
 
+print("ALMS PCG")
+print(weiner_map_pcg)
 pix_map_pcg = hp.alm2map(weiner_map_pcg, lmax=lmax, nside=nside)
 pix_map_diag = hp.alm2map(weiner_map_diag, lmax=lmax, nside=nside)
 

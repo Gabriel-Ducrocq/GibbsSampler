@@ -126,7 +126,7 @@ if __name__ == "__main__":
         init_cls[i, :, :] *= i*(i+1)/(2*np.pi)
 
     start = time.time()
-    h_cls_pol, _ = polarized_centered.run(init_cls)
+    #h_cls_pol, _ = polarized_centered.run(init_cls)
     end = time.time()
     print("TIME CENTERED:")
     print(end-start)
