@@ -31,3 +31,4 @@ class ConstrainedRealization():
 
     def sample(self, cls, var_cls):
         return None
+

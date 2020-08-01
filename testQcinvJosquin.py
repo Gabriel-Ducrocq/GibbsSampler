@@ -15,7 +15,7 @@ observations = None
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"]
 
 
-nside=512
+nside=4
 lmax=2*nside
 npix = 12*nside**2
 
@@ -82,7 +82,7 @@ chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, chain_descr, s_cls, n_i
                                         debug_log_prefix=('log_'))
 
 soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(lmax)), dtype=np.complex)
-
+soltn_complex = np.zeros(4, dtype=np.complex)
 #### Solving
 chain.solve(soltn_complex,d)
 hp.almxfl(soltn_complex, cls_, inplace=True)
@@ -107,6 +107,8 @@ weiner_map_diag = hp.almxfl(b_weiner, Sigma)
 ##Graphics
 
 
+print("ALMS PCG")
+print(weiner_map_pcg)
 pix_map_pcg = hp.alm2map(weiner_map_pcg, lmax=lmax, nside=nside)
 pix_map_diag = hp.alm2map(weiner_map_diag, lmax=lmax, nside=nside)
 

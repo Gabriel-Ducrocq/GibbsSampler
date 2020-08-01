@@ -237,7 +237,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise))
 
-        ####THINK ABOUT CHECKING THE STARTING POINT AND TO REMOVE MONOPOLE AND DIPOLE
+        ####THINK ABOUT CHECKING THE STARTING POINT
         if metropolis_step:
             soltn_complex = -utils.real_to_complex(s_old)[:]
         else:
@@ -245,16 +245,16 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
         fluctuations_complex = utils.real_to_complex(b_fluctuations)
         b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
-        soltn_complex = utils.real_to_complex(utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex)))
+        #### Since at the end of the solver the output is multiplied by C^-1, it's enough to remultiply it by C^(1/2) to
+        ### To produce a non centered map !
         hp.almxfl(soltn_complex, cls_, inplace=True)
+        soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
         if not metropolis_step:
-            soltn = utils.complex_to_real(soltn_complex)
             return soltn, 1
         else:
             r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
-                                      + hp.almxfl(soltn_complex,cl_inv, inplace=False)
+                                      + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
             r = utils.complex_to_real(r)
-            soltn = utils.complex_to_real(soltn_complex)
             proba = np.exp(np.dot(r,(s_old - soltn)))
             if np.random.uniform() < proba:
                 return soltn, 1

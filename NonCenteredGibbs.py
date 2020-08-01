@@ -11,13 +11,14 @@ import utils
 from scipy.stats import truncnorm
 from numba import prange
 from CenteredGibbs import PolarizedCenteredConstrainedRealization
+import qcinv
 
 
 
 
 class NonCenteredConstrainedRealization(ConstrainedRealization):
 
-    def sample(self, var_cls):
+    def sample_no_mask(self, cls_, var_cls):
         b_weiner = np.sqrt(var_cls) * self.bl_map * utils.adjoint_synthesis_hp(self.pix_map * self.inv_noise)
         b_fluctuations = np.random.normal(size=len(var_cls)) + \
                          np.sqrt(var_cls) * self.bl_map * \
@@ -33,6 +34,53 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
         time_to_solution = time.time() - start
 
         return map, time_to_solution, error
+
+    def sample_mask(self,cls_, var_cls, s_old, metropolis_step=True):
+        self.s_cls.cltt = cls_
+        self.s_cls.lmax = self.lmax
+        cl_inv = np.zeros(len(cls_))
+        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)]
+
+        inv_var_cls = np.zeros(len(var_cls))
+        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
+
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=('log_'))
+
+        #b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
+        b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
+                         self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise))
+
+        ####THINK ABOUT CHECKING THE STARTING POINT
+        if metropolis_step:
+            soltn_complex = -utils.real_to_complex(s_old)[:]
+        else:
+            soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
+
+        fluctuations_complex = utils.real_to_complex(b_fluctuations)
+        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+        hp.almxfl(soltn_complex, np.sqrt(cls_), inplace=True)
+        soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
+        if not metropolis_step:
+            return soltn, 1
+        else:
+            r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
+                                      + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
+            r = utils.complex_to_real(r)
+            proba = np.exp(np.dot(r,(s_old - soltn)))
+            if np.random.uniform() < proba:
+                return soltn, 1
+            else:
+                return s_old, 0
+
+    def sample(self, cls_, var_cls, old_s, metropolis_step=True):
+        #if self.mask_path is not None:
+        if True:
+            return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
+        else:
+            return self.sample_no_mask(cls_, var_cls)
+
 
 
 def compute_sigma_and_chol(all_chol_cls, pix_part_variance):
