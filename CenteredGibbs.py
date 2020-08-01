@@ -245,6 +245,8 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
         fluctuations_complex = utils.real_to_complex(b_fluctuations)
         b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+        #### Since at the end of the solver the output is multiplied by C^-1, it's enough to remultiply it by C^(1/2) to
+        ### To produce a non centered map !
         hp.almxfl(soltn_complex, cls_, inplace=True)
         soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
         if not metropolis_step:

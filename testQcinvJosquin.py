@@ -74,7 +74,7 @@ s_cls = cl
 s_cls.cltt = cls_
 
 
-n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(inv_noise, bl_gauss, marge_monopole=False)
+n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(inv_noise, bl_gauss)
 chain_descr = [
     [0, ["diag_cl"], lmax, nside, np.inf, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
 
@@ -82,7 +82,7 @@ chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, chain_descr, s_cls, n_i
                                         debug_log_prefix=('log_'))
 
 soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(lmax)), dtype=np.complex)
-
+soltn_complex = np.zeros(4, dtype=np.complex)
 #### Solving
 chain.solve(soltn_complex,d)
 hp.almxfl(soltn_complex, cls_, inplace=True)
