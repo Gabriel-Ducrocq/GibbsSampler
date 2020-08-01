@@ -71,6 +71,6 @@ h_successes = d["h_successes"]
 
 
 plt.hist(h_cond, label="Cond", alpha=0.5, density=True, bins = 50)
-plt.hist(h_direct[:], label="Direct", alpha = 0.5, density=True, bins = 100)
+plt.hist(h_direct[:10000], label="Direct", alpha = 0.5, density=True, bins = 50)
 plt.legend(loc="upper right")
 plt.savefig(str(l_interest)+".png")
