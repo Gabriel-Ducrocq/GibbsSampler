@@ -43,7 +43,7 @@ alm_BB = utils.complex_to_real(alms[2, :])
 alms = np.vstack([alm_TT, alm_EE, alm_BB]).T
 print(alms.shape)
 
-
+"""
 for i in range(10000):
     if i % 10 == 0:
         print("Numerical inversion, iteration",i)
@@ -62,7 +62,7 @@ for i in range(100000):
 
 d = {"h_cond":np.array(h_cond), "h_direct":np.array(h_direct), "h_successes":np.array(h_successes)}
 np.save("numeric_inverse_test_"+str(l_interest)+".npy", d, allow_pickle=True)
-
+"""
 d = np.load("numeric_inverse_test.npy", allow_pickle=True)
 d = d.item()
 h_cond = d["h_cond"]
@@ -70,7 +70,7 @@ h_direct = d["h_direct"]
 h_successes = d["h_successes"]
 
 
-plt.hist(h_cond, label="Cond", alpha=0.5, density=True, bins = 20)
-plt.hist(h_direct[:], label="Direct", alpha = 0.5, density=True, bins = 100)
+plt.hist(h_cond, label="Cond", alpha=0.5, density=True, bins = 50)
+plt.hist(h_direct[:10000], label="Direct", alpha = 0.5, density=True, bins = 50)
 plt.legend(loc="upper right")
 plt.savefig(str(l_interest)+".png")
