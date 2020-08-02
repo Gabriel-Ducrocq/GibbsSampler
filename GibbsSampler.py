@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import invgamma, truncnorm
 import healpy as hp
 import time
+from default_gibbs import sample_cls
 
 
 class GibbsSampler():
@@ -29,41 +30,83 @@ class GibbsSampler():
         else:
             self.bins = bins
 
+        self.dls_to_cls_array = np.array([2*np.pi/(l*(l+1)) if l !=0 else 0 for l in range(lmax+1)])
+
+    def dls_to_cls(self, dls_):
+        return dls_[:]*self.dls_to_cls_array
+
     def compute_bl_map(self, beam_fwhm):
         fwhm_radians = (np.pi / 180) * beam_fwhm
         bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=self.lmax)
         bl_map = np.concatenate([bl_gauss,np.array([cl for m in range(1, self.lmax + 1) for cl in bl_gauss[m:] for _ in range(2)])])
         return bl_map
 
-    def run(self, cls_init):
-        h_cls = []
+    """
+    def run(self, dls_init):
+        ###### DEALING WITH DLS !!!
+        h_dls = []
+        h_accept_cr = []
         h_time_seconds = []
-        binned_cls = cls_init
-        h_cls.append(binned_cls)
-        cls_ = utils.unfold_bins(binned_cls, self.bins)
-        var_cl_full = utils.generate_var_cl(cls_)
-        alm_map, _ = self.constrained_sampler.sample(cls_, var_cl_full, None, False)
+        binned_dls = dls_init
+        h_dls.append(binned_dls)
+        dls_ = utils.unfold_bins(binned_dls[:], self.bins)
+        cls_ = self.dls_to_cls(dls_[:])
+        var_cl_full = utils.generate_var_cl(dls_[:])
+        alm_map, _ = self.constrained_sampler.sample(cls_[:], var_cl_full[:], None, False)
         for i in range(self.n_iter):
             if i % 1 == 0:
                 print("Default Gibbs, iteration:", i)
 
             start_time = time.process_time()
             if not self.polarization:
-                cls = utils.unfold_bins(binned_cls, self.bins)
+                cls = utils.unfold_bins(binned_dls, self.bins)
                 var_cls_full = utils.generate_var_cl(cls)
             else:
-                cls = binned_cls
-                var_cls_full = cls
+                dls_ = utils.unfold_bins(binned_dls[:], self.bins)
+                cls_ = self.dls_to_cls(dls_[:])
+                var_cl_full = utils.generate_var_cl(dls_[:])
 
-
-            alm_map, accept = self.constrained_sampler.sample(cls, var_cls_full.copy(), alm_map)
-            binned_cls = self.cls_sampler.sample(alm_map)
+            #alm_map, accept = self.constrained_sampler.sample(cls_[:], var_cl_full.copy(), alm_map[:])
+            alm_map, _ , _= utils.generate_normal_ASIS_transform_def_diag(self.pix_map, var_cl_full)
+            #h_accept_cr.append(accept)
+            #binned_dls = self.cls_sampler.sample(alm_map[:])
+            binned_dls = sample_cls(alm_map[:])
 
             end_time = time.process_time()
-            h_cls.append(binned_cls)
+            h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
-        return np.array(h_cls), h_time_seconds
+
+        #print("Acception rate constrained realiation:")
+        #print(np.mean(h_accept_cr))
+        return np.array(h_dls), h_time_seconds
+    """
+    def run(self, dls_init):
+        h_dls = []
+        h_time_seconds = []
+        binned_dls = dls_init
+        dls = utils.unfold_bins(binned_dls, config.bins)
+        cls = self.dls_to_cls(dls)
+        var_cls_full = utils.generate_var_cl(dls)
+        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+        for i in range(10000):
+            if i % 1000 == 0:
+                print("Default Gibbs")
+                print(i)
+
+            start_time = time.process_time()
+            binned_dls = self.cls_sampler.sample(skymap[:])
+            dls = utils.unfold_bins(binned_dls, config.bins)
+            cls = self.dls_to_cls(dls)
+            var_cls_full = utils.generate_var_cl(dls)
+
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False)
+
+            end_time = time.process_time()
+            h_dls.append(binned_dls)
+            h_time_seconds.append(end_time - start_time)
+
+        return np.array(h_dls), h_time_seconds
 
 
 

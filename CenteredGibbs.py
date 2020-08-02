@@ -29,8 +29,8 @@ class CenteredClsSampler(ClsSampler):
         :return: Sample each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
         """
         alms_complex = utils.real_to_complex(alms)
-        observed_Cls = hp.alm2cl(alms_complex, lmax=config.L_MAX_SCALARS)
-        exponent = np.array([(2 * l + 1) / 2 for l in range(config.L_MAX_SCALARS + 1)])
+        observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax)
+        exponent = np.array([(2 * l + 1) / 2 for l in range(self.lmax +1)])
         binned_betas = []
         binned_alphas = []
         betas = np.array([(2 * l + 1) * l * (l + 1) * (observed_Cl / (4 * np.pi)) for l, observed_Cl in
@@ -44,9 +44,8 @@ class CenteredClsSampler(ClsSampler):
             binned_betas.append(somme_beta)
 
         binned_alphas[0] = 1
-        sampled_cls = binned_betas * invgamma.rvs(a=binned_alphas)
-
-        return sampled_cls
+        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
+        return sampled_dls
 
 
 alm_obj = hp.Alm()
@@ -213,14 +212,10 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         err = 0
         map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
         time_to_solution = time.time() - start
-        #print("INPUT MAP 2 ALM DIAG")
-        #print(self.inv_noise * self.pix_map)
-        print("weiner 50")
-        print(utils.real_to_complex(b_weiner))
         return map, 1
 
 
-    def sample_mask(self, cls_, var_cls, s_old, metropolis_step=True):
+    def sample_mask(self, cls_, var_cls, s_old, metropolis_step=False):
         self.s_cls.cltt = cls_
         self.s_cls.lmax = self.lmax
         cl_inv = np.zeros(len(cls_))
@@ -255,15 +250,20 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
                                       + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
             r = utils.complex_to_real(r)
-            proba = np.exp(np.dot(r,(s_old - soltn)))
-            if np.random.uniform() < proba:
+            log_proba = min(0, -np.dot(r,(s_old - soltn)))
+            log_proba2 = min(0, np.dot(r,(s_old - soltn)))
+            print("log Probas")
+            print(log_proba)
+            print(log_proba2)
+
+            if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
             else:
                 return s_old, 0
 
 
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=True):
+    def sample(self, cls_, var_cls, old_s, metropolis_step=False):
         #if self.mask_path is not None:
         if True:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
@@ -395,47 +395,3 @@ class CenteredGibbs(GibbsSampler):
         else:
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-    def sample(self, all_cls):
-        start = time.time()
-        inv_all_l, chol_all_l = compute_inverse_matrices(all_cls, config.L_MAX_SCALARS+1, self.pix_part_variance)
-
-        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
-
-
-        b_weiner = np.asfortranarray(np.stack(b_weiner_unpacked, axis = 1))
-        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3)).reshape((-1, 3), order="F")
-
-        chol_all_l = np.asfortranarray(np.asarray(chol_all_l))
-
-        flucs = compute_matrix_product(chol_all_l, b_fluctuations)
-        mean = compute_matrix_product(inv_all_l, b_weiner)
-        map = np.asarray(mean) + np.asarray(flucs)
-        time_to_solution = time.time() - start
-        err = 0
-        print("Time to solution")
-        print(time_to_solution)
-        return map, time_to_solution, err
-"""

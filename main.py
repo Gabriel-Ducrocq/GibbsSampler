@@ -14,6 +14,7 @@ from NonCenteredGibbs import NonCenteredGibbs
 from PNCP import PNCPGibbs
 from scipy.stats import invwishart
 from ASIS import ASIS
+from default_gibbs import default_gibbs
 
 
 def generate_dataset(polarization=True):
@@ -52,17 +53,17 @@ if __name__ == "__main__":
     #cls_init_binned[:2] = 0
 
     theta_, cls_, s_true, pix_map = generate_dataset(polarization=False)
-    """
-    range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-    plt.plot(cls_[0]*range_l)
-    plt.show()
 
-    snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
+    #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+    #plt.plot(cls_[0]*range_l)
+    #plt.show()
+
+    snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
     plt.title("TT")
     plt.show()
-
+    """
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -81,13 +82,13 @@ if __name__ == "__main__":
     plt.title("TE")
     plt.show()
     """
+    noise_temp = np.ones(config.Npix) * config.noise_covar_temp
+    print(config.proposal_variances_nc)
+    non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, config.noise_covar_pol ,config.beam_fwhm,
+                                          config.NSIDE, config.L_MAX_SCALARS,
+                                   config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000)
 
-    #non_centered_gibbs = NonCenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol ,config.beam_fwhm,
-    #                                      config.NSIDE, config.L_MAX_SCALARS,
-    #                               config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000)
-
-    noise = np.ones(config.Npix)*config.noise_covar_pol
-    centered_gibbs = CenteredGibbs(pix_map, noise, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, n_iter=10000)
 
     #pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
@@ -108,11 +109,27 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
+    l_interest = 6
     start = time.time()
+    h_old_centered, _ = default_gibbs(pix_map, cls_init)
     h_cls_centered, _ = centered_gibbs.run(cls_init)
     end = time.time()
+    #h_cls_nonCentered, _ = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
+    plt.plot(h_cls_centered[:, l_interest])
+    plt.show()
+
+    yy, xs, norm = utils.trace_likelihood_binned(h_old_centered[:, l_interest] ,pix_map, l_interest, np.max(h_old_centered[:, l_interest]))
+
+    print("NORM:", norm)
+    #plt.hist(h_cls_centered[:, l_interest]*(2*np.pi/(l_interest*(l_interest+1))), density=True, alpha=0.5, bins = 50)
+    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=75, label="New")
+    plt.hist(h_old_centered[:, l_interest], density=True, alpha=0.5, bins=75, label="old")
+    plt.legend(loc="upper right")
+    plt.plot(xs, yy/norm)
+    plt.show()
+
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
     #h_asis, _, _ = asis_sampler.run(cls_init)
 
