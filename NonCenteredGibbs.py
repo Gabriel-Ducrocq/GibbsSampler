@@ -12,6 +12,7 @@ from scipy.stats import truncnorm
 from numba import prange
 from CenteredGibbs import PolarizedCenteredConstrainedRealization
 import qcinv
+from oldNonCenteredGibbs import *
 
 
 
@@ -166,7 +167,7 @@ class NonCenteredClsSampler(MHClsSampler):
         return np.sum(truncnorm.logpdf(dl_new[2:], a=clip_low, b=np.inf, loc=dl_old[2:],
                                    scale=np.sqrt(self.proposal_variances)))
 
-    def sample(self, alm_map_non_centered, binned_dls_old, var_cls_old):
+    def sample(self, s_nonCentered, binned_dls_old, var_cls_old):
         """
         :param binned_dls_old: binned power spectrum, including monopole and dipole
         :param var_cls_old: variance associated to this power spectrum, including monopole and dipole
@@ -177,7 +178,7 @@ class NonCenteredClsSampler(MHClsSampler):
         and dipole
         """
         accept = []
-        old_lik = self.compute_log_likelihood(var_cls_old, alm_map_non_centered)
+        old_lik = self.compute_log_likelihood(var_cls_old, s_nonCentered)
         for i, l_start in enumerate(self.metropolis_blocks[:-1]):
             l_end = self.metropolis_blocks[i + 1]
 
@@ -185,11 +186,11 @@ class NonCenteredClsSampler(MHClsSampler):
                 binned_dls_new_block = self.propose_dl(binned_dls_old, l_start, l_end)
                 binned_dls_new = binned_dls_old.copy()
                 binned_dls_new[l_start:l_end] = binned_dls_new_block
-                dls_new = utils.unfold_bins(binned_dls_new, self.bins)
-                cls_new = self.dls_to_cls(dls_new)
-                var_cls_new = utils.generate_var_cl(cls_new)
+                dls_new = utils.unfold_bins(binned_dls_new, config.bins)
+                var_cls_new = utils.generate_var_cl(dls_new)
+
                 log_r, new_lik = self.compute_log_MH_ratio(binned_dls_old, binned_dls_new, var_cls_new,
-                                                  alm_map_non_centered, old_lik)
+                                                           s_nonCentered, old_lik)
 
                 if np.log(np.random.uniform()) < log_r:
                     binned_dls_old = binned_dls_new
@@ -199,16 +200,7 @@ class NonCenteredClsSampler(MHClsSampler):
                 else:
                     accept.append(0)
 
-        dls_new = utils.unfold_bins(binned_dls_old, self.bins)
-        cls_new = self.dls_to_cls(dls_new)
-        return binned_dls_old, cls_new, var_cls_old, accept
-
-
-
-
-
-
-
+        return binned_dls_old, var_cls_old, accept
 
 
 class PolarizationNonCenteredClsSampler(MHClsSampler):
@@ -311,38 +303,32 @@ class NonCenteredGibbs(GibbsSampler):
             self.cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis)
 
-    def run(self, dls_bin_init):
-        h_dls = []
-        h_acceptance = []
+
+    def run(self, dl_init):
         h_time_seconds = []
-        binned_dls = dls_bin_init.copy()
-        h_dls.append(binned_dls.copy())
-        dls = utils.unfold_bins(binned_dls, self.bins)
-        if self.polarization:
-            for i in range(2, len(binned_dls)):
-                chol_binned_cls[i, :, :] = np.linalg.cholesky(binned_dls[i, :, :]*(2*np.pi)/(i*(i+1)))
-        else:
-            cls_ = dls.copy()
-            for i in range(2, len(binned_dls)):
-                cls_[i] = dls[i]*(2*np.pi)/(i*(i+1))
+        total_accept = []
 
-            var_cls_full = utils.generate_var_cl(cls_)
-            alm_map = self.constrained_sampler.sample(cls_[:], var_cls_full[:], None, False)
+        binned_dls = dl_init
+        dls = utils.unfold_bins(dl_init, config.bins)
 
-        h_dls.append(binned_dls)
+        h_dl = []
+        var_cls = utils.generate_var_cl(dls)
         for i in range(self.n_iter):
-            if i % 100 == 0:
-                print("Default Gibbs, iteration:", i)
+            if i % 100== 0:
+                print("Non centered gibbs")
+                print(i)
 
             start_time = time.process_time()
-            alm_map, accept = self.constrained_sampler.sample(cls_[:], var_cls_full, alm_map)
-            binned_dls, cls_, var_cls_full, accept = self.cls_sampler.sample(alm_map, binned_dls, var_cls_full)
+            s_nonCentered, accept = self.constrained_sampler.sample(binned_dls, var_cls, None, False)
+            binned_dls, var_cls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls, var_cls)
+            total_accept.append(accept)
+
             end_time = time.process_time()
-            h_dls.append(binned_dls)
-            h_acceptance.append(accept)
+            h_dl.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
+        total_accept = np.array(total_accept)
+        print("Non centered acceptance rate:")
+        print(np.mean(total_accept, axis=0))
 
-        print(np.array(h_acceptance).shape)
-        print("Non centered Gibbs acceptance rate:", np.mean(np.array(h_acceptance), axis = 0))
-        return np.array(h_dls), h_time_seconds
+        return np.array(h_dl), total_accept, np.array(h_time_seconds)

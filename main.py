@@ -109,25 +109,31 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    l_interest = 6
+    l_interest = 4
     start = time.time()
-    h_old_centered, _ = default_gibbs(pix_map, cls_init)
-    h_cls_centered, _ = centered_gibbs.run(cls_init)
+    ###Checker que ça marche avec bruit différent de 100**2
+    #h_old_centered, _ = default_gibbs(pix_map, cls_init)
+    #h_cls_centered, _ = centered_gibbs.run(cls_init)
     end = time.time()
-    #h_cls_nonCentered, _ = non_centered_gibbs.run(cls_init)
+    h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
-    plt.plot(h_cls_centered[:, l_interest])
+    print("Iteration time:", np.mean(times))
+    plt.plot(h_cls_nonCentered[:, l_interest])
     plt.show()
 
-    yy, xs, norm = utils.trace_likelihood_binned(h_old_centered[:, l_interest] ,pix_map, l_interest, np.max(h_old_centered[:, l_interest]))
+    yy, xs, norm = utils.trace_likelihood_binned(h_cls_nonCentered[:, l_interest] ,pix_map, l_interest, np.max(h_cls_nonCentered[:, l_interest]))
 
     print("NORM:", norm)
     #plt.hist(h_cls_centered[:, l_interest]*(2*np.pi/(l_interest*(l_interest+1))), density=True, alpha=0.5, bins = 50)
-    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=75, label="New")
-    plt.hist(h_old_centered[:, l_interest], density=True, alpha=0.5, bins=75, label="old")
+    plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=50, label="New")
+    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=75, label="old")
     plt.legend(loc="upper right")
-    plt.plot(xs, yy/norm)
+    if norm > 0:
+        plt.plot(xs, yy/norm)
+    else:
+        plt.plot(xs, yy)#/norm)
+
     plt.show()
 
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
