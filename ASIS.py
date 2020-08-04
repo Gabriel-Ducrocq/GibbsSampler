@@ -23,34 +23,38 @@ class ASIS(GibbsSampler):
                                                  proposal_variances, n_iter = n_iter_metropolis)
         self.centered_cls_sampler = CenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise)
 
-    def run(self, cls_init):
+    def run(self, dls_init):
         h_accept = []
-        h_cls = []
+        h_dls = []
         h_time_seconds = []
-        binned_cls = cls_init
-        cls = utils.unfold_bins(binned_cls, self.bins)
-        var_cls_full = utils.generate_var_cl(cls)
-        h_cls.append(binned_cls)
+        binned_dls = dls_init
+        dls = utils.unfold_bins(binned_dls, self.bins)
+        cls = self.dls_to_cls(dls)
+        var_cls_full = utils.generate_var_cl(dls)
+        h_dls.append(binned_dls)
+        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
         for i in range(self.n_iter):
             if i % 1000 == 0:
                 print("Interweaving, iteration:", i)
 
             start_time = time.process_time()
-            skymap, _, _ = self.constrained_sampler.sample(var_cls_full)
-            binned_cls_temp = self.centered_cls_sampler.sample(skymap)
-            cls_temp_unfolded = utils.unfold_bins(binned_cls_temp, self.bins)
-            var_cls_temp = utils.generate_var_cl(cls_temp_unfolded)
+            skymap, _, _ = self.constrained_sampler.sample(cls, var_cls_full, skymap, metropolis_step=True)
+            binned_dls_temp = self.centered_cls_sampler.sample(skymap)
+            dls_temp_unfolded = utils.unfold_bins(binned_dls_temp, self.bins)
+            var_cls_temp = utils.generate_var_cl(dls_temp_unfolded)
             inv_var_cls_temp = np.zeros(len(var_cls_temp))
             np.reciprocal(var_cls_temp, out=inv_var_cls_temp, where=config.mask_inversion)
+            
             s_nonCentered = np.sqrt(inv_var_cls_temp) * skymap
-            binned_cls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered, binned_cls_temp, var_cls_temp)
+            binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp, var_cls_temp)
+            skymap = np.sqrt(var_cls_full)*s_nonCentered
             h_accept.append(accept)
 
             end_time = time.process_time()
-            h_cls.append(binned_cls)
+            h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
 
         h_accept = np.array(h_accept)
         print("Acceptance rate ASIS:", np.mean(h_accept, axis = 0))
-        return np.array(h_cls), np.array(h_accept), np.array(h_time_seconds)
+        return np.array(h_dls), np.array(h_accept), np.array(h_time_seconds)

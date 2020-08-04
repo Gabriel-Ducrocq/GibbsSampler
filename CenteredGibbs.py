@@ -247,8 +247,9 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         if not metropolis_step:
             return soltn, 1
         else:
-            r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
-                                      + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
+            approx_sol_complex = hp.almxfl(hp.map2alm(hp.alm2map(hp.almxfl(soltn_complex, self.bl_gauss), nside=self.nside)*self.inv_noise, lmax=self.lmax)
+                                   *self.Npix/(4*np.pi), self.bl_gauss) + hp.almxfl(soltn_complex, cl_inv, inplace=False)
+            r = b_system - approx_sol_complex
             r = utils.complex_to_real(r)
             log_proba = min(0, -np.dot(r,(s_old - soltn)))
             if np.log(np.random.uniform()) < log_proba:

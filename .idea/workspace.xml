@@ -2,13 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/ASIS.py" beforeDir="false" afterPath="$PROJECT_DIR$/ASIS.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ConstrainedRealization.py" beforeDir="false" afterPath="$PROJECT_DIR$/ConstrainedRealization.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GibbsSampler.py" beforeDir="false" afterPath="$PROJECT_DIR$/GibbsSampler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NonCenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/NonCenteredGibbs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,8 +17,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="142">
-              <caret line="48" selection-start-line="48" selection-end-line="48" />
+            <state relative-caret-position="151">
+              <caret line="48" column="45" selection-start-line="48" selection-start-column="45" selection-end-line="48" selection-end-column="45" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -42,11 +38,23 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/ASIS.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="114">
+              <caret line="46" column="12" selection-start-line="46" selection-start-column="12" selection-end-line="46" selection-end-column="12" />
+              <folding>
+                <element signature="e#0#37#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/NonCenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="313">
-              <caret line="68" column="74" selection-start-line="68" selection-start-column="74" selection-end-line="68" selection-end-column="74" />
+            <state relative-caret-position="238">
+              <caret line="334" column="42" lean-forward="true" selection-start-line="334" selection-start-column="42" selection-end-line="334" selection-end-column="42" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -69,8 +77,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="161">
-              <caret line="252" column="58" selection-start-line="252" selection-start-column="58" selection-end-line="252" selection-end-column="58" />
+            <state relative-caret-position="-1463">
+              <caret line="263" column="16" lean-forward="true" selection-start-line="263" selection-start-column="16" selection-end-line="263" selection-end-column="16" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -81,17 +89,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
-              <caret line="26" column="61" selection-start-line="26" selection-start-column="61" selection-end-line="26" selection-end-column="61" />
+            <state relative-caret-position="-8">
+              <caret line="11" column="28" selection-start-line="11" selection-start-column="28" selection-end-line="11" selection-end-column="28" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/config.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="42" column="9" lean-forward="true" selection-start-line="42" selection-start-column="9" selection-end-line="42" selection-end-column="9" />
+            <state relative-caret-position="165">
+              <caret line="37" column="19" selection-start-line="37" selection-start-column="19" selection-end-line="37" selection-end-column="19" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -102,7 +110,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ClsSampler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="375">
+            <state relative-caret-position="-908">
               <caret line="25" column="13" selection-start-line="25" selection-start-column="13" selection-end-line="25" selection-end-column="13" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
@@ -114,22 +122,10 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="265">
-              <caret line="139" column="45" lean-forward="true" selection-start-line="139" selection-start-column="45" selection-end-line="139" selection-end-column="45" />
+            <state relative-caret-position="295">
+              <caret line="141" column="55" selection-start-line="141" selection-start-column="55" selection-end-line="141" selection-end-column="55" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/default_gibbs.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="172">
-              <caret line="48" selection-start-line="48" selection-end-line="48" />
-              <folding>
-                <element signature="e#0#13#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -189,7 +185,6 @@
       <list>
         <option value="$PROJECT_DIR$/PNCP.py" />
         <option value="$PROJECT_DIR$/setup.py" />
-        <option value="$PROJECT_DIR$/ASIS.py" />
         <option value="$PROJECT_DIR$/variance_expension.pyx" />
         <option value="$PROJECT_DIR$/linear_algebra.pyx" />
         <option value="$PROJECT_DIR$/test.py" />
@@ -210,9 +205,10 @@
         <option value="$PROJECT_DIR$/NonCenteredGibbs.py" />
         <option value="$PROJECT_DIR$/main.py" />
         <option value="$PROJECT_DIR$/GibbsSampler.py" />
-        <option value="$PROJECT_DIR$/ConstrainedRealization.py" />
-        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
         <option value="$PROJECT_DIR$/config.py" />
+        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
+        <option value="$PROJECT_DIR$/ConstrainedRealization.py" />
+        <option value="$PROJECT_DIR$/ASIS.py" />
       </list>
     </option>
   </component>
@@ -391,12 +387,12 @@
     <frame x="3" y="23" width="1429" height="799" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4978903" visible="true" weight="0.25" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.4978903" visible="true" weight="0.25" />
       <window_info id="Structure" order="1" sideWeight="0.5021097" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32956153" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32956153" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39886847" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -434,7 +430,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/CenteredGibbs.py</url>
-          <line>288</line>
+          <line>289</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -729,16 +725,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ASIS.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="38" column="22" selection-start-line="38" selection-start-column="22" selection-end-line="38" selection-end-column="22" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///opt/anaconda3/envs/full_gibbs/lib/python3.8/site-packages/numpy/core/_methods.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="149">
@@ -778,10 +764,37 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ClsSampler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="375">
+        <state relative-caret-position="-908">
           <caret line="25" column="13" selection-start-line="25" selection-start-column="13" selection-end-line="25" selection-end-column="13" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="37" column="19" selection-start-line="37" selection-start-column="19" selection-end-line="37" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-8">
+          <caret line="11" column="28" selection-start-line="11" selection-start-column="28" selection-end-line="11" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="295">
+          <caret line="141" column="55" selection-start-line="141" selection-start-column="55" selection-end-line="141" selection-end-column="55" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -798,57 +811,40 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/NonCenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="313">
-          <caret line="68" column="74" selection-start-line="68" selection-start-column="74" selection-end-line="68" selection-end-column="74" />
+        <state relative-caret-position="238">
+          <caret line="334" column="42" lean-forward="true" selection-start-line="334" selection-start-column="42" selection-end-line="334" selection-end-column="42" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="26" column="61" selection-start-line="26" selection-start-column="61" selection-end-line="26" selection-end-column="61" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="161">
-          <caret line="252" column="58" selection-start-line="252" selection-start-column="58" selection-end-line="252" selection-end-column="58" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="265">
-          <caret line="139" column="45" lean-forward="true" selection-start-line="139" selection-start-column="45" selection-end-line="139" selection-end-column="45" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="142">
-          <caret line="48" selection-start-line="48" selection-end-line="48" />
+        <state relative-caret-position="151">
+          <caret line="48" column="45" selection-start-line="48" selection-start-column="45" selection-end-line="48" selection-end-column="45" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config.py">
+    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="42" column="9" lean-forward="true" selection-start-line="42" selection-start-column="9" selection-end-line="42" selection-end-column="9" />
+        <state relative-caret-position="-1463">
+          <caret line="263" column="16" lean-forward="true" selection-start-line="263" selection-start-column="16" selection-end-line="263" selection-end-column="16" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ASIS.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="46" column="12" selection-start-line="46" selection-start-column="12" selection-end-line="46" selection-end-column="12" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
