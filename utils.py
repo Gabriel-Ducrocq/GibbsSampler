@@ -811,7 +811,6 @@ def trace_likelihood_binned(h_cl, d, l, maximum, dl=True):
     if not dl:
         scale_dl = np.ones(len(scale_dl))
 
-    power_spec = hp.alm2cl(d_sph, lmax=config.L_MAX_SCALARS)
     power_spec = hp.anafast(d, lmax=config.L_MAX_SCALARS)
     observed_cls = power_spec * scale_dl / config.bl_gauss ** 2
 

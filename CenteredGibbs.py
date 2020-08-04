@@ -251,11 +251,6 @@ class CenteredConstrainedRealization(ConstrainedRealization):
                                       + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
             r = utils.complex_to_real(r)
             log_proba = min(0, -np.dot(r,(s_old - soltn)))
-            log_proba2 = min(0, np.dot(r,(s_old - soltn)))
-            print("log Probas")
-            print(log_proba)
-            print(log_proba2)
-
             if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
             else:
@@ -263,7 +258,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
 
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=False):
+    def sample(self, cls_, var_cls, old_s, metropolis_step=True):
         #if self.mask_path is not None:
         if True:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)

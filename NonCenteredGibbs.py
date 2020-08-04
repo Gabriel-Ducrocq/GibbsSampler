@@ -33,7 +33,7 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
 
         return map, 1
 
-    def sample_mask(self,cls_, var_cls, s_old, metropolis_step=True):
+    def sample_mask(self, cls_, var_cls, s_old, metropolis_step=False):
         self.s_cls.cltt = cls_
         self.s_cls.lmax = self.lmax
         cl_inv = np.zeros(len(cls_))
@@ -50,6 +50,7 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise))
 
+        ####THINK ABOUT CHECKING THE STARTING POINT
         if metropolis_step:
             soltn_complex = -utils.real_to_complex(s_old)[:]
         else:
@@ -57,7 +58,10 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
 
         fluctuations_complex = utils.real_to_complex(b_fluctuations)
         b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
-        hp.almxfl(soltn_complex, np.sqrt(cls_), inplace=True)
+        #### Since at the end of the solver the output is multiplied by C^-1, it's enough to remultiply it by C^(1/2) to
+        ### To produce a non centered map !
+        hp.almxfl(soltn_complex, cls_, inplace=True)
+        hp.almxfl(soltn_complex, np.sqrt(cl_inv), inplace=True)
         soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
         if not metropolis_step:
             return soltn, 1
@@ -65,15 +69,20 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
             r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
                                       + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
             r = utils.complex_to_real(r)
-            proba = np.exp(-np.dot(r,(s_old - soltn)))
-            if np.random.uniform() < proba:
+            log_proba = min(0, -np.dot(r,(s_old - soltn)))
+            log_proba2 = min(0, np.dot(r,(s_old - soltn)))
+            print("log Probas")
+            print(log_proba)
+            print(log_proba2)
+
+            if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
             else:
                 return s_old, 0
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False):
         #if self.mask_path is not None:
-        if False:
+        if True:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)

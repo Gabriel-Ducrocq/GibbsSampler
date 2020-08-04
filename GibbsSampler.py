@@ -41,47 +41,8 @@ class GibbsSampler():
         bl_map = np.concatenate([bl_gauss,np.array([cl for m in range(1, self.lmax + 1) for cl in bl_gauss[m:] for _ in range(2)])])
         return bl_map
 
-    """
     def run(self, dls_init):
-        ###### DEALING WITH DLS !!!
-        h_dls = []
         h_accept_cr = []
-        h_time_seconds = []
-        binned_dls = dls_init
-        h_dls.append(binned_dls)
-        dls_ = utils.unfold_bins(binned_dls[:], self.bins)
-        cls_ = self.dls_to_cls(dls_[:])
-        var_cl_full = utils.generate_var_cl(dls_[:])
-        alm_map, _ = self.constrained_sampler.sample(cls_[:], var_cl_full[:], None, False)
-        for i in range(self.n_iter):
-            if i % 1 == 0:
-                print("Default Gibbs, iteration:", i)
-
-            start_time = time.process_time()
-            if not self.polarization:
-                cls = utils.unfold_bins(binned_dls, self.bins)
-                var_cls_full = utils.generate_var_cl(cls)
-            else:
-                dls_ = utils.unfold_bins(binned_dls[:], self.bins)
-                cls_ = self.dls_to_cls(dls_[:])
-                var_cl_full = utils.generate_var_cl(dls_[:])
-
-            #alm_map, accept = self.constrained_sampler.sample(cls_[:], var_cl_full.copy(), alm_map[:])
-            alm_map, _ , _= utils.generate_normal_ASIS_transform_def_diag(self.pix_map, var_cl_full)
-            #h_accept_cr.append(accept)
-            #binned_dls = self.cls_sampler.sample(alm_map[:])
-            binned_dls = sample_cls(alm_map[:])
-
-            end_time = time.process_time()
-            h_dls.append(binned_dls)
-            h_time_seconds.append(end_time - start_time)
-
-
-        #print("Acception rate constrained realiation:")
-        #print(np.mean(h_accept_cr))
-        return np.array(h_dls), h_time_seconds
-    """
-    def run(self, dls_init):
         h_dls = []
         h_time_seconds = []
         binned_dls = dls_init
@@ -100,12 +61,14 @@ class GibbsSampler():
             cls = self.dls_to_cls(dls)
             var_cls_full = utils.generate_var_cl(dls)
 
-            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False)
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=True)
 
+            h_accept_cr.append(accept)
             end_time = time.process_time()
             h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
+        print("Acception rate constrained realization:", np.mean(h_accept_cr))
         return np.array(h_dls), h_time_seconds
 
 
