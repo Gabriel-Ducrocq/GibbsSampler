@@ -17,7 +17,7 @@ from ASIS import ASIS
 from default_gibbs import default_gibbs
 
 
-def generate_dataset(polarization=True):
+def generate_dataset(polarization=True, mask = None):
     theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
     map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
@@ -52,7 +52,14 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False)
+    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask = None)
+
+    np.random.normal(size=config.Npix)
+
+    mask = hp.ud_grade(hp.read_map("wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits", 0), config.NSIDE)
+    masked_map = pix_map*mask
+    hp.mollview(masked_map)
+    plt.show()
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     #plt.plot(cls_[0]*range_l)
@@ -86,13 +93,16 @@ if __name__ == "__main__":
     print(config.proposal_variances_nc)
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, None ,config.beam_fwhm,
                                           config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000)
+                                   config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000,
+                                          bins = config.bins, mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=10000)
+                                   config.Npix, n_iter=10000, bins = config.bins,
+                                   mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000)
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000, bins = config.bins,
+                        mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -140,14 +150,15 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    l_interest = 8
+    l_interest = 4
     start = time.time()
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
+    cls_init = cls_init[:5]
     h_cls_centered, _ = centered_gibbs.run(cls_init)
     h_cls_asis, _, _ = asis_sampler.run(cls_init)
     end = time.time()
-    h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
+    #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
     #print("Iteration time:", np.mean(times))
@@ -159,7 +170,7 @@ if __name__ == "__main__":
     print("NORM:", norm)
     plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 100, label="ASIS")
     plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=100, label="Centered")
-    plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
+    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
     if norm > 0:
         plt.plot(xs, yy/norm)

@@ -21,7 +21,7 @@ class GibbsSampler():
         self.constrained_sampler = None
         self.cls_sampler = None
         self.n_iter = n_iter
-        if bins == None:
+        if bins is None:
             if not polarization:
                 self.bins = np.array([l for l in range(lmax+2)])
             else:
@@ -49,16 +49,16 @@ class GibbsSampler():
         dls = utils.unfold_bins(binned_dls, config.bins)
         cls = self.dls_to_cls(dls)
         var_cls_full = utils.generate_var_cl(dls)
-        #skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
         for i in range(10000):
             if i % 1000 == 0:
                 print("Default Gibbs")
                 print(i)
 
             start_time = time.process_time()
-            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=True)
             binned_dls = self.cls_sampler.sample(skymap[:])
-            dls = utils.unfold_bins(binned_dls, config.bins)
+            dls = utils.unfold_bins(binned_dls, self.bins)
             cls = self.dls_to_cls(dls)
             var_cls_full = utils.generate_var_cl(dls)
 
