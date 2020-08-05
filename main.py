@@ -140,14 +140,14 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    l_interest = 5
+    l_interest = 8
     start = time.time()
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     h_cls_centered, _ = centered_gibbs.run(cls_init)
     h_cls_asis, _, _ = asis_sampler.run(cls_init)
     end = time.time()
-    #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
+    h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
     #print("Iteration time:", np.mean(times))
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     print("NORM:", norm)
     plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 100, label="ASIS")
     plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=100, label="Centered")
-    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
+    plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
     if norm > 0:
         plt.plot(xs, yy/norm)

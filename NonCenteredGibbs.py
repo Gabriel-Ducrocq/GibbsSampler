@@ -319,6 +319,7 @@ class NonCenteredGibbs(GibbsSampler):
 
         binned_dls = dl_init
         dls = utils.unfold_bins(dl_init, config.bins)
+        cls = self.dls_to_cls(dls)
 
         h_dl = []
         var_cls = utils.generate_var_cl(dls)
@@ -328,8 +329,10 @@ class NonCenteredGibbs(GibbsSampler):
                 print(i)
 
             start_time = time.process_time()
-            s_nonCentered, accept = self.constrained_sampler.sample(binned_dls, var_cls, None, False)
+            s_nonCentered, accept = self.constrained_sampler.sample(cls, var_cls, None, False)
             binned_dls, var_cls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls, var_cls)
+            dls = utils.unfold_bins(binned_dls, self.bins)
+            cls = self.dls_to_cls(dls)
             total_accept.append(accept)
 
             end_time = time.process_time()
