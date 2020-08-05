@@ -41,7 +41,7 @@ class ASIS(GibbsSampler):
                 print("Interweaving, iteration:", i)
 
             start_time = time.process_time()
-            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, metropolis_step=True)
+            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, metropolis_step=False)
             h_accept_cr.append(accept_cr)
             binned_dls_temp = self.centered_cls_sampler.sample(skymap[:])
             dls_temp_unfolded = utils.unfold_bins(binned_dls_temp, self.bins)

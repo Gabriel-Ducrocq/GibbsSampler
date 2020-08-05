@@ -56,7 +56,7 @@ class GibbsSampler():
                 print(i)
 
             start_time = time.process_time()
-            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=True)
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False)
             binned_dls = self.cls_sampler.sample(skymap[:])
             dls = utils.unfold_bins(binned_dls, self.bins)
             cls = self.dls_to_cls(dls)

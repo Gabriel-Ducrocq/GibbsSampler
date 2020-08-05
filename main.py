@@ -17,7 +17,7 @@ from ASIS import ASIS
 from default_gibbs import default_gibbs
 
 
-def generate_dataset(polarization=True, mask = None):
+def generate_dataset(polarization=True, mask_path = None):
     theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
     map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
@@ -29,7 +29,11 @@ def generate_dataset(polarization=True, mask = None):
         return theta_, cls_, map_true,  d
     else:
         d += np.random.normal(scale=np.sqrt(config.var_noise_temp))
-        return theta_, cls_, map_true,  d
+        if mask_path is None:
+            return theta_, cls_, map_true,  d
+        else:
+            mask = hp.ud_grade(hp.read_map(mask_path, 0), config.NSIDE)
+            return theta_, cls_, map_true, d*mask
 
 
 def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
@@ -52,13 +56,11 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask = None)
+    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False,
+                                                     mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
-    np.random.normal(size=config.Npix)
-
-    mask = hp.ud_grade(hp.read_map("wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits", 0), config.NSIDE)
-    masked_map = pix_map*mask
-    hp.mollview(masked_map)
+    print(pix_map)
+    hp.mollview(pix_map)
     plt.show()
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
@@ -162,13 +164,13 @@ if __name__ == "__main__":
     print("Total time:")
     print(end-start)
     #print("Iteration time:", np.mean(times))
-    #plt.plot(h_cls_asis[:, l_interest])
-    #plt.show()
+    plt.plot(h_cls_asis[:, l_interest])
+    plt.show()
 
     yy, xs, norm = utils.trace_likelihood_binned(h_cls_centered[:, l_interest] ,pix_map, l_interest, np.max(h_cls_centered[:, l_interest]))
 
     print("NORM:", norm)
-    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 100, label="ASIS")
+    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 150, label="ASIS")
     plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=100, label="Centered")
     #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
