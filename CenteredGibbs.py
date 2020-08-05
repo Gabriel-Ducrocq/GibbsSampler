@@ -252,12 +252,12 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             r = b_system - approx_sol_complex
             r = utils.complex_to_real(r)
             log_proba = min(0, -np.dot(r,(s_old - soltn)))
+            print("Proba")
+            print(log_proba)
             if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
             else:
                 return s_old, 0
-
-
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=True):
         #if self.mask_path is not None:

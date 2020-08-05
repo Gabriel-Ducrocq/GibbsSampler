@@ -84,19 +84,48 @@ if __name__ == "__main__":
     """
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     print(config.proposal_variances_nc)
-    non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, config.noise_covar_pol ,config.beam_fwhm,
+    non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, None ,config.beam_fwhm,
                                           config.NSIDE, config.L_MAX_SCALARS,
                                    config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000)
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=10000)
+                                   config.Npix, n_iter=1)
 
-    #pncp_sampler = PNCPGibbs(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-    #                         config.Npix, config.proposal_variances_pncp, config.l_cut, metropolis_blocks = None,
-    #             polarization = False, bins = None, n_iter = 100000, n_iter_metropolis=1)
+    asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=1)
 
-    #asis_sampler = ASIS(pix_map, config.noise_covar_temp, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-    #                        config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=100000)
+    dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
+    var_cls_ = utils.generate_var_cl(dls_)
+    inv_var_cls_ = np.zeros(len(var_cls_))
+    np.reciprocal(var_cls_, out=inv_var_cls_, where=config.mask_inversion)
+    h_centered_1 = []
+    for i in range(10000):
+        if i % 100 == 0:
+            print("centered 1:", i)
+
+        s1, var_cls_full, _ = centered_gibbs.run(dls_[:])
+        inv_var_cls_full = np.zeros(len(var_cls_full))
+        inv_var_cls_full[np.where(var_cls_full!= 0)] = 1/var_cls_full[np.where(var_cls_full!=0)]
+        h_centered_1.append(np.sqrt(inv_var_cls_full)*s1)
+
+    h_asis = []
+    h_asis_centered = []
+    print("True CLS")
+    print(cls_)
+    for i in range(10000):
+        if i % 100 == 0:
+            print("asis:", i)
+
+        s_asis, skymap, cls_test, var_test = asis_sampler.run(dls_[:])
+        h_asis.append(s_asis)
+
+
+    print(np.mean(np.array(h_centered_1)[:, 15]))
+    #print(np.mean(np.array(h_asis)[:, 15]))
+    plt.hist(np.array(h_centered_1)[:, 15], label="centered1", density=True, alpha=0.5, bins = 25)
+    plt.hist(np.array(h_asis)[:, 15], label="asis", density=True, alpha=0.5, bins=25)
+    plt.legend(loc="upper right")
+    plt.show()
 
 
     #polarized_centered = CenteredGibbs(pix_map, config.noise_covar_temp, config.noise_covar_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
@@ -114,20 +143,21 @@ if __name__ == "__main__":
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     h_cls_centered, _ = centered_gibbs.run(cls_init)
+    #h_cls_asis, _, _ = asis_sampler.run(cls_init)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
     #print("Iteration time:", np.mean(times))
-    #plt.plot(h_cls_nonCentered[:, l_interest])
+    #plt.plot(h_cls_asis[:, l_interest])
     #plt.show()
 
     yy, xs, norm = utils.trace_likelihood_binned(h_cls_centered[:, l_interest] ,pix_map, l_interest, np.max(h_cls_centered[:, l_interest]))
 
     print("NORM:", norm)
-    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins = 50)
-    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="New")
-    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=75, label="old")
+    #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 100, label="ASIS")
+    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=100, label="Centered")
+    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
     if norm > 0:
         plt.plot(xs, yy/norm)

@@ -49,27 +49,27 @@ class GibbsSampler():
         dls = utils.unfold_bins(binned_dls, config.bins)
         cls = self.dls_to_cls(dls)
         var_cls_full = utils.generate_var_cl(dls)
-        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+        #skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
         for i in range(10000):
             if i % 1000 == 0:
                 print("Default Gibbs")
                 print(i)
 
             start_time = time.process_time()
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
             binned_dls = self.cls_sampler.sample(skymap[:])
             dls = utils.unfold_bins(binned_dls, config.bins)
             cls = self.dls_to_cls(dls)
             var_cls_full = utils.generate_var_cl(dls)
-
-            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=True)
 
             h_accept_cr.append(accept)
             end_time = time.process_time()
             h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
-        print("Acception rate constrained realization:", np.mean(h_accept_cr))
-        return np.array(h_dls), h_time_seconds
+            return skymap, var_cls_full, h_time_seconds
+        #print("Acception rate constrained realization:", np.mean(h_accept_cr))
+        #return np.array(h_dls), var_cls_full, h_time_seconds
 
 
 

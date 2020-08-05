@@ -183,7 +183,7 @@ binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_
 preliminary_run =True
 
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*5000
+    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*250
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60
