@@ -305,8 +305,8 @@ class NonCenteredGibbs(GibbsSampler):
         if not polarization:
             self.constrained_sampler = NonCenteredConstrainedRealization(pix_map, noise_I, self.bl_map, beam, lmax, Npix, isotropic=True,
                                                                          mask_path = mask_path)
-            self.cls_sampler = NonCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_I, metropolis_blocks,
-                                                     proposal_variances, n_iter = n_iter_metropolis)
+            self.cls_sampler = NonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, metropolis_blocks,
+                                                     proposal_variances, n_iter = n_iter_metropolis, mask_path=mask_path)
         else:
             self.constrained_sampler = PolarizedNonCenteredConstrainedRealization(pix_map, noise_I, noise_Q,
                                                                                   self.bl_map, lmax, Npix, beam, isotropic=True)

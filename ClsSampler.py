@@ -1,17 +1,22 @@
 import numpy as np
 from scipy.stats import truncnorm
 import utils
+import healpy as hp
 
 
 class ClsSampler():
 
-    def __init__(self, pix_map, lmax, bins, bl_map, noise):
+    def __init__(self, pix_map, lmax, nside, bins, bl_map, noise, mask_path = None):
         self.lmax = lmax
         self.bins = bins
+        self.nside = nside
         self.pix_map = pix_map
         self.bl_map = bl_map
         self.noise = noise
         self.inv_noise = 1/noise
+        if mask_path is not None:
+            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
+            self.inv_noise *= self.mask
 
     def sample(self, alm_map):
         return None
@@ -19,8 +24,9 @@ class ClsSampler():
 
 
 class MHClsSampler(ClsSampler):
-    def __init__(self, pix_map, lmax, bins, bl_map, noise, metropolis_blocks, proposal_variances, n_iter = 1, polarization=False):
-        super().__init__(pix_map, lmax, bins, bl_map, noise)
+    def __init__(self, pix_map, lmax, nside, bins, bl_map, noise, metropolis_blocks, proposal_variances, n_iter = 1, mask_path = None,
+                 polarization=False):
+        super().__init__(pix_map, lmax, nside, bins, bl_map, noise, mask_path)
         if metropolis_blocks == None:
             self.metropolis_blocks = list(range(2, len(self.bins)))
         else:

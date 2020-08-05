@@ -387,7 +387,7 @@ class CenteredGibbs(GibbsSampler):
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
                                                                       isotropic=True)
-            self.cls_sampler = CenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
+            self.cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
         else:
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
