@@ -47,17 +47,17 @@ class ASIS(GibbsSampler):
             inv_var_cls_temp = np.zeros(len(var_cls_temp))
             np.reciprocal(var_cls_temp, out=inv_var_cls_temp, where=config.mask_inversion)
             s_nonCentered = np.sqrt(inv_var_cls_temp) * skymap
-            #binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered[:], binned_dls_temp[:], var_cls_temp[:])
-            #skymap = np.sqrt(var_cls_full)*s_nonCentered
-            #h_accept.append(accept)
+            binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered[:], binned_dls_temp[:], var_cls_temp[:])
+            dls = utils.unfold_bins(binned_dls, self.bins)
+            cls = self.dls_to_cls(dls)
+            skymap = np.sqrt(var_cls_full)*s_nonCentered
+            h_accept.append(accept)
 
-            #end_time = time.process_time()
-            #h_dls.append(binned_dls)
-            #h_time_seconds.append(end_time - start_time)
-            return s_nonCentered, skymap, cls, var_cls_full
+            end_time = time.process_time()
+            h_dls.append(binned_dls)
+            h_time_seconds.append(end_time - start_time)
 
-
-        #h_accept = np.array(h_accept)
-        #print("Acceptance rate ASIS:", np.mean(h_accept, axis = 0))
-        #print("Acceptance rate constrained realizations:", np.mean(h_accept_cr))
-        #return np.array(h_dls), np.array(h_accept), np.array(h_time_seconds)
+        h_accept = np.array(h_accept)
+        print("Acceptance rate ASIS:", np.mean(h_accept, axis = 0))
+        print("Acceptance rate constrained realizations:", np.mean(h_accept_cr))
+        return np.array(h_dls), np.array(h_accept), np.array(h_time_seconds)

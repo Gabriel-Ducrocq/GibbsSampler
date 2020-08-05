@@ -67,9 +67,8 @@ class GibbsSampler():
             h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
-            return skymap, var_cls_full, h_time_seconds
-        #print("Acception rate constrained realization:", np.mean(h_accept_cr))
-        #return np.array(h_dls), var_cls_full, h_time_seconds
+        print("Acception rate constrained realization:", np.mean(h_accept_cr))
+        return np.array(h_dls), h_time_seconds
 
 
 
