@@ -18,7 +18,7 @@ class ConstrainedRealization():
         self.bl_gauss = hp.gauss_beam(fwhm=self.fwhm_radians, lmax=lmax)
         self.mask_path = mask_path
         if mask_path is not None:
-            self.mask = hp.read_map(mask_path)
+            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
             self.inv_noise *= self.mask
 
         self.n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(self.inv_noise, self.bl_gauss)

@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import invgamma, truncnorm
 import healpy as hp
 import time
+from default_gibbs import sample_cls
 
 
 class GibbsSampler():
@@ -20,7 +21,7 @@ class GibbsSampler():
         self.constrained_sampler = None
         self.cls_sampler = None
         self.n_iter = n_iter
-        if bins == None:
+        if bins is None:
             if not polarization:
                 self.bins = np.array([l for l in range(lmax+2)])
             else:
@@ -29,41 +30,45 @@ class GibbsSampler():
         else:
             self.bins = bins
 
+        self.dls_to_cls_array = np.array([2*np.pi/(l*(l+1)) if l !=0 else 0 for l in range(lmax+1)])
+
+    def dls_to_cls(self, dls_):
+        return dls_[:]*self.dls_to_cls_array
+
     def compute_bl_map(self, beam_fwhm):
         fwhm_radians = (np.pi / 180) * beam_fwhm
         bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=self.lmax)
         bl_map = np.concatenate([bl_gauss,np.array([cl for m in range(1, self.lmax + 1) for cl in bl_gauss[m:] for _ in range(2)])])
         return bl_map
 
-    def run(self, cls_init):
-        h_cls = []
+    def run(self, dls_init):
+        h_accept_cr = []
+        h_dls = []
         h_time_seconds = []
-        binned_cls = cls_init
-        h_cls.append(binned_cls)
-        cls_ = utils.unfold_bins(binned_cls, self.bins)
-        var_cl_full = utils.generate_var_cl(cls_)
-        alm_map, _ = self.constrained_sampler.sample(cls_, var_cl_full, None, False)
-        for i in range(self.n_iter):
-            if i % 1 == 0:
-                print("Default Gibbs, iteration:", i)
+        binned_dls = dls_init
+        dls = utils.unfold_bins(binned_dls, config.bins)
+        cls = self.dls_to_cls(dls)
+        var_cls_full = utils.generate_var_cl(dls)
+        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+        for i in range(10000):
+            if i % 1000 == 0:
+                print("Default Gibbs")
+                print(i)
 
             start_time = time.process_time()
-            if not self.polarization:
-                cls = utils.unfold_bins(binned_cls, self.bins)
-                var_cls_full = utils.generate_var_cl(cls)
-            else:
-                cls = binned_cls
-                var_cls_full = cls
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False)
+            binned_dls = self.cls_sampler.sample(skymap[:])
+            dls = utils.unfold_bins(binned_dls, self.bins)
+            cls = self.dls_to_cls(dls)
+            var_cls_full = utils.generate_var_cl(dls)
 
-
-            alm_map, accept = self.constrained_sampler.sample(cls, var_cls_full.copy(), alm_map)
-            binned_cls = self.cls_sampler.sample(alm_map)
-
+            h_accept_cr.append(accept)
             end_time = time.process_time()
-            h_cls.append(binned_cls)
+            h_dls.append(binned_dls)
             h_time_seconds.append(end_time - start_time)
 
-        return np.array(h_cls), h_time_seconds
+        print("Acception rate constrained realization:", np.mean(h_accept_cr))
+        return np.array(h_dls), h_time_seconds
 
 
 

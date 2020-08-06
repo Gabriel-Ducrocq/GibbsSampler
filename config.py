@@ -67,8 +67,9 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # Pour nside = 8 et L_cut = 10: noise_covar = noise_covar_one_pix[7]*50000
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
-#noise_covar_temp = 40**2
-noise_covar_temp = 0.04**2
+noise_covar_temp =100**2
+noise_covar = noise_covar_temp
+#noise_covar_temp = 500**2
 noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
 #noise_covar_pol = 4.4**2
@@ -82,10 +83,13 @@ bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669,
           800, 850, 1001])
 bins = np.concatenate([np.arange(600, 636, 2), bins])
 bins = np.concatenate([range(600), bins])
+#bins = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+bins = np.array([0, 1, 2, 3, 5, 9])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
 blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
 blocks[0] = 2
+blocks = list(range(2, len(bins)))
 
 
 #bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
@@ -180,7 +184,7 @@ binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_
 preliminary_run =True
 
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:]
+    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*250
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60

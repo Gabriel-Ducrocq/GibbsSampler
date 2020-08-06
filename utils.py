@@ -254,26 +254,6 @@ def likelihood_normalized(x, sigma, l, norm_before):
     return np.exp(-(((2*l+1)/2)*sigma)/(x+config.noise_covar))/((x+config.noise_covar)**((2*l+1)/2)*norm_before)
 
 
-def trace_likelihood(h_cl, d, l):
-    d_sph = analysis_hp(d)
-    d_sph = real_to_complex(d_sph)
-    print("d_sph:")
-    print(d_sph)
-    power_spec = hp.alm2cl(d_sph, lmax=config.L_MAX_SCALARS)
-    observed_cl = power_spec[l]
-    norm, err = scipy.integrate.quad(stats.invgamma.pdf, a=0, b=np.inf, args=((2*l-1)/2,
-                -(4*np.pi/config.Npix)*config.noise_covar,(2*l+1)*observed_cl/2))
-
-    y = []
-    xs = np.arange(0, np.max(h_cl),1)
-    print("MAX RANGE")
-    print(np.max(h_cl))
-    for x in xs:
-        res = stats.invgamma.pdf(x, a=(2*l-1)/2, loc=-(4*np.pi/config.Npix)*config.noise_covar, scale = (2*l+1)*observed_cl/2)
-        y.append(res)
-
-    return np.array(y), xs, norm
-
 
 def trace_likelihood_beam(h_cl, d, l):
     d_sph = analysis_hp(d)
@@ -283,7 +263,7 @@ def trace_likelihood_beam(h_cl, d, l):
     power_spec = hp.alm2cl(d_sph, lmax=config.L_MAX_SCALARS)
     observed_cl = power_spec[l]/config.bl_gauss[l]**2
     norm, err = scipy.integrate.quad(stats.invgamma.pdf, a=0, b=np.inf, args=((2*l-1)/2,
-                -(4*np.pi/config.Npix)*config.noise_covar_pol/config.bl_gauss[l]**2,(2*l+1)*observed_cl/2))
+                -(4*np.pi/config.Npix)*config.noise_covar_temp/config.bl_gauss[l]**2,(2*l+1)*observed_cl/2))
 
     y = []
     xs = np.linspace(0, np.max(h_cl),10000)
@@ -291,7 +271,7 @@ def trace_likelihood_beam(h_cl, d, l):
     print(np.max(h_cl))
     for x in xs:
         res = stats.invgamma.pdf(x, a=(2*l-1)/2,
-                    loc=-(4*np.pi/config.Npix)*config.noise_covar_pol/config.bl_gauss[l]**2, scale=(2*l+1)*observed_cl/2)
+                    loc=-(4*np.pi/config.Npix)*config.noise_covar_temp/config.bl_gauss[l]**2, scale=(2*l+1)*observed_cl/2)
         y.append(res)
 
     return np.array(y), xs, norm
@@ -831,14 +811,13 @@ def trace_likelihood_binned(h_cl, d, l, maximum, dl=True):
     if not dl:
         scale_dl = np.ones(len(scale_dl))
 
-    power_spec = hp.alm2cl(d_sph, lmax=config.L_MAX_SCALARS)
     power_spec = hp.anafast(d, lmax=config.L_MAX_SCALARS)
     observed_cls = power_spec * scale_dl / config.bl_gauss ** 2
 
     scale_betas = [(2 * l + 1) / 2 for l in range(config.L_MAX_SCALARS + 1)]
     alphas = [(2 * l - 1) / 2 for l in range(config.L_MAX_SCALARS + 1)]
     betas = observed_cls * scale_betas
-    locs = -((4 * np.pi / config.Npix) * config.noise_covar / config.bl_gauss ** 2) * scale_dl
+    locs = -((4 * np.pi / config.Npix) * config.noise_covar_temp / config.bl_gauss ** 2) * scale_dl
     denoms_factors = [(config.bl_gauss[l] ** 2) for l in range(config.L_MAX_SCALARS + 1)]
     if not dl:
         denoms_factors = np.ones(len(denoms_factors))
@@ -861,5 +840,4 @@ def trace_likelihood_binned(h_cl, d, l, maximum, dl=True):
         y.append(res)
 
     return np.array(y), xs, norm
-
 
