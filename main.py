@@ -92,10 +92,9 @@ if __name__ == "__main__":
     plt.show()
     """
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
-    print(config.proposal_variances_nc)
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, None ,config.beam_fwhm,
                                           config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000,
+                                   config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=10000,
                                           bins = config.bins, mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
@@ -103,7 +102,7 @@ if __name__ == "__main__":
                                    mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=10000, bins = config.bins,
                         mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
@@ -154,15 +153,26 @@ if __name__ == "__main__":
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
     l_interest = 4
     start = time.time()
+
+    np.random.seed()
+    cls_init = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
+    cls_init = np.concatenate([np.zeros(2), cls_init])
+    cls_init_binned = utils.generate_init_values(cls_init)
+    scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+    cls_init_binned = np.ones(len(cls_init_binned))*3000
+    cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
+    cls_init_binned[:2] = 0
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
-    h_cls_centered, _ = centered_gibbs.run(cls_init)
-    h_cls_asis, _, _ = asis_sampler.run(cls_init)
+    #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
+    h_cls_asis, _, h_accept_cr_asis,  _ = asis_sampler.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
+    #print("Acceptance rate cr centered:", np.mean(h_accept_cr_centered))
+    print("Acceptance rate cr asis:", np.mean(h_accept_cr_asis))
     #print("Iteration time:", np.mean(times))
     plt.plot(h_cls_asis[:, l_interest])
     plt.show()

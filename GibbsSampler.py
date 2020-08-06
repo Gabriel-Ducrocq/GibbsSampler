@@ -68,7 +68,7 @@ class GibbsSampler():
             h_time_seconds.append(end_time - start_time)
 
         print("Acception rate constrained realization:", np.mean(h_accept_cr))
-        return np.array(h_dls), h_time_seconds
+        return np.array(h_dls), np.array(h_accept_cr), h_time_seconds
 
 
 
