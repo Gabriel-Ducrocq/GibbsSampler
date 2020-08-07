@@ -56,8 +56,8 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False,
-                                                     mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
+    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False)
+                                                     #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     print(pix_map)
     hp.mollview(pix_map)
@@ -98,12 +98,12 @@ if __name__ == "__main__":
                                           bins = config.bins, mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=10000, bins = config.bins,
-                                   mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
+                                   config.Npix, n_iter=100000, bins = config.bins,
+                                   mask_path = None)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=10000, bins = config.bins,
-                        mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000, bins = config.bins,
+                        mask_path = None)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -165,23 +165,23 @@ if __name__ == "__main__":
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
-    #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    h_cls_asis, _, h_accept_cr_asis,  _ = asis_sampler.run(cls_init_binned)
+    h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
+    #h_cls_asis, _, h_accept_cr_asis,  _ = asis_sampler.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
     #print("Acceptance rate cr centered:", np.mean(h_accept_cr_centered))
-    print("Acceptance rate cr asis:", np.mean(h_accept_cr_asis))
+    #print("Acceptance rate cr asis:", np.mean(h_accept_cr_asis))
     #print("Iteration time:", np.mean(times))
-    plt.plot(h_cls_asis[:, l_interest])
+    plt.plot(h_cls_centered[:, l_interest])
     plt.show()
 
     yy, xs, norm = utils.trace_likelihood_binned(h_cls_centered[:, l_interest] ,pix_map, l_interest, np.max(h_cls_centered[:, l_interest]))
 
     print("NORM:", norm)
-    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 150, label="ASIS")
-    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=100, label="Centered")
+    #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
+    plt.hist(h_cls_centered[:, l_interest], density=True, alpha=0.5, bins=200, label="Centered")
     #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
     if norm > 0:

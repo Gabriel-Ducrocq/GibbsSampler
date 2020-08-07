@@ -225,7 +225,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
 
         chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, self.chain_descr, self.s_cls, self.n_inv_filt,
-                                                debug_log_prefix=('log_'))
+                                                debug_log_prefix=None)
 
         #b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
@@ -259,12 +259,41 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             else:
                 return s_old, 0
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=True):
+    def sample_gibbs(self, var_cls, old_s):
+        """
+        var_z = 1/(self.mu - self.inv_noise)
+        old_s = utils.real_to_complex(old_s)
+        mean_z = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
+        z = np.random.normal(size = len(mean_z))*np.sqrt(var_z) + mean_z
+
+        inv_var_cls = np.zeros(len(var_cls))
+        inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls !=0)]
+        var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
+        mu = self.inv_noise*self.pix_map + z*(self.mu - self.inv_noise)
+        mean_s = var_s*self.bl_map*(1/config.w)*utils.complex_to_real(hp.map2alm(mu, lmax=self.lmax))
+        new_s = np.random.normal(size = len(mean_s))*np.sqrt(var_s) + mean_s
+        """
+        old_s = utils.real_to_complex(old_s)
+        var_v = self.mu - self.inv_noise
+        mean_v = var_v * hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
+        v = np.random.normal(size=len(mean_v))*np.sqrt(var_v) + mean_v
+
+        inv_var_cls = np.zeros(len(var_cls))
+        inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
+        var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
+        mean_s = var_s*utils.complex_to_real(hp.almxfl(hp.map2alm((v + self.inv_noise*self.pix_map), lmax=self.lmax)*(1/config.w), self.bl_gauss))
+        s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
+        return s_new, 1
+
+    def sample(self, cls_, var_cls, old_s, metropolis_step=True, use_gibbs = False):
+        if use_gibbs:
+            return self.sample_gibbs(var_cls, old_s)
         #if self.mask_path is not None:
-        if True:
+        if False:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
+
 
 
 complex_dim = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)

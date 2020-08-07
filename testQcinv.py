@@ -41,7 +41,7 @@ d += np.random.normal(scale=np.sqrt(config.var_noise_temp))
 #cltt,clee,clbb,clte  = np.loadtxt(inp_dir + "wmap_pol_C_l.dat",unpack=1)
 #beam=np.loadtxt(inp_dir + "wmap_pol_b_l.dat")
 beam = config.bl_gauss
-"""
+
 class cl(object):
     pass
 s_cls = cl
@@ -74,13 +74,13 @@ chain =qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, chain_descr, s_cls, n_in
 #soltn =  qcinv.opfilt_tt.eblm(np.zeros( (2,qcinv.util_alm.lmax2nlm(lmax)), dtype=np.complex ))
 
 soltn = np.zeros(int(qcinv.util_alm.lmax2nlm(lmax)), dtype=np.complex )
-chain.solve(soltn, dmap)
+chain.sample(soltn, dmap, np.zeros(4))
 print(soltn)
 #soltnm=hp.alm2map([soltn.elm*0,hp.almpix_map, noise, bl_map, fwhm_radians, lmax, Npix, mask_path, isotropic=True)xfl(soltn.elm,s_cls.clee*beam),hp.almxfl(soltn.blm,s_cls.clbb*beam)],512)
 
+
+
 """
-
-
 from CenteredGibbs import CenteredConstrainedRealization
 
 weiner_filtering = CenteredConstrainedRealization(d, config.var_noise_temp, config.bl_map, config.fwhm_radians
@@ -96,7 +96,7 @@ start = time.time()
 for i in range(1):
     if i % 1000 == 0:
         print(i)
-
+    
     solution, _, _ = weiner_filtering.sample(cls_, utils.generate_var_cl(cls_))
     solution_diag, _, _, weiner_diag = weiner_filtering_diag.sample(cls_, utils.generate_var_cl(cls_))
     print("\n\n")
@@ -136,3 +136,4 @@ plt.hist(h_sol, density=True, alpha=0.5, label="PCG")
 plt.hist(h_sol_diag, density=True, alpha=0.5, label="Diag")
 plt.legend(loc="upper right")
 plt.show()
+"""

@@ -1,5 +1,7 @@
 import numpy as np
 from healpy._healpy_sph_transform_lib import _alm2map
+cimport scipy.special.cython_special
+from scipy.special import erfinv
 
 
 cpdef double[:] generate_var_cl_cython(double[:] cls_):
@@ -118,3 +120,7 @@ cpdef double[:] synthesis_hp(double[:] alms, int nside):
     s = _alm2map(np.asarray(alms_complex), nside, lmax=Lm, mmax=-1)
 
     return s
+
+
+cdef api double erfinv_wrap(double x):
+    return erfinv(x)
