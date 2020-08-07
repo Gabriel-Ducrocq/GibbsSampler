@@ -29,7 +29,7 @@ class ConstrainedRealization():
         #               [0, ["split(stage(1), 512, diag_cl)"], self.lmax, self.nside, np.inf, 1.0e-6, qcinv.cd_solve.tr_cg,
         #                qcinv.cd_solve.cache_mem()]]
 
-        self.mu = np.max(self.inv_noise) + 0.01
+        self.mu = np.max(self.inv_noise) + 0.0001
         class cl(object):
             pass
 

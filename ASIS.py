@@ -16,9 +16,11 @@ import utils
 class ASIS(GibbsSampler):
 
     def __init__(self, pix_map, noise, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
-                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None):
-        super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
-        self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise, self.bl_map, beam, lmax, Npix, mask_path=mask_path)
+                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False):
+        super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins,
+                         n_iter = n_iter, gibbs_cr=gibbs_cr)
+        self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise, self.bl_map, beam, lmax, Npix,
+                                                                  mask_path=mask_path)
         self.non_centered_cls_sampler = NonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise, metropolis_blocks,
                                                  proposal_variances, n_iter = n_iter_metropolis, mask_path=mask_path)
         self.centered_cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
@@ -40,8 +42,9 @@ class ASIS(GibbsSampler):
             if i % 10 == 0:
                 print("Interweaving, iteration:", i)
 
+            start_iteration = time.time()
             start_time_cr = time.process_time()
-            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=False)
+            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=self.gibbs_cr)
             end_time_cr = time.process_time()
             total_time_cr = end_time_cr - start_time_cr
             print("Time CR:")
@@ -68,6 +71,9 @@ class ASIS(GibbsSampler):
             dls = utils.unfold_bins(binned_dls, self.bins)
             cls = self.dls_to_cls(dls)
             skymap = np.sqrt(var_cls_full)*s_nonCentered
+            end_iteration = time.time()
+            time_iteration = end_iteration - start_iteration
+            h_time_seconds.append(time_iteration)
             h_accept.append(accept)
 
             h_dls.append(binned_dls)

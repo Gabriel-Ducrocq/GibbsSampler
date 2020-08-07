@@ -8,7 +8,7 @@ from default_gibbs import sample_cls
 
 
 class GibbsSampler():
-    def __init__(self, pix_map, noise, beam_fwhm, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000):
+    def __init__(self, pix_map, noise, beam_fwhm, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000, gibbs_cr = False):
         self.noise = noise
         self.beam = beam_fwhm
         self.nside = nside
@@ -21,6 +21,7 @@ class GibbsSampler():
         self.constrained_sampler = None
         self.cls_sampler = None
         self.n_iter = n_iter
+        self.gibbs_cr = gibbs_cr
         if bins is None:
             if not polarization:
                 self.bins = np.array([l for l in range(lmax+2)])
@@ -51,7 +52,7 @@ class GibbsSampler():
         var_cls_full = utils.generate_var_cl(dls)
         skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
         h_dls.append(binned_dls)
-        for i in range(10000):
+        for i in range(self.n_iter):
             if i % 1000 == 0:
                 print("Default Gibbs")
                 print(i)

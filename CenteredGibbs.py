@@ -260,19 +260,6 @@ class CenteredConstrainedRealization(ConstrainedRealization):
                 return s_old, 0
 
     def sample_gibbs(self, var_cls, old_s):
-        """
-        var_z = 1/(self.mu - self.inv_noise)
-        old_s = utils.real_to_complex(old_s)
-        mean_z = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
-        z = np.random.normal(size = len(mean_z))*np.sqrt(var_z) + mean_z
-
-        inv_var_cls = np.zeros(len(var_cls))
-        inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls !=0)]
-        var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
-        mu = self.inv_noise*self.pix_map + z*(self.mu - self.inv_noise)
-        mean_s = var_s*self.bl_map*(1/config.w)*utils.complex_to_real(hp.map2alm(mu, lmax=self.lmax))
-        new_s = np.random.normal(size = len(mean_s))*np.sqrt(var_s) + mean_s
-        """
         old_s = utils.real_to_complex(old_s)
         var_v = self.mu - self.inv_noise
         mean_v = var_v * hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
@@ -285,11 +272,11 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
         return s_new, 1
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=True, use_gibbs = False):
+    def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
             return self.sample_gibbs(var_cls, old_s)
         #if self.mask_path is not None:
-        if False:
+        if True:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
@@ -411,7 +398,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 10000):
+                 polarization = False, bins=None, n_iter = 100000):
         super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
