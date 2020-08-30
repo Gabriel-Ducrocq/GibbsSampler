@@ -169,12 +169,11 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
 
 
 class NonCenteredClsSampler(MHClsSampler):
-
     def compute_log_proposal(self, dl_old, dl_new):
     ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
         clip_low = -dl_old[2:] / np.sqrt(self.proposal_variances)
-        return np.sum(truncnorm.logpdf(dl_new[2:], a=clip_low, b=np.inf, loc=dl_old[2:],
-                                   scale=np.sqrt(self.proposal_variances)))
+        return np.concatenate([np.zeros(2), truncnorm.logpdf(dl_new[2:], a=clip_low, b=np.inf, loc=dl_old[2:],
+                                   scale=np.sqrt(self.proposal_variances))])
 
     def sample(self, s_nonCentered, binned_dls_old, var_cls_old):
         """
@@ -186,6 +185,51 @@ class NonCenteredClsSampler(MHClsSampler):
         Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
         and dipole
         """
+        accept = []
+        binned_dls_propose = self.propose_dl(binned_dls_old)
+        log_r_prior_all = self.compute_log_proposal(binned_dls_propose, binned_dls_old) -\
+                          self.compute_log_proposal(binned_dls_old, binned_dls_propose)
+        old_lik = self.compute_log_likelihood(var_cls_old, s_nonCentered)
+        for i, l_start in enumerate(self.metropolis_blocks[:-1]):
+            l_end = self.metropolis_blocks[i + 1]
+
+            for _ in range(self.n_iter):
+                ###Be careful, the monopole and dipole are not included in the log_r_prior
+                binned_dls_new = binned_dls_old.copy()
+                binned_dls_new[l_start:l_end] = binned_dls_propose[l_start:l_end]
+                dls_new = utils.unfold_bins(binned_dls_new, config.bins)
+                var_cls_new = utils.generate_var_cl(dls_new)
+
+                log_r_all = np.sum(log_r_prior_all[l_start:l_end])
+                log_r, new_lik = self.compute_log_MH_ratio(log_r_all, var_cls_new,
+                                                           s_nonCentered, old_lik)
+                if np.log(np.random.uniform()) < log_r:
+                    binned_dls_old = binned_dls_new
+                    var_cls_old = var_cls_new
+                    old_lik = new_lik
+                    accept.append(1)
+                else:
+                    accept.append(0)
+
+        return binned_dls_old, var_cls_old, accept
+
+    """
+    def compute_log_proposal(self, dl_old, dl_new):
+    ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
+        clip_low = -dl_old[2:] / np.sqrt(self.proposal_variances)
+        return np.sum(truncnorm.logpdf(dl_new[2:], a=clip_low, b=np.inf, loc=dl_old[2:],
+                                   scale=np.sqrt(self.proposal_variances)))
+    """
+
+    """
+    def sample(self, s_nonCentered, binned_dls_old, var_cls_old):
+        :param binned_dls_old: binned power spectrum, including monopole and dipole
+        :param var_cls_old: variance associated to this power spectrum, including monopole and dipole
+        :param alm_map_non_centered: non centered skymap expressed in harmonic domain
+        :return: a new sampled power spectrum, using M-H algorithm
+
+        Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
+        and dipole
         accept = []
         old_lik = self.compute_log_likelihood(var_cls_old, s_nonCentered)
         for i, l_start in enumerate(self.metropolis_blocks[:-1]):
@@ -210,7 +254,7 @@ class NonCenteredClsSampler(MHClsSampler):
                     accept.append(0)
 
         return binned_dls_old, var_cls_old, accept
-
+        """
 
 class PolarizationNonCenteredClsSampler(MHClsSampler):
     def __init__(self, pix_map, lmax, nside, bins, bl_map, noise_I, noise_Q, metropolis_blocks, proposal_variances, n_iter = 1, polarization=True):

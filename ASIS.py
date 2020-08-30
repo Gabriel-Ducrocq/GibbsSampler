@@ -31,8 +31,6 @@ class ASIS(GibbsSampler):
         h_dls = []
         h_time_seconds = []
         binned_dls = dls_init
-        print(self.bins)
-        print(binned_dls)
         dls = utils.unfold_bins(binned_dls, self.bins)
         cls = self.dls_to_cls(dls)
         var_cls_full = utils.generate_var_cl(dls)
@@ -43,9 +41,9 @@ class ASIS(GibbsSampler):
                 print("Interweaving, iteration:", i)
 
             start_iteration = time.time()
-            start_time_cr = time.process_time()
+            start_time_cr = time.time()
             skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=self.gibbs_cr)
-            end_time_cr = time.process_time()
+            end_time_cr = time.time()
             total_time_cr = end_time_cr - start_time_cr
             print("Time CR:")
             print(total_time_cr)
@@ -61,11 +59,11 @@ class ASIS(GibbsSampler):
 
             inv_var_cls_temp = np.zeros(len(var_cls_temp))
             np.reciprocal(var_cls_temp, out=inv_var_cls_temp, where=config.mask_inversion)
-            end_time_noncentered_cls = time.time()
             s_nonCentered = np.sqrt(inv_var_cls_temp) * skymap
 
             start_time_noncentered_cls = time.time()
             binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered[:], binned_dls_temp[:], var_cls_temp[:])
+            end_time_noncentered_cls = time.time()
             print("Time non centered cls:")
             print(end_time_noncentered_cls - start_time_noncentered_cls)
             dls = utils.unfold_bins(binned_dls, self.bins)

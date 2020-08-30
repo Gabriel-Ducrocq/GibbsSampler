@@ -118,7 +118,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
         return x1
 
-    def sample_bin(self, alms, i):
+    def sample_bin(self, alms):
         alms_TT_complex = utils.real_to_complex(alms[:, 0])
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
         alms_BB_complex = utils.real_to_complex(alms[:, 2])
@@ -137,46 +137,44 @@ class PolarizedCenteredClsSampler(ClsSampler):
         sample_BB = invgamma.rvs(a=alpha, scale=beta_BB[2:])
         sampled_power_spec[2:, 2, 2] = sample_BB
 
-        #for i in self.bins["EE"]:
-        beta_EE = scale_mat[i, 1, 1]
-        cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
-        sampled_power_spec[i, 1, 1] = cl_EE
+        for i in self.bins["EE"]:
+            beta_EE = scale_mat[i, 1, 1]
+            cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
+            sampled_power_spec[i, 1, 1] = cl_EE
 
-        #for i in self.bins["TE"]:
-        determinant = np.linalg.det(scale_mat[i, :, :])
-        student_TE = student.rvs(df=2 * i - 2)
-        cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
-                    scale_mat[i, 1, 1]
-        sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
+        for i in self.bins["TE"]:
+            determinant = np.linalg.det(scale_mat[i, :, :])
+            student_TE = student.rvs(df=2 * i - 2)
+            cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
+                        scale_mat[i, 1, 1]
+            sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
 
-        #for i in self.bins["TT"]:
-        cl_EE = sampled_power_spec[i, 1, 1]
-        cl_TE = sampled_power_spec[i, 0, 1]
-        ratio = cl_TE ** 2 / cl_EE
-        maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
-                        2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
+        for i in self.bins["TT"]:
+            cl_EE = sampled_power_spec[i, 1, 1]
+            cl_TE = sampled_power_spec[i, 0, 1]
+            ratio = cl_TE ** 2 / cl_EE
+            maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
+                            2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
 
-        max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
-        upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
-        lower_bound = self.find_lower_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
+            max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
+            upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
+            lower_bound = self.find_lower_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
 
-        xx = np.linspace(lower_bound, upper_bound, 2*6400)
-        y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
-        cs = scipy.interpolate.CubicSpline(xx,y_cs)
-        u = np.random.uniform()
-        integs = np.array([cs.integrate(lower_bound, x) for x in xx])
-        integs /= integs[-1]
-        position = np.searchsorted(integs, u)
-        sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
+            xx = np.linspace(lower_bound, upper_bound, 2*6400)
+            y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
+            cs = scipy.interpolate.CubicSpline(xx,y_cs)
+            u = np.random.uniform()
+            integs = np.array([cs.integrate(lower_bound, x) for x in xx])
+            integs /= integs[-1]
+            position = np.searchsorted(integs, u)
+            sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
 
-        cl_TT = sample*maximum
+            cl_TT = sample*maximum
 
-        return cl_TT
-        #print("Sampled cl_TT", cl_TT)
-        #sampled_power_spec[i, 0, 0] = cl_TT
+            sampled_power_spec[i, 0, 0] = cl_TT
 
-        #sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
-        #return sampled_power_spec
+        sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
+        return sampled_power_spec
 
     def sample(self, alm_map):
         if False:
@@ -240,9 +238,6 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
         fluctuations_complex = utils.real_to_complex(b_fluctuations)
         b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
-        #### Since at the end of the solver the output is multiplied by C^-1, it's enough to remultiply it by C^(1/2) to
-        ### To produce a non centered map !
-        hp.almxfl(soltn_complex, cls_, inplace=True)
         soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
         if not metropolis_step:
             return soltn, 1
@@ -252,7 +247,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             r = b_system - approx_sol_complex
             r = utils.complex_to_real(r)
             log_proba = min(0, -np.dot(r,(s_old - soltn)))
-            print("Proba")
+            print("log Proba")
             print(log_proba)
             if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
@@ -272,11 +267,10 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
         return s_new, 1
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
+    def sample(self, cls_, var_cls, old_s, metropolis_step=True, use_gibbs = False):
         if use_gibbs:
             return self.sample_gibbs(var_cls, old_s)
-        #if self.mask_path is not None:
-        if True:
+        if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
@@ -369,7 +363,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.bl_fwhm = bl_fwhm
 
-    def sample(self, all_dls, var_all_dls):
+    def sample(self, all_dls):
         start = time.time()
         rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
         all_cls = all_dls.copy()

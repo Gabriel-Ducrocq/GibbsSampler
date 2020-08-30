@@ -40,13 +40,14 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 4
+NSIDE = 8
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+mask_path = None
 
 
 
@@ -71,6 +72,7 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 noise_covar_temp =100**2
+#noise_covar_temp = 80**2
 #noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
@@ -91,13 +93,17 @@ bins = np.concatenate([range(600), bins])
 #bins = np.array([0, 1, 2, 3, 5, 9])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
-blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
-blocks[0] = 2
+
+
+#blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
+#blocks[0] = 2
 blocks = list(range(2, len(bins)))
 
 
 #bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
-bins = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+#bins = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+bins = np.array([l for l in range(L_MAX_SCALARS+2)])
+#blocks = list(range(2, len(bins)))
 #bins = np.array([850, 851])
 
 metropolis_blocks_gibbs_nc = blocks
@@ -188,7 +194,7 @@ binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_
 preliminary_run =True
 
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*250
+    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*2000
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60

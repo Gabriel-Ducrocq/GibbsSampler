@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import truncnorm
 import utils
 import healpy as hp
+import time
 
 
 class ClsSampler():
@@ -27,7 +28,7 @@ class MHClsSampler(ClsSampler):
     def __init__(self, pix_map, lmax, nside, bins, bl_map, noise, metropolis_blocks, proposal_variances, n_iter = 1, mask_path = None,
                  polarization=False):
         super().__init__(pix_map, lmax, nside, bins, bl_map, noise, mask_path)
-        if metropolis_blocks == None:
+        if metropolis_blocks is None:
             self.metropolis_blocks = list(range(2, len(self.bins)))
         else:
             self.metropolis_blocks = metropolis_blocks
@@ -40,7 +41,7 @@ class MHClsSampler(ClsSampler):
     def dls_to_cls(self, dls_):
         return dls_ * self.dls_to_cls_array
 
-    def propose_dl(self, dls_old, l_start, l_end):
+    def propose_dl(self, dls_old):
         """
 
         :param dls_old: old dls sample or if polarization mode on, coefficients of the lower triang chol matrix
@@ -52,6 +53,23 @@ class MHClsSampler(ClsSampler):
         proposal variance also starts at l = 2. But then we need to take the first element of this array, hence setting
         l_start - 2:l_end - 2
         """
+        clip_low = -dls_old[2:] / np.sqrt(self.proposal_variances)
+        return np.concatenate([np.zeros(2), truncnorm.rvs(a=clip_low, b=np.inf, loc=dls_old[2:],
+                             scale=np.sqrt(self.proposal_variances))])
+
+
+    """
+    def propose_dl(self, dls_old, l_start, l_end):
+
+        :param dls_old: old dls sample or if polarization mode on, coefficients of the lower triang chol matrix
+        :param l_start: starting index of the block
+        :param l_end: ending index (not included) of the block
+        :return: propose dls
+
+        Note that every index is shifted by -2: the first l_start is 2 - since we are not samplint l=0,1 - and the
+        proposal variance also starts at l = 2. But then we need to take the first element of this array, hence setting
+        l_start - 2:l_end - 2
+
         if not self.polarization:
             clip_low = -dls_old[l_start:l_end] / np.sqrt(self.proposal_variances[l_start - 2:l_end - 2])
             return truncnorm.rvs(a=clip_low, b=np.inf, loc=dls_old[l_start:l_end],
@@ -93,21 +111,33 @@ class MHClsSampler(ClsSampler):
                 new_cholesky[i, :, : ] = np.linalg.cholesky(new_dls[i, :, :]*(2*np.pi/(l*(l+1))))
 
             return new_dls, new_cholesky
-
+        """
 
 
     def compute_log_proposal(self, cl_old, cl_new):
         return None
 
     def compute_log_likelihood(self, var_cls, s_nonCentered):
-        return -(1 / 2) * np.sum(
+        start = time.time()
+        result = -(1 / 2) * np.sum(
             ((self.pix_map - utils.synthesis_hp(self.bl_map * np.sqrt(var_cls) * s_nonCentered)) ** 2) * self.inv_noise)
 
+        end = time.time()
+        return result
+
+    """
     def compute_log_MH_ratio(self, binned_cls_old, binned_cls_new, var_cls_new, s_nonCentered, old_lik):
         new_lik = self.compute_log_likelihood(var_cls_new, s_nonCentered)
         part1 = new_lik - old_lik
         part2 = self.compute_log_proposal(binned_cls_new, binned_cls_old) - self.compute_log_proposal(binned_cls_old,
                                                                                             binned_cls_new)
+        return part1 + part2, new_lik
+    """
+
+    def compute_log_MH_ratio(self, log_r_ratio, var_cls_new, s_nonCentered, old_lik):
+        new_lik = self.compute_log_likelihood(var_cls_new, s_nonCentered)
+        part1 = new_lik - old_lik
+        part2 = log_r_ratio
         return part1 + part2, new_lik
 
 

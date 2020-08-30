@@ -43,35 +43,57 @@ class GibbsSampler():
         return bl_map
 
     def run(self, dls_init):
-        h_accept_cr = []
-        h_dls = []
-        h_time_seconds = []
-        binned_dls = dls_init
-        dls = utils.unfold_bins(binned_dls, config.bins)
-        cls = self.dls_to_cls(dls)
-        var_cls_full = utils.generate_var_cl(dls)
-        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
-        h_dls.append(binned_dls)
-        for i in range(self.n_iter):
-            if i % 1000 == 0:
-                print("Default Gibbs")
-                print(i)
-
-            start_time = time.process_time()
-            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False,
-                                                             use_gibbs=True)
-            binned_dls = self.cls_sampler.sample(skymap[:])
-            dls = utils.unfold_bins(binned_dls, self.bins)
+        if not self.polarization:
+            h_accept_cr = []
+            h_dls = []
+            h_time_seconds = []
+            binned_dls = dls_init
+            dls = utils.unfold_bins(binned_dls, config.bins)
             cls = self.dls_to_cls(dls)
             var_cls_full = utils.generate_var_cl(dls)
-
-            h_accept_cr.append(accept)
-            end_time = time.process_time()
+            skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
             h_dls.append(binned_dls)
-            h_time_seconds.append(end_time - start_time)
+            for i in range(self.n_iter):
+                if i % 1000 == 0:
+                    print("Default Gibbs")
+                    print(i)
 
-        print("Acception rate constrained realization:", np.mean(h_accept_cr))
-        return np.array(h_dls), np.array(h_accept_cr), h_time_seconds
+                start_time = time.process_time()
+                skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False,
+                                                                 use_gibbs=True)
+                binned_dls = self.cls_sampler.sample(skymap[:])
+                dls = utils.unfold_bins(binned_dls, self.bins)
+                cls = self.dls_to_cls(dls)
+                var_cls_full = utils.generate_var_cl(dls)
+
+                h_accept_cr.append(accept)
+                end_time = time.process_time()
+                h_dls.append(binned_dls)
+                h_time_seconds.append(end_time - start_time)
+
+            print("Acception rate constrained realization:", np.mean(h_accept_cr))
+            return np.array(h_dls), np.array(h_accept_cr), h_time_seconds
+
+        else:
+            h_accept_cr = []
+            h_dls = []
+            h_time_seconds = []
+            binned_dls = dls_init
+
+            for i in range(self.n_iter):
+                dls_unfolded = [utils.unfold_bins(binned_dls, config.bins[stoke]) for stoke in ["TT", "EE", "BB", "TE"]]
+                dls = np.zeros((self.lmax + 1, 3, 3))
+                dls[:, 0, 0] = dls_unfolded[0]
+                dls[:, 1, 1] = dls_unfolded[1]
+                dls[:, 2, 2] = dls_unfolded[2]
+                dls[:, 0, 1] = dls[:, 1, 0] = dls_unfolded[3]
+
+                skymap, time_to_sol, err = self.constrained_sampler.sample(dls)
+                binned_dls = self.cls_sampler.sample(skymap)
+
+                h_dls.append(binned_dls)
+
+            return h_dls
 
 
 

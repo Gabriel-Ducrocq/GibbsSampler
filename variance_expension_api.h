@@ -7,8 +7,12 @@
 #endif
 #include "Python.h"
 
+static __Pyx_memviewslice (*__pyx_api_f_18variance_expension_synthesis)(PyArrayObject *, int) = 0;
+#define synthesis __pyx_api_f_18variance_expension_synthesis
 static double (*__pyx_api_f_18variance_expension_erfinv_wrap)(double) = 0;
 #define erfinv_wrap __pyx_api_f_18variance_expension_erfinv_wrap
+static __Pyx_memviewslice (*__pyx_api_f_18variance_expension_test)(__Pyx_memviewslice) = 0;
+#define test __pyx_api_f_18variance_expension_test
 #if !defined(__Pyx_PyIdentifier_FromString)
 #if PY_MAJOR_VERSION < 3
   #define __Pyx_PyIdentifier_FromString(s) PyString_FromString(s)
@@ -75,7 +79,9 @@ static int import_variance_expension(void) {
   PyObject *module = 0;
   module = PyImport_ImportModule("variance_expension");
   if (!module) goto bad;
+  if (__Pyx_ImportFunction(module, "synthesis", (void (**)(void))&__pyx_api_f_18variance_expension_synthesis, "__Pyx_memviewslice (PyArrayObject *, int)") < 0) goto bad;
   if (__Pyx_ImportFunction(module, "erfinv_wrap", (void (**)(void))&__pyx_api_f_18variance_expension_erfinv_wrap, "double (double)") < 0) goto bad;
+  if (__Pyx_ImportFunction(module, "test", (void (**)(void))&__pyx_api_f_18variance_expension_test, "__Pyx_memviewslice (__Pyx_memviewslice)") < 0) goto bad;
   Py_DECREF(module); module = 0;
   return 0;
   bad:

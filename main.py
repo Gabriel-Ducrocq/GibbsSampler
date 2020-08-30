@@ -102,12 +102,12 @@ if __name__ == "__main__":
                                    mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000, bins = config.bins,
-                        mask_path = config.mask_path, gibbs_cr=False)
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
+                        mask_path = config.mask_path, gibbs_cr=False, metropolis_blocks=config.blocks)
 
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10000, bins = config.bins,
-                        mask_path = config.mask_path, gibbs_cr=True)
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
+                        mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    l_interest = 4
+    l_interest = 14
     start = time.time()
 
     np.random.seed()
@@ -171,36 +171,40 @@ if __name__ == "__main__":
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
-    print("Time per iteration ASIS:", np.median(times_asis))
-    print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
-    print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
-    print(np.sum((h_cls_asis_gibbs[1:, :] - h_cls_asis_gibbs[:-1, :]) ** 2, axis=1).shape)
-    esjd_asis = np.median(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1))
-    esjd_asis_gibbs = np.median(np.sum((h_cls_asis_gibbs[1:, :] - h_cls_asis_gibbs[:-1, :]) ** 2, axis=1))
-    esjd_asis_per_sec = esjd_asis/np.median(times_asis)
-    esjd_asis_gibbs_per_sec = esjd_asis_gibbs / np.median(times_asis_gibbs)
-    print("Mean ESJD ASIS:", esjd_asis)
-    print("Mean ESJD ASIS, GIBBS:", esjd_asis_gibbs)
-    print("ESJD per sec ASIS:", esjd_asis_per_sec)
-    print("ESJD per sec ASIS GIBBS", esjd_asis_gibbs_per_sec)
+
+    d = {"h_cls_non_centered":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_pcg.npy", d, allow_pickle=True)
+    #print("Time per iteration ASIS:", np.median(times_asis))
+    #print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
+    #print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
+    #print(np.sum((h_cls_asis_gibbs[1:, :] - h_cls_asis_gibbs[:-1, :]) ** 2, axis=1).shape)
+    #esjd_asis = np.median(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1))
+    #esjd_asis_gibbs = np.median(np.sum((h_cls_asis_gibbs[1:, :] - h_cls_asis_gibbs[:-1, :]) ** 2, axis=1))
+    #esjd_asis_per_sec = esjd_asis/np.median(times_asis)
+    #esjd_asis_gibbs_per_sec = esjd_asis_gibbs / np.median(times_asis_gibbs)
+    #print("Mean ESJD ASIS:", esjd_asis)
+    #print("Mean ESJD ASIS, GIBBS:", esjd_asis_gibbs)
+    #print("ESJD per sec ASIS:", esjd_asis_per_sec)
+    #print("ESJD per sec ASIS GIBBS", esjd_asis_gibbs_per_sec)
     #print("Acceptance rate cr centered:", np.mean(h_accept_cr_centered))
     #print("Acceptance rate cr asis:", np.mean(h_accept_cr_asis))
     #print("Iteration time:", np.mean(times))
-    plt.plot(h_cls_asis[:, l_interest])
-    plt.plot(h_cls_asis_gibbs[:, l_interest])
+    plt.plot(h_cls_asis[:, l_interest], alpha=0.5, label="ASIS")
+    #plt.plot(h_cls_asis_gibbs[:, l_interest], alpha=0.5, label="ASIS GIBBS")
+    plt.legend(loc="upper right")
     plt.show()
 
     yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis[:, l_interest]))
 
     print("NORM:", norm)
     #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
-    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS")
-    plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
+    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=100, label="ASIS")
+    #plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
     #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
     if norm > 0:
