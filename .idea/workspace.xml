@@ -2,22 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ASIS.py" beforeDir="false" afterPath="$PROJECT_DIR$/ASIS.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ClsSampler.py" beforeDir="false" afterPath="$PROJECT_DIR$/ClsSampler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GibbsSampler.py" beforeDir="false" afterPath="$PROJECT_DIR$/GibbsSampler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NonCenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/NonCenteredGibbs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/temp.macosx-10.9-x86_64-3.8/variance_expension.o" beforeDir="false" afterPath="$PROJECT_DIR$/build/temp.macosx-10.9-x86_64-3.8/variance_expension.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testQcinvJosquin.py" beforeDir="false" afterPath="$PROJECT_DIR$/testQcinvJosquin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testScipy.py" beforeDir="false" afterPath="$PROJECT_DIR$/testScipy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/variance_expension.c" beforeDir="false" afterPath="$PROJECT_DIR$/variance_expension.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/variance_expension.cpython-38-darwin.so" beforeDir="false" afterPath="$PROJECT_DIR$/variance_expension.cpython-38-darwin.so" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/variance_expension.html" beforeDir="false" afterPath="$PROJECT_DIR$/variance_expension.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/variance_expension.pyx" beforeDir="false" afterPath="$PROJECT_DIR$/variance_expension.pyx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/variance_expension_api.h" beforeDir="false" afterPath="$PROJECT_DIR$/variance_expension_api.h" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -63,10 +48,10 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="151">
+            <state relative-caret-position="-852">
               <caret line="104" column="99" selection-start-line="104" selection-start-column="99" selection-end-line="104" selection-end-column="99" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
@@ -87,11 +72,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="295">
-              <caret line="272" column="8" lean-forward="true" selection-start-line="272" selection-start-column="8" selection-end-line="272" selection-end-column="8" />
+            <state relative-caret-position="310">
+              <caret line="273" column="16" selection-start-line="273" selection-start-column="16" selection-end-line="273" selection-end-column="16" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -223,8 +208,8 @@
         <option value="$PROJECT_DIR$/ClsSampler.py" />
         <option value="$PROJECT_DIR$/ConstrainedRealization.py" />
         <option value="$PROJECT_DIR$/config.py" />
-        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
         <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
       </list>
     </option>
   </component>
@@ -446,7 +431,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/CenteredGibbs.py</url>
-          <line>299</line>
+          <line>300</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -849,23 +834,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="118">
-          <caret line="24" column="77" selection-start-line="24" selection-start-column="77" selection-end-line="24" selection-end-column="77" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="295">
-          <caret line="272" column="8" lean-forward="true" selection-start-line="272" selection-start-column="8" selection-end-line="272" selection-end-column="8" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ClsSampler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="142">
@@ -878,10 +846,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="151">
+        <state relative-caret-position="-852">
           <caret line="104" column="99" selection-start-line="104" selection-start-column="99" selection-end-line="104" selection-end-column="99" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="118">
+          <caret line="24" column="77" selection-start-line="24" selection-start-column="77" selection-end-line="24" selection-end-column="77" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="310">
+          <caret line="273" column="16" selection-start-line="273" selection-start-column="16" selection-end-line="273" selection-end-column="16" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
