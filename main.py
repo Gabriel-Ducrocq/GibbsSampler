@@ -170,8 +170,8 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    #h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
+    #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
