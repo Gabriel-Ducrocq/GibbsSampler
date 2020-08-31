@@ -265,13 +265,12 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
         mean_s = var_s*utils.complex_to_real(hp.almxfl(hp.map2alm((v + self.inv_noise*self.pix_map), lmax=self.lmax)*(1/config.w), self.bl_gauss))
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
-        return s_new, 1
+        return utils.remove_monopole_dipole_contributions(s_new), 1
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
             return self.sample_gibbs(var_cls, old_s)
-        #if self.mask_path is not None:
-        if True:
+        if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
