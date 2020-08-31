@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
-    l_interest = 14
+    l_interest =3
     start = time.time()
 
     np.random.seed()
@@ -170,15 +170,15 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
+    #h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
     #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
 
-    d = {"h_cls_non_centered":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_pcg.npy", d, allow_pickle=True)
+    #d = {"h_cls_non_centered":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_pcg.npy", d, allow_pickle=True)
     #print("Time per iteration ASIS:", np.median(times_asis))
     #print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
     #print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
@@ -194,16 +194,20 @@ if __name__ == "__main__":
     #print("Acceptance rate cr centered:", np.mean(h_accept_cr_centered))
     #print("Acceptance rate cr asis:", np.mean(h_accept_cr_asis))
     #print("Iteration time:", np.mean(times))
-    plt.plot(h_cls_asis[:, l_interest], alpha=0.5, label="ASIS")
+    #plt.plot(h_cls_asis[:, l_interest], alpha=0.5, label="ASIS")
     #plt.plot(h_cls_asis_gibbs[:, l_interest], alpha=0.5, label="ASIS GIBBS")
-    plt.legend(loc="upper right")
-    plt.show()
+    #plt.legend(loc="upper right")
+    #plt.show()
 
+    d = np.load("test_pcg.npy", allow_pickle=True)
+    d = d.item()
+    h_cls_asis = d["h_cls_non_centered"]
+    pix_map = d["pix_map"]
     yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis[:, l_interest]))
 
     print("NORM:", norm)
     #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
-    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=100, label="ASIS")
+    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=700, label="ASIS")
     #plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
     #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
     plt.legend(loc="upper right")
@@ -234,26 +238,19 @@ if __name__ == "__main__":
 
     #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
-    d = {"h_cls_non_centered":h_cls_pol, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_polarization_centered.npy", d, allow_pickle=True)
 
 
-    d = np.load("test_polarization_centered.npy", allow_pickle=True)
-    d = d.item()
-    h_cls = d["h_cls_non_centered"]
-    pix_map = d["pix_map"]
 
+    #pix_map_alm = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
+    #map_alm_B = pix_map_alm[2]
+    #map_alm_T = pix_map_alm[0]
+    #all_pow_spec_B = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
+    #all_pow_spec_T = hp.alm2cl(map_alm_T, lmax=config.L_MAX_SCALARS)
+    #all_pow_spec_TT, all_pow_spec_EE, all_pow_spec_BB, all_pow_spec_TE, _, _ = hp.alm2cl(pix_map_alm, lmax=config.L_MAX_SCALARS)
 
-    pix_map_alm = hp.map2alm(pix_map, lmax=config.L_MAX_SCALARS)
-    map_alm_B = pix_map_alm[2]
-    map_alm_T = pix_map_alm[0]
-    all_pow_spec_B = hp.alm2cl(map_alm_B, lmax=config.L_MAX_SCALARS)
-    all_pow_spec_T = hp.alm2cl(map_alm_T, lmax=config.L_MAX_SCALARS)
-    all_pow_spec_TT, all_pow_spec_EE, all_pow_spec_BB, all_pow_spec_TE, _, _ = hp.alm2cl(pix_map_alm, lmax=config.L_MAX_SCALARS)
-
-    l_interest = 7
-    i = 0
-    j = 0
+    #l_interest = 7
+    #i = 0
+    #j = 0
 
     #alpha = (2*l_interest-1)/2
     #beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_B[l_interest]*(1/config.bl_gauss[l_interest]**2)
@@ -270,21 +267,21 @@ if __name__ == "__main__":
 
 
 
-    alpha = (2*l_interest-3)/2
-    beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_TE[l_interest]*(1/config.bl_gauss[l_interest]**2)
+    #alpha = (2*l_interest-3)/2
+    #beta = ((2*l_interest+1)/2)*((l_interest*(l_interest+1))/(2*np.pi))*all_pow_spec_TE[l_interest]*(1/config.bl_gauss[l_interest]**2)
     #loc = - (config.noise_covar_pol*4*np.pi/config.Npix)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_gauss[l_interest]**2)
-    loc = 0
-    yy = []
-    xx = []
+    #loc = 0
+    #yy = []
+    #xx = []
     #opposite_norm = scipy.stats.invgamma.cdf(0, a = alpha, loc=loc, scale=beta)
     #norm = 1 - opposite_norm
-    for x in np.linspace(-3, 16, 10000):
-        xx.append(x)
-        y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = loc)
-        #y = scipy.stats.invwishart.pdf(x, df = 2*l_interest-3, scale = np.array([[beta]]))
-        yy.append(y)
+    #for x in np.linspace(-3, 16, 10000):
+    #    xx.append(x)
+    #    y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = loc)
+    #    #y = scipy.stats.invwishart.pdf(x, df = 2*l_interest-3, scale = np.array([[beta]]))
+    #    yy.append(y)
 
-
+    """
     scale_mat = np.zeros((2, 2))
     scale_mat[0, 0] = all_pow_spec_TT[l_interest]
     scale_mat[1, 1] = all_pow_spec_EE[l_interest]
@@ -300,7 +297,7 @@ if __name__ == "__main__":
         if sample[0, 0] > config.noise_covar_temp*config.w and sample[1, 1] > config.noise_covar_pol*config.w and (sample[0, 0] - config.noise_covar_temp*config.w)*(sample[1, 1]-config.noise_covar_pol*config.w) - sample[1, 0]**2 > 0:
             h_true.append((sample[i, j]-config.w*config.noise_covar_temp)*(l_interest*(l_interest+1)/(2*np.pi))*(1/config.bl_map[l_interest]**2))
 
-
+    """
     """
     alpha = (2*l_interest-3)/2
     beta = ((2*l_interest+1)/2)*all_pow_spec_T[l_interest]/config.bl_map[0]**2
@@ -311,6 +308,7 @@ if __name__ == "__main__":
         y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta)
         #y = (y - config.noise_covar_temp*config.w)*l_interest*(l_interest+1)/(2*np.pi)
         yy.append(y)
+    """
     """
     print("Len h_true")
     print(len(h_true))
@@ -331,6 +329,7 @@ if __name__ == "__main__":
     plt.show()
 
     print(yy)
+    """
     """
     d = np.load("test.npy", allow_pickle=True)
     d = d.item()

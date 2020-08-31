@@ -267,7 +267,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
         return s_new, 1
 
-    def sample(self, cls_, var_cls, old_s, metropolis_step=True, use_gibbs = False):
+    def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
             return self.sample_gibbs(var_cls, old_s)
         #if self.mask_path is not None:
