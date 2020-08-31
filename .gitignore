@@ -1,2 +1,3 @@
 *.npy
 *.dat
+!test_pcg.npy

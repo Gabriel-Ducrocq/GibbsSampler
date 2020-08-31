@@ -170,15 +170,19 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
+    #h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
     #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
     print(end-start)
 
-    d = {"h_cls_non_centered":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_pcg.npy", d, allow_pickle=True)
+    d = np.load("test_pcg.npy", allow_pickle = True)
+    d = d.item()
+    h_cls_asis = d["h_cls_non_centered"]
+    pix_map = d["pix_map"]
+    #d = {"h_cls_non_centered":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_pcg.npy", d, allow_pickle=True)
     #print("Time per iteration ASIS:", np.median(times_asis))
     #print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
     #print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
@@ -199,21 +203,24 @@ if __name__ == "__main__":
     plt.legend(loc="upper right")
     plt.show()
 
-    yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis[:, l_interest]))
+    for l_interest in range(config.L_MAX_SCALARS+1):
+    	yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis[:, l_interest]))
 
-    print("NORM:", norm)
-    #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
-    plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=100, label="ASIS")
-    #plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
-    #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
-    plt.legend(loc="upper right")
-    if norm > 0:
-        plt.plot(xs, yy/norm)
-    else:
-        plt.plot(xs, yy)#/norm)
+    	print("NORM:", norm)
+    	#plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
+    	plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS")
+    	#plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
+    	#plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
+    	plt.legend(loc="upper right")
+    	if norm > 0:
+        	plt.plot(xs, yy/norm)
+    	else:
+        	plt.plot(xs, yy)#/norm)
 
-    plt.show()
+    	plt.savefig("test_pcg"+str(l_interest)+".png")
+    	plt.close()
 
+    print("Graphics done !")
     #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
     #h_asis, _, _ = asis_sampler.run(cls_init)
 
