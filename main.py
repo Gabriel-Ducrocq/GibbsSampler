@@ -171,7 +171,7 @@ if __name__ == "__main__":
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
@@ -181,8 +181,10 @@ if __name__ == "__main__":
     #d = d.item()
     #h_cls_asis = d["h_cls_non_centered"]
     #pix_map = d["pix_map"]
-    d = {"h_cls_non_centered":h_cls_asis_gibbs, "pix_map":pix_map, "cls_":cls_}
+    d = {"h_cls":h_cls_asis_gibbs, "pix_map":pix_map, "cls_":cls_}
     np.save("test_gibbs.npy", d, allow_pickle=True)
+    d2 = {"h_cls_asis":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
+    np.save("test_pcg.npy", d2, allow_pickle=True)
     #print("Time per iteration ASIS:", np.median(times_asis))
     #print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
     #print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
@@ -202,8 +204,8 @@ if __name__ == "__main__":
     #plt.plot(h_cls_asis_gibbs[:, l_interest], alpha=0.5, label="ASIS GIBBS")
     #plt.legend(loc="upper right")
     #plt.show()
-    """
-    d = np.load("test_pcg.npy", allow_pickle=True)
+
+    d = np.load("test_gibbs.npy", allow_pickle=True)
     d = d.item()
     h_cls_asis = d["h_cls_non_centered"]
     pix_map = d["pix_map"]
@@ -245,7 +247,7 @@ if __name__ == "__main__":
     end = time.time()
     print("TIME CENTERED:")
     print(end-start)
-    """
+
     #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 
 

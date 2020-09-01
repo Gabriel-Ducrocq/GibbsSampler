@@ -45,6 +45,7 @@ class CenteredClsSampler(ClsSampler):
 
         binned_alphas[0] = 1
         sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
+        sampled_dls[:2] = 0
         return sampled_dls
 
 
@@ -208,7 +209,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         flucs = Sigma * b_fluctuations
         map = weiner + flucs
         err = 0
-        map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
+        #map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
         time_to_solution = time.time() - start
         return map, 1
 
@@ -238,7 +239,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
         fluctuations_complex = utils.real_to_complex(b_fluctuations)
         b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
-        soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
+        soltn = utils.complex_to_real(soltn_complex)
         if not metropolis_step:
             return soltn, 1
         else:
@@ -265,7 +266,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
         mean_s = var_s*utils.complex_to_real(hp.almxfl(hp.map2alm((v + self.inv_noise*self.pix_map), lmax=self.lmax)*(1/config.w), self.bl_gauss))
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
-        return utils.remove_monopole_dipole_contributions(s_new), 1
+        return s_new, 1
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
