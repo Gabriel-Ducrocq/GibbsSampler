@@ -1,3 +1,4 @@
 *.npy
 *.dat
 !test_gibbs.npy
+!test_pcg.npy
