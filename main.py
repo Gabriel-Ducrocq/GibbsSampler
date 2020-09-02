@@ -59,6 +59,11 @@ if __name__ == "__main__":
     theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
                                                      #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
 
+    d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
+         "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
+         "LMAX":config.L_MAX_SCALARS}
+
+    np.save(config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy", d, allow_pickle=True)
     print(pix_map)
     hp.mollview(pix_map)
     plt.show()
@@ -92,14 +97,14 @@ if __name__ == "__main__":
     plt.show()
     """
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
-    non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, None ,config.beam_fwhm,
-                                          config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=10000,
-                                          bins = config.bins, mask_path = config.mask_path)
+    #non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, None ,config.beam_fwhm,
+    #                                      config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, proposal_variances=config.proposal_variances_asis, n_iter=10000,
+    #                                      bins = config.bins, mask_path = config.mask_path)
 
-    centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                                   config.Npix, n_iter=100000, bins = config.bins,
-                                   mask_path = config.mask_path)
+    #centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
+    #                               config.Npix, n_iter=100000, bins = config.bins,
+    #                               mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                             config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=100000, bins = config.bins,
@@ -170,8 +175,8 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    #h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
+    #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
@@ -181,10 +186,10 @@ if __name__ == "__main__":
     #d = d.item()
     #h_cls_asis = d["h_cls_non_centered"]
     #pix_map = d["pix_map"]
-    d = {"h_cls":h_cls_asis_gibbs, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_gibbs.npy", d, allow_pickle=True)
-    d2 = {"h_cls_asis":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
-    np.save("test_pcg.npy", d2, allow_pickle=True)
+    #d = {"h_cls":h_cls_asis_gibbs, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_gibbs.npy", d, allow_pickle=True)
+    #d2 = {"h_cls_asis":h_cls_asis, "pix_map":pix_map, "cls_":cls_}
+    #np.save("test_pcg.npy", d2, allow_pickle=True)
     #print("Time per iteration ASIS:", np.median(times_asis))
     #print("Time per iteration ASIS GIBBS:", np.median(times_asis_gibbs))
     #print(np.sum((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 1).shape)
@@ -205,48 +210,55 @@ if __name__ == "__main__":
     #plt.legend(loc="upper right")
     #plt.show()
 
-    d = np.load("test_gibbs.npy", allow_pickle=True)
-    d = d.item()
-    h_cls_asis = d["h_cls_non_centered"]
-    pix_map = d["pix_map"]
+    #d = np.load("test_gibbs.npy", allow_pickle=True)
+    #d2 = np.load("test_pcg.npy", allow_pickle=True)
+    #d = d.item()
+    #d2 = d2.item()
+    #h_cls_asis = d["h_cls"]
+    #h_cls_gibbs = d2["h_cls_asis"]
+    #pix_map = d["pix_map"]
+    #cls_true = d["cls_"]
+
+    #print("SHAPE")
+    #print(h_cls_asis.shape)
+    #esjd_rjpo = np.mean((h_cls_asis[1:, :] - h_cls_asis[:-1, :])**2, axis = 0)
+    #esjd_gibbs = np.mean((h_cls_gibbs[1:, :] - h_cls_gibbs[:-1, :]) ** 2, axis = 0)
+    #print("ESJDS")
+    #print("esjd rjpo:",esjd_rjpo)
+    #print("esjd gibbs:", esjd_gibbs)
+    #print(esjd_rjpo/esjd_gibbs)
+    #plt.plot(esjd_rjpo/esjd_gibbs)
+    #plt.show()
+
+    #for l_interest in range(2, config.L_MAX_SCALARS+1):
+    #    utils.plot_autocorr_multiple([h_cls_asis[None, :, :], h_cls_gibbs[None, :, :]], ["asis", "asis gibbs"], l_interest, 100, cls_true)
+    """
     for l_interest in range(2, config.L_MAX_SCALARS+1):
         yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis[:, l_interest]))
 
         print("NORM:", norm)
         #plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins = 250, label="ASIS")
-        plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=100, label="ASIS")
+        plt.hist(h_cls_asis[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS")
+        plt.hist(h_cls_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
         #plt.hist(h_cls_asis_gibbs[:, l_interest], density=True, alpha=0.5, bins=200, label="ASIS GIBBS")
         #plt.hist(h_cls_nonCentered[:, l_interest], density=True, alpha=0.5, bins=100, label="Non Centered")
         plt.legend(loc="upper right")
+        plt.title("l interest =" + str(l_interest))
         if norm > 0:
             plt.plot(xs, yy/norm)
         else:
             plt.plot(xs, yy)#/norm)
 
         plt.show()
-        plt.plot(h_cls_asis[:, l_interest])
+        plt.plot(h_cls_asis[:, l_interest], alpha = 0.5, label="ASIS")
+        plt.plot(h_cls_gibbs[:, l_interest], alpha = 0.5, label="ASIS Gibbs")
+        plt.legend(loc="upper right")
         plt.show()
         #plt.plot("test_pcg"+str(l_interest)+".png")
         #plt.close()
 
-    print("Graphics done !")
-    #h_cls_pncp, _, _ = pncp_sampler.run(cls_init)
-    #h_asis, _, _ = asis_sampler.run(cls_init)
+    """
 
-    init_cls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
-    init_cls[:, 0, 0] = cls_[0]
-    init_cls[:, 1, 1] = cls_[1]
-    init_cls[:, 2, 2] = cls_[2]
-    init_cls[:, 1, 0] = init_cls[:, 0, 1] = cls_[3]
-    #init_cls[:, 0, 1] = cls_[3]
-    for i in range(config.L_MAX_SCALARS+1):
-        init_cls[i, :, :] *= i*(i+1)/(2*np.pi)
-
-    start = time.time()
-    #h_cls_pol, _ = polarized_centered.run(init_cls)
-    end = time.time()
-    print("TIME CENTERED:")
-    print(end-start)
 
     #h_cls_pol, _ = polarized_non_centered_gibbs.run(init_cls)
 

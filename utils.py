@@ -9,6 +9,7 @@ import time
 import healpy as hp
 from classy import Class
 from variance_expension import generate_var_cl_cython, synthesis_hp as synthesis_cython
+from statsmodels.tsa.stattools import acovf
 from numba import njit, prange
 import qcinv
 
@@ -485,7 +486,7 @@ def compute_autocov(chain, nlag):
 
 
 def compute_autocorr_multiple(chains, l_interest, nlag):
-    chains = chains[:, :, l_interest-2]
+    chains = chains[:, :, l_interest]
     av = np.mean(chains)
     chains = chains - av
     var_chain = np.var(chains)
@@ -517,12 +518,13 @@ def plot_autocorr_multiple(list_chains_algo, name_chains_algo, l_interest, nlag,
             plt.bar(indexes_asis_block, autocorr)
         else:
             autocorr = compute_autocorr_multiple(chains, l_interest, nlag)
+            print(name + "autocorr length:", np.sum(autocorr))
             plt.bar(indexes, autocorr)
 
         plt.title(name)
 
-
-    plt.suptitle("Autocorrelations "+ "l="+str(l_interest) + " and " + "SNR=" + str(cls[l_interest-2]/config.noise_covar)+" thinned 10")
+    plt.suptitle("Autocorrelations "+ "l="+str(l_interest) + " and " + "SNR=" + str(cls[l_interest]/config.noise_covar)+" thinned 10")
+    plt.show()
     plt.savefig("autocorrelations_"+"l="+str(l_interest)+"_thinned_10.png")
     plt.close()
 

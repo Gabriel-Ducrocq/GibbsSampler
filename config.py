@@ -3,8 +3,8 @@ import os
 import healpy as hp
 
 
-#scratch_path = os.environ['SCRATCH']
-#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+scratch_path = os.environ['SCRATCH']
+slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
 
 def compute_observed_spectrum(d):
     observed_cls = []
@@ -40,14 +40,13 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 8
+NSIDE = 512
 Npix = 12 * NSIDE ** 2
-L_MAX_SCALARS=int(2*NSIDE)
-#L_MAX_SCALARS = 1000
+#L_MAX_SCALARS=int(2*NSIDE)
+L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
-mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
-mask_path = None
+mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 
 
 
@@ -71,17 +70,17 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # Pour nside = 8 et L_cut = 10: noise_covar = noise_covar_one_pix[7]*50000
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
-noise_covar_temp =100**2
+#noise_covar_temp =100**2
 #noise_covar_temp = 80**2
-#noise_covar_temp = 40**2
+noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
-noise_covar_pol = 0.00044**2
+#noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
 #noise_covar_pol = 4.4**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
-var_noise_pol = np.ones(Npix) * noise_covar_pol
-inv_var_noise = np.ones(Npix) / noise_covar_temp
+#var_noise_pol = np.ones(Npix) * noise_covar_pol
+#inv_var_noise = np.ones(Npix) / noise_covar_temp
 
 l_cut = 5
 print("L_CUT")
@@ -89,15 +88,13 @@ bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669,
           800, 850, 1001])
 bins = np.concatenate([np.arange(600, 636, 2), bins])
 bins = np.concatenate([range(600), bins])
-#bins = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-#bins = np.array([0, 1, 2, 3, 5, 9])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
 
 
-#blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
-#blocks[0] = 2
-blocks = list(range(2, len(bins)))
+blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
+blocks[0] = 2
+#blocks = list(range(2, len(bins)))
 
 
 #bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
@@ -176,32 +173,38 @@ def compute_init_values(unbinned_vars):
     return np.array(vals)
 
 
+
 scale = [((l*(l+1))**2*2/(4*np.pi**2*(2*l+1))) for l in range(0, L_MAX_SCALARS+1)]
-unbinned_variances = (w*noise_covar_temp/bl_gauss**2)**2*scale
+if mask_path is None:
+    unbinned_variances = (w*noise_covar_temp/bl_gauss**2)**2*scale
+else:
+    mask = hp.ud_grade(hp.read_map(mask_path), NSIDE)
+    unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
+
 binned_variances = compute_init_values(unbinned_variances)
-binned_variances[600:-2] *= 4
-binned_variances[-2:-1] *= 1
-binned_variances[-1] *= 0.1
+#binned_variances[600:-2] *= 4
+#binned_variances[-2:-1] *= 1
+#binned_variances[-1] *= 0.1
 
 
-unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
-binned_variances_pol = compute_init_values(unbinned_variances_pol)
-binned_variances_pol[600:-2] *= 4
-binned_variances_pol[-2:-1] *= 1
-binned_variances_pol[-1] *= 0.1
+#unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
+#binned_variances_pol = compute_init_values(unbinned_variances_pol)
+#binned_variances_pol[600:-2] *= 4
+#binned_variances_pol[-2:-1] *= 1
+#binned_variances_pol[-1] *= 0.1
 
-binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_pol, unbinned_variances_pol], axis = 1)
+#binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_pol, unbinned_variances_pol], axis = 1)
 preliminary_run =True
 
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*2000
+    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["BB"] = np.ones(len(unbinned_variances)) * 60
     proposal_variances_nc_polarized["TE"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_asis = binned_variances[2:]
-    proposal_variances_pncp = binned_variances[2:]
+    #proposal_variances_asis = binned_variances[2:]
+    #proposal_variances_pncp = binned_variances[2:]
 else:
     def get_proposal_variances_preliminary(path):
         list_files = os.listdir(path)
