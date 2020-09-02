@@ -56,27 +56,30 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
-                                                     #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits")
+    #theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
 
-    d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
-         "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
-         "LMAX":config.L_MAX_SCALARS}
+    #d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
+    #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
+    #     "LMAX":config.L_MAX_SCALARS}
 
-    np.save(config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy", d, allow_pickle=True)
-    print(pix_map)
-    hp.mollview(pix_map)
-    plt.show()
+    #np.save(config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy", d, allow_pickle=True)
+    #print(pix_map)
+    #hp.mollview(pix_map)
+    #plt.show()
+    data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     #plt.plot(cls_[0]*range_l)
     #plt.show()
 
-    snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
-    plt.plot(snr)
-    plt.axhline(y=1)
-    plt.title("TT")
-    plt.show()
+    #snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
+    #plt.plot(snr)
+    #plt.axhline(y=1)
+    #plt.title("TT")
+    #plt.show()
     """
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -161,7 +164,6 @@ if __name__ == "__main__":
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
     l_interest =3
-    start = time.time()
 
     np.random.seed()
     cls_init = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
@@ -174,14 +176,23 @@ if __name__ == "__main__":
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
+    start = time.time()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     #h_cls_asis, _, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    #h_cls_asis_gibbs, _, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     print("Total time:")
-    print(end-start)
+    total_time = end - start
+    print(total_time)
 
+    save_path = config.scratch_path + \
+                "/data/non_isotropic_runs/asis_gibbs/preliminary_run/asis_gibbs_" + str(config.slurm_task_id) + ".npy"
+
+    d = {"h_cls":h_cls_asis_gibbs, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
+         "h_times_iteration":times_asis_gibbs, "total_time":total_time, "data_path":data_path}
+
+    np.save(save_path, d, allow_pickle=True)
     #d = np.load("test_pcg.npy", allow_pickle = True)
     #d = d.item()
     #h_cls_asis = d["h_cls_non_centered"]
