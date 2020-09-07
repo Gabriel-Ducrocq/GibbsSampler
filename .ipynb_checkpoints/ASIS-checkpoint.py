@@ -54,7 +54,7 @@ class ASIS(GibbsSampler):
             start_time_centered_cls = time.time()
             binned_dls_temp = self.centered_cls_sampler.sample(skymap[:])
             end_time_centered_cls = time.time()
-            total_time_centered_cls = end_time_centered_cls - start_time_centered_cls
+            total_time_centered_cls =end_time_centered_cls - start_time_centered_cls
             print("Time centered cls:", total_time_centered_cls)
             dls_temp_unfolded = utils.unfold_bins(binned_dls_temp, self.bins)
             var_cls_temp = utils.generate_var_cl(dls_temp_unfolded)
