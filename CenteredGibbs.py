@@ -255,7 +255,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             else:
                 return s_old, 0
 
-    def sample_gibbs(self, var_cls, old_s):
+    def sample_gibbs_change_variable(self, var_cls, old_s):
         old_s = utils.real_to_complex(old_s)
         var_v = self.mu - self.inv_noise
         mean_v = var_v * hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
@@ -266,6 +266,21 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
         mean_s = var_s*utils.complex_to_real(hp.almxfl(hp.map2alm((v + self.inv_noise*self.pix_map), lmax=self.lmax)*(1/config.w), self.bl_gauss))
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
+        return s_new, 1
+
+    def sample_gibbs(self, var_cls, old_s):
+        old_s = utils.real_to_complex(old_s)
+        var_u = 1/(self.mu - self.inv_noise)
+        mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
+        u = np.random.normal(size=len(mean_u)) * np.sqrt(var_u) + mean_u
+
+        inv_var_cls = np.zeros(len(var_cls))
+        inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
+        var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
+        mean_s = var_s * utils.complex_to_real(
+            hp.almxfl(hp.map2alm((u*(self.mu - self.inv_noise) + self.inv_noise * self.pix_map), lmax=self.lmax) * (1 / config.w), self.bl_gauss))
+
+        s_new = np.random.normal(size=len(mean_s)) * np.sqrt(var_s) + mean_s
         return s_new, 1
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
