@@ -10,6 +10,7 @@ import time
 import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
+from splines import sample_splines
 import scipy
 import matplotlib.pyplot as plt
 import qcinv
@@ -75,50 +76,6 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
         return sampled_power_spec
 
-    def compute_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
-        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
-        if x <= cl_TE ** 2 / cl_EE:
-            return 0
-        else:
-            return invwishart.pdf(param_mat, df=2 * l - 2, scale=scale_mat)
-
-    def compute_log_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
-        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
-        if x <= cl_TE ** 2 / cl_EE:
-            return -np.inf
-        else:
-            return invwishart.logpdf(param_mat, df=2 * l - 2, scale=scale_mat)
-
-    def compute_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
-        return maximum*self.compute_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
-
-    def compute_log_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
-        return np.log(maximum) + self.compute_log_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
-
-    def find_upper_bound_rescaled(self, l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
-        x0 = 1
-        x1 = 1.618*x0
-        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-        while log_ratio < 12.5:
-            x_new = x1 + 1.618*(x1 - x0)
-            x0 = x1
-            x1 = x_new
-            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-
-        return x1
-
-    def find_lower_bound_rescaled(self,l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
-        hard_lower_bound = (cl_TE**2/cl_EE)/maximum
-        x0 = 1
-        x1 = (x0 + hard_lower_bound)/2
-        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-        while log_ratio < 12.5:
-            x_new = (x1 + hard_lower_bound)/2
-            x1 = x_new
-            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-
-        return x1
-
     def sample_bin(self, alms):
         alms_TT_complex = utils.real_to_complex(alms[:, 0])
         alms_EE_complex = utils.real_to_complex(alms[:, 1])
@@ -150,31 +107,26 @@ class PolarizedCenteredClsSampler(ClsSampler):
                         scale_mat[i, 1, 1]
             sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
 
-        for i in self.bins["TT"]:
-            cl_EE = sampled_power_spec[i, 1, 1]
-            cl_TE = sampled_power_spec[i, 0, 1]
-            ratio = cl_TE ** 2 / cl_EE
-            maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
-                            2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
+        observed_spec = np.zeros((self.lmax+1, 2, 2))
+        observed_spec[:, 0, 0] = spec_TT
+        observed_spec[:, 1, 1] = spec_EE
+        observed_spec[:,1, 0] = observed_spec[:, 0, 1] = spec_TE
+        for i,b_inf in enumerate(self.bins["TT"][:-1]):
+            b_sup = self.bins["TT"][i+1]
+            sampled_power_spec_bin = sampled_power_spec[b_inf:b_sup, :, :]
+            observed_spec_bin = observed_spec[b_inf:b_sup, :, :]
 
-            max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
-            upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
-            lower_bound = self.find_lower_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
+            def log_density_TT(x):
+                det = sampled_power_spec_bin[:, 0, 0]*sampled_power_spec_bin[:, 1, 1] - sampled_power_spec_bin[:, 1, 0]*sampled_power_spec_bin[:, 0, 1]
+                second_term = -(1/(det*2))*(observed_spec_bin[:, 0, 0]*sampled_power_spec_bin[:, 1, 1] - observed_spec_bin[:, 0, 1]*sampled_power_spec_bin[:, 0, 1] \
+                - observed_spec_bin[:, 1, 0]*sampled_power_spec_bin[:, 1, 0] + observed_spec_bin[:, 1, 1]*sampled_power_spec_bin[:, 0, 0])
+                first_term = -((2*np.range(b_inf, b_sup)+1)/2)*np.log(det)
+                return np.sum(first_term + second_term)
 
-            xx = np.linspace(lower_bound, upper_bound, 2*6400)
-            y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
-            cs = scipy.interpolate.CubicSpline(xx,y_cs)
-            u = np.random.uniform()
-            integs = np.array([cs.integrate(lower_bound, x) for x in xx])
-            integs /= integs[-1]
-            position = np.searchsorted(integs, u)
-            sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
 
-            cl_TT = sample*maximum
 
-            sampled_power_spec[i, 0, 0] = cl_TT
 
-        sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
+
         return sampled_power_spec
 
     def sample(self, alm_map):
@@ -269,19 +221,23 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         return s_new, 1
 
     def sample_gibbs(self, var_cls, old_s):
-        old_s = utils.real_to_complex(old_s)
-        var_u = 1/(self.mu - self.inv_noise)
-        mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
-        u = np.random.normal(size=len(mean_u)) * np.sqrt(var_u) + mean_u
+        for _ in range(20):
+            old_s = utils.real_to_complex(old_s)
+            var_u = 1/(self.mu - self.inv_noise)
+            mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
+            u = np.random.normal(size=len(mean_u)) * np.sqrt(var_u) + mean_u
 
-        inv_var_cls = np.zeros(len(var_cls))
-        inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
-        var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
-        mean_s = var_s * utils.complex_to_real(
-            hp.almxfl(hp.map2alm((u*(self.mu - self.inv_noise) + self.inv_noise * self.pix_map), lmax=self.lmax) * (1 / config.w), self.bl_gauss))
+            inv_var_cls = np.zeros(len(var_cls))
+            inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
+            var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
+            mean_s = var_s * utils.complex_to_real(
+                hp.almxfl(hp.map2alm((u*(self.mu - self.inv_noise) + self.inv_noise * self.pix_map), lmax=self.lmax) * (1 / config.w), self.bl_gauss))
 
-        s_new = np.random.normal(size=len(mean_s)) * np.sqrt(var_s) + mean_s
+            s_new = np.random.normal(size=len(mean_s)) * np.sqrt(var_s) + mean_s
+            old_s = s_new[:]
+
         return s_new, 1
+
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
