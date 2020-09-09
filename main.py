@@ -195,7 +195,7 @@ if __name__ == "__main__":
     #            "/data/non_isotropic_runs/asis/preliminary_run/asis_" + str(config.slurm_task_id) + ".npy"
 
     save_path = config.scratch_path + \
-                "/data/isotropic_runs/asis_gibbs/preliminary_run/SNR_550/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/isotropic_runs/asis_gibbs/preliminary_runs/SNR_550/asis_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_asis_gibbs, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
          "h_times_iteration":times_asis_gibbs, "total_time":total_time}#,"total_cpu_time":total_cpu_time ,"data_path":data_path}
