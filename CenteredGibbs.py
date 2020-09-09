@@ -221,7 +221,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         return s_new, 1
 
     def sample_gibbs(self, var_cls, old_s):
-        for _ in range(20):
+        for _ in range(1):
             old_s = utils.real_to_complex(old_s)
             var_u = 1/(self.mu - self.inv_noise)
             mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
