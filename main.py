@@ -56,7 +56,7 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
+    #theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
 
     #d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
     #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
@@ -64,23 +64,24 @@ if __name__ == "__main__":
 
     #np.save(config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy", d, allow_pickle=True)
     #print(pix_map)
-    hp.mollview(pix_map)
-    plt.show()
+    #hp.mollview(pix_map)
+    #plt.show()
 
     #data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["pix_map"]
+    data_path = config.scratch_path + "/data/skymap/map_SNR_550.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     #plt.plot(cls_[0]*range_l)
     #plt.show()
 
-    snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
-    plt.plot(snr)
-    plt.axhline(y=1)
-    plt.title("TT")
-    plt.show()
+    #snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
+    #plt.plot(snr)
+    #plt.axhline(y=1)
+    #plt.title("TT")
+    #plt.show()
     """
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -111,11 +112,11 @@ if __name__ == "__main__":
     #                               mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=1000, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=False, metropolis_blocks=config.blocks)
 
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=1000, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
@@ -193,11 +194,14 @@ if __name__ == "__main__":
     #save_path = config.scratch_path + \
     #            "/data/non_isotropic_runs/asis/preliminary_run/asis_" + str(config.slurm_task_id) + ".npy"
 
+    save_path = config.scratch_path + \
+                "/data/isotropic_runs/asis_gibbs/preliminary_run/SNR_550/asis_" + str(config.slurm_task_id) + ".npy"
+
     d = {"h_cls":h_cls_asis_gibbs, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
          "h_times_iteration":times_asis_gibbs, "total_time":total_time}#,"total_cpu_time":total_cpu_time ,"data_path":data_path}
 
-    #np.save(save_path, d, allow_pickle=True)
-    np.save("test_gibbs_non_change_variable.npy", d, allow_pickle=True)
+    np.save(save_path, d, allow_pickle=True)
+    #np.save("test_gibbs_non_change_variable.npy", d, allow_pickle=True)
     #d = np.load("test_pcg.npy", allow_pickle = True)
     #d = d.item()
     #h_cls_asis = d["h_cls_non_centered"]
@@ -249,6 +253,7 @@ if __name__ == "__main__":
     #for l_interest in range(2, config.L_MAX_SCALARS+1):
     #    utils.plot_autocorr_multiple([h_cls_asis[None, :, :], h_cls_gibbs[None, :, :]], ["asis", "asis gibbs"], l_interest, 100, cls_true)
 
+    """
     for l_interest in range(2, config.L_MAX_SCALARS+1):
         yy, xs, norm = utils.trace_likelihood_binned(h_cls_asis_gibbs[:, l_interest] ,pix_map, l_interest, np.max(h_cls_asis_gibbs[:, l_interest]))
 
@@ -320,7 +325,7 @@ if __name__ == "__main__":
     #    y = scipy.stats.invgamma.pdf(x, a=alpha, scale=beta, loc = loc)
     #    #y = scipy.stats.invwishart.pdf(x, df = 2*l_interest-3, scale = np.array([[beta]]))
     #    yy.append(y)
-
+    """
     """
     scale_mat = np.zeros((2, 2))
     scale_mat[0, 0] = all_pow_spec_TT[l_interest]

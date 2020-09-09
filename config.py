@@ -3,8 +3,8 @@ import os
 import healpy as hp
 
 
-#scratch_path = os.environ['SCRATCH']
-#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+scratch_path = os.environ['SCRATCH']
+slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
 
 def compute_observed_spectrum(d):
     observed_cls = []
@@ -47,8 +47,8 @@ L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
-#mask_path = None
+#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+mask_path = None
 
 
 
@@ -90,7 +90,7 @@ bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669,
           800, 850, 1001])
 bins = np.concatenate([np.arange(600, 636, 2), bins])
 bins = np.concatenate([range(600), bins])
-bins = np.array(range(L_MAX_SCALARS+1+1))
+#bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
 
 

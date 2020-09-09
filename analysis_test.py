@@ -10,5 +10,5 @@ h_cls = d["h_cls"]
 
 print(h_cls.shape)
 
-plt.plot(h_cls[:, 300])
+plt.plot(h_cls[:, 620])
 plt.show()
