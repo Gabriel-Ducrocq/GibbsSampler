@@ -175,8 +175,7 @@ if __name__ == "__main__":
         cls_init_binned = np.ones(len(cls_init_binned))*3000
         cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
         cls_init_binned[:2] = 0
-        #starting_point = cls_init_binned
-        starting_point = config.starting_point
+        starting_point = cls_init_binned
     else:
         starting_point = config.starting_point
 

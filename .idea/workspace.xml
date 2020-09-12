@@ -49,18 +49,6 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/main.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="177" column="9" selection-start-line="177" selection-start-column="9" selection-end-line="177" selection-end-column="9" />
-              <folding>
-                <element signature="e#0#12#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test2.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -103,13 +91,25 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/config.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="244">
-              <caret line="228" column="40" lean-forward="true" selection-start-line="228" selection-start-column="40" selection-end-line="228" selection-end-column="40" />
+            <state relative-caret-position="294">
+              <caret line="247" column="25" selection-start-line="247" selection-start-column="25" selection-end-line="247" selection-end-column="25" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/main.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="45">
+              <caret line="177" column="40" selection-start-line="177" selection-start-column="40" selection-end-line="177" selection-end-column="40" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -197,8 +197,8 @@
         <option value="$PROJECT_DIR$/analysis_test.py" />
         <option value="$PROJECT_DIR$/test_mapmaking.py" />
         <option value="$PROJECT_DIR$/CenteredGibbs.py" />
-        <option value="$PROJECT_DIR$/config.py" />
         <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/config.py" />
       </list>
     </option>
   </component>
@@ -799,16 +799,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_mapmaking.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="615">
-          <caret line="41" column="10" lean-forward="true" selection-start-line="41" selection-start-column="10" selection-end-line="41" selection-end-column="10" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ConstrainedRealization.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="209">
@@ -846,10 +836,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config.py">
+    <entry file="file://$PROJECT_DIR$/test_mapmaking.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="244">
-          <caret line="228" column="40" lean-forward="true" selection-start-line="228" selection-start-column="40" selection-end-line="228" selection-end-column="40" />
+        <state relative-caret-position="615">
+          <caret line="41" column="10" lean-forward="true" selection-start-line="41" selection-start-column="10" selection-end-line="41" selection-end-column="10" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -858,10 +848,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="177" column="9" selection-start-line="177" selection-start-column="9" selection-end-line="177" selection-end-column="9" />
+        <state relative-caret-position="45">
+          <caret line="177" column="40" selection-start-line="177" selection-start-column="40" selection-end-line="177" selection-end-column="40" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="294">
+          <caret line="247" column="25" selection-start-line="247" selection-start-column="25" selection-end-line="247" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>

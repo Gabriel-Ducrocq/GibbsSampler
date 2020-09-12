@@ -217,14 +217,9 @@ def get_proposal_variances_preliminary(path):
 
 
 
-preliminary_run =True
+preliminary_run =False
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
-    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
-    _, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
-    starting_point[:2] = 0
-    #proposal_variances_nc = proposal_variances_nc[2:]
-
 
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
@@ -250,5 +245,6 @@ else:
     """
     asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
     proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
+    starting_point += 100
     starting_point[:2] = 0
     proposal_variances_nc = proposal_variances_nc[2:]
