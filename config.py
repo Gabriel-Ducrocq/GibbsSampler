@@ -196,7 +196,7 @@ binned_variances = compute_init_values(unbinned_variances)
 #binned_variances_pol[-1] *= 0.1
 
 #binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_pol, unbinned_variances_pol], axis = 1)
-preliminary_run =True
+preliminary_run =False
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
     proposal_variances_nc_polarized = {}
