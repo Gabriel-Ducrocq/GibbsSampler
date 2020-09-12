@@ -241,7 +241,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
-            return self.sample_gibbs(var_cls, old_s)
+            return self.sample_gibbs_change_variable(var_cls, old_s)
         if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
