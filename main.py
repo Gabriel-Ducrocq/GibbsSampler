@@ -70,7 +70,7 @@ if __name__ == "__main__":
     data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
     d = d.item()
-    pix_map = d["d_"]
+    pix_map = d["pix_map"]
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     #plt.plot(cls_[0]*range_l)
