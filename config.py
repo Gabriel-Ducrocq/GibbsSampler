@@ -220,9 +220,9 @@ def get_proposal_variances_preliminary(path):
 preliminary_run =True
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
-    #asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
-    #proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
-    #starting_point[:2] = 0
+    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
+    _, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
+    starting_point[:2] = 0
     #proposal_variances_nc = proposal_variances_nc[2:]
 
 
