@@ -46,9 +46,9 @@ Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
-#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
+mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
-mask_path = None
+#mask_path = None
 
 
 
@@ -196,8 +196,7 @@ binned_variances = compute_init_values(unbinned_variances)
 #binned_variances_pol[-1] *= 0.1
 
 #binned_variance_polarization = np.stack([unbinned_variances, unbinned_variances_pol, unbinned_variances_pol], axis = 1)
-preliminary_run =True
-
+preliminary_run =False
 if preliminary_run:
     proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
     proposal_variances_nc_polarized = {}
@@ -218,7 +217,7 @@ else:
             if name not in [".ipynb_checkpoints", "Untitled.ipynb", "preliminary_runs"]:
                 data = np.load(path + name, allow_pickle=True)
                 data = data.item()
-                chains.append(data["chain"])
+                chains.append(data["h_cls"])
 
 
         chains = np.array(chains)
@@ -238,7 +237,5 @@ else:
     proposal_variances_pncp[-1:] *= 0.7
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
-
-    proposal_variances_nc = 6*unbinned_variances[2:]
-    proposal_variances_pncp = 10 * unbinned_variances[2:]
-    proposal_variances_asis = 6*unbinned_variances[2:]
+    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_runs/"
+    proposal_variances_nc = get_proposal_variances_preliminary(asis_gibbs_path)

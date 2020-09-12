@@ -67,8 +67,7 @@ if __name__ == "__main__":
     #hp.mollview(pix_map)
     #plt.show()
 
-    #data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
-    data_path = config.scratch_path + "/data/skymap/map_SNR_550.npy"
+    data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
     d = d.item()
     pix_map = d["d_"]
@@ -112,11 +111,11 @@ if __name__ == "__main__":
     #                               mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=1000, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=False, metropolis_blocks=config.blocks)
 
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=1000, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=10, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
@@ -179,26 +178,24 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     start = time.time()
-    #start_cpu = time.clock()
+    start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
     h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
     end = time.time()
-    #end_cpu = time.clock()
+    end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     total_time = end - start
-    #total_cpu_time = end_cpu - start_cpu
+    total_cpu_time = end_cpu - start_cpu
     print("Total time:", total_time)
-    #print("Total Cpu time:",total_cpu_time)
-
-    #save_path = config.scratch_path + \
-    #            "/data/non_isotropic_runs/asis/preliminary_run/asis_" + str(config.slurm_task_id) + ".npy"
+    print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/isotropic_runs/asis_gibbs/preliminary_runs/SNR_550/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/non_isotropic_runs/asis_gibbs/run/asis_" + str(config.slurm_task_id) + ".npy"
+
 
     d = {"h_cls":h_cls_asis_gibbs, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
-         "h_times_iteration":times_asis_gibbs, "total_time":total_time}#,"total_cpu_time":total_cpu_time ,"data_path":data_path}
+         "h_times_iteration":times_asis_gibbs, "total_time":total_time,"total_cpu_time":total_cpu_time ,"data_path":data_path}
 
     np.save(save_path, d, allow_pickle=True)
     #np.save("test_gibbs_non_change_variable.npy", d, allow_pickle=True)
