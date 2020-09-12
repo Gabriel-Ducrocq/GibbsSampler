@@ -245,6 +245,5 @@ else:
     """
     asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
     proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
-    starting_point += 100
     starting_point[:2] = 0
     proposal_variances_nc = proposal_variances_nc[2:]
