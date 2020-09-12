@@ -222,8 +222,9 @@ else:
 
         chains = np.array(chains)
         variances = np.var(chains, axis=(0, 1))
+        means = np.mean(chains, axis=(0, 1))
 
-        return variances
+        return variances, means
 
     """
     path_nc = scratch_path +"/data/isotropic_runs/non_centered_gibbs/preliminary_runs/SNR_550/"
@@ -238,4 +239,6 @@ else:
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
     asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
-    proposal_variances_nc = get_proposal_variances_preliminary(asis_gibbs_path)
+    proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
+    starting_point[:2] = 0
+    proposal_variances_nc = proposal_variances_nc[2:]

@@ -167,13 +167,18 @@ if __name__ == "__main__":
     l_interest =3
 
     np.random.seed()
-    cls_init = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-    cls_init = np.concatenate([np.zeros(2), cls_init])
-    cls_init_binned = utils.generate_init_values(cls_init)
-    scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-    cls_init_binned = np.ones(len(cls_init_binned))*3000
-    cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
-    cls_init_binned[:2] = 0
+    if config.preliminary_run:
+        cls_init = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
+        cls_init = np.concatenate([np.zeros(2), cls_init])
+        cls_init_binned = utils.generate_init_values(cls_init)
+        scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+        cls_init_binned = np.ones(len(cls_init_binned))*3000
+        cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
+        cls_init_binned[:2] = 0
+        starting_point = cls_init_binned
+    else:
+        starting_point = config.starting_point
+
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
@@ -181,7 +186,7 @@ if __name__ == "__main__":
     start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(cls_init_binned)
-    h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(cls_init_binned)
+    h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
