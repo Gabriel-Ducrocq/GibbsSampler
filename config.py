@@ -221,8 +221,8 @@ else:
 
 
         chains = np.array(chains)
-        variances = np.var(chains, axis=(0, 1))
-        means = np.mean(chains, axis=(0, 1))
+        variances = np.var(chains[:, 200:, :], axis=(0, 1))
+        means = np.mean(chains[:, 200:, :], axis=(0, 1))
 
         return variances, means
 
