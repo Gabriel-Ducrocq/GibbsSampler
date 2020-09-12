@@ -237,5 +237,5 @@ else:
     proposal_variances_pncp[-1:] *= 0.7
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
-    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_runs/"
+    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
     proposal_variances_nc = get_proposal_variances_preliminary(asis_gibbs_path)
