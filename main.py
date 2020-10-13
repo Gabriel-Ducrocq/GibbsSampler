@@ -67,7 +67,8 @@ if __name__ == "__main__":
     #hp.mollview(pix_map)
     #plt.show()
 
-    data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
+    #data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
+    data_path = "data/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
     d = d.item()
     pix_map = d["pix_map"]
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     cls_init = cls_init[:5]
     start = time.time()
-    start_cpu = time.clock()
+    #start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
     h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
@@ -192,9 +193,9 @@ if __name__ == "__main__":
     end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     total_time = end - start
-    total_cpu_time = end_cpu - start_cpu
+    #total_cpu_time = end_cpu - start_cpu
     print("Total time:", total_time)
-    print("Total Cpu time:",total_cpu_time)
+    #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
                 "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
