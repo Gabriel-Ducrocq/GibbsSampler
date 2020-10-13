@@ -3,3 +3,4 @@
 !test_gibbs.npy
 !test_pcg.npy
 !test_gibbs_non_change_variable.npy
+!data/skymap.npy
