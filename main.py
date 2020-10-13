@@ -111,11 +111,11 @@ if __name__ == "__main__":
     #                               mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=500, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=120, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=False, metropolis_blocks=config.blocks)
 
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=500, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=120, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
@@ -176,6 +176,7 @@ if __name__ == "__main__":
         cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
         cls_init_binned[:2] = 0
         starting_point = cls_init_binned
+        #starting_point = config.starting_point
     else:
         starting_point = config.starting_point
 
@@ -185,8 +186,8 @@ if __name__ == "__main__":
     start = time.time()
     start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
-    h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
+    h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
+    #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
@@ -196,13 +197,13 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/non_isotropic_runs/asis_gibbs/run/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
 
 
-    d = {"h_cls":h_cls_asis_gibbs, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
-         "h_times_iteration":times_asis_gibbs, "total_time":total_time,"total_cpu_time":total_cpu_time ,"data_path":data_path}
+    #d = {"h_cls":h_cls_asis, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
+    #     "h_times_iteration":times_asis_gibbs, "total_time":total_time,"total_cpu_time":total_cpu_time ,"data_path":data_path}
 
-    np.save(save_path, d, allow_pickle=True)
+    #np.save(save_path, d, allow_pickle=True)
     #np.save("test_gibbs_non_change_variable.npy", d, allow_pickle=True)
     #d = np.load("test_pcg.npy", allow_pickle = True)
     #d = d.item()

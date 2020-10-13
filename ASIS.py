@@ -42,7 +42,7 @@ class ASIS(GibbsSampler):
                 print("Interweaving, iteration:", i)
 
             start_iteration = time.time()
-            #start_clock = time.clock()
+            start_clock = time.clock()
             start_time_cr = time.time()
             skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=self.gibbs_cr)
             end_time_cr = time.time()
@@ -72,22 +72,22 @@ class ASIS(GibbsSampler):
             cls = self.dls_to_cls(dls)
             skymap = np.sqrt(var_cls_full)*s_nonCentered
             end_iteration = time.time()
-            #end_clock = time.clock()
-            #time_cpu = end_clock - start_clock
+            end_clock = time.clock()
+            time_cpu = end_clock - start_clock
             time_iteration = end_iteration - start_iteration
             h_time_seconds.append(time_iteration)
-            #h_time_cpu.append(time_cpu)
+            h_time_cpu.append(time_cpu)
             h_accept.append(accept)
 
             h_dls.append(binned_dls)
             
-            #save_path = config.scratch_path + \
-            #    "/data/non_isotropic_runs/asis/preliminary_run/asis_" + str(config.slurm_task_id) + ".npy"
+            save_path = config.scratch_path + \
+                "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
 
-            #d = {"h_cls":np.array(h_dls), "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":np.array(h_accept),
-            # "h_times_iteration":np.array(h_time_seconds),"h_cpu_time":np.array(h_time_cpu)}
+            d = {"h_cls":np.array(h_dls), "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":np.array(h_accept),
+             "h_times_iteration":np.array(h_time_seconds),"h_cpu_time":np.array(h_time_cpu)}
 
-            #np.save(save_path, d, allow_pickle=True)
+            np.save(save_path, d, allow_pickle=True)
 
         h_accept = np.array(h_accept)
         print("Acceptance rate ASIS:", np.mean(h_accept, axis = 0))
