@@ -15,6 +15,7 @@ from PNCP import PNCPGibbs
 from scipy.stats import invwishart
 from ASIS import ASIS
 from default_gibbs import default_gibbs
+from CenteredGibbs import CenteredGibbs
 
 
 def generate_dataset(polarization=True, mask_path = None):
@@ -118,6 +119,9 @@ if __name__ == "__main__":
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
                             config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=120, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
+
+    centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
+                                    mask_path = config.mask_path, polarization = False, bins=None, n_iter = 120)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -187,7 +191,8 @@ if __name__ == "__main__":
     start = time.time()
     #start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(cls_init_binned)
-    h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
+    centered_gibbs.run(starting_point)
+    #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()

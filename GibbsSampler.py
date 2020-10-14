@@ -54,13 +54,13 @@ class GibbsSampler():
             skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
             h_dls.append(binned_dls)
             for i in range(self.n_iter):
-                if i % 1000 == 0:
+                if i % 1 == 0:
                     print("Default Gibbs")
                     print(i)
 
                 start_time = time.process_time()
                 skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), skymap, metropolis_step=False,
-                                                                 use_gibbs=True)
+                                                                 use_gibbs=False)
                 binned_dls = self.cls_sampler.sample(skymap[:])
                 dls = utils.unfold_bins(binned_dls, self.bins)
                 cls = self.dls_to_cls(dls)
