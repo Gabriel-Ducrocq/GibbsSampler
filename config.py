@@ -40,10 +40,10 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 512
+NSIDE = 256
 Npix = 12 * NSIDE ** 2
-#L_MAX_SCALARS=int(2*NSIDE)
-L_MAX_SCALARS = 1000
+L_MAX_SCALARS=int(2*NSIDE)
+#L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
@@ -73,8 +73,8 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
-#noise_covar_temp = 80**2
-noise_covar_temp = 40**2
+noise_covar_temp = 120**2
+#noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
 #noise_covar_pol = 0.00044**2
@@ -86,16 +86,18 @@ var_noise_temp = np.ones(Npix) * noise_covar_temp
 
 l_cut = 5
 print("L_CUT")
-bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
-          800, 850, 1001])
-bins = np.concatenate([np.arange(600, 636, 2), bins])
-bins = np.concatenate([range(600), bins])
+#bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
+#          800, 850, 1001])
+#bins = np.concatenate([np.arange(600, 636, 2), bins])
+#bins = np.concatenate([range(600), bins])
+
+bins = np.array([279, 300, 350, 410, 470, 513])
+bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
-#blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
+blocks = np.concatenate([np.arange(0, 280, 20),range(280, len(bins))])
 
-
-blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
-blocks[0] = 2
+#blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
+#blocks[0] = 2
 #blocks = list(range(2, len(bins)))
 
 

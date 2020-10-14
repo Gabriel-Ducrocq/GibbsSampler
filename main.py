@@ -57,7 +57,7 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    #theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
+    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
 
     #d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
     #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
@@ -69,20 +69,20 @@ if __name__ == "__main__":
     #plt.show()
 
     #data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
-    data_path = "data/skymap.npy"
-    d = np.load(data_path, allow_pickle=True)
-    d = d.item()
-    pix_map = d["pix_map"]
+    #data_path = "data/skymap.npy"
+    #d = np.load(data_path, allow_pickle=True)
+    #d = d.item()
+    #pix_map = d["pix_map"]
 
     #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
     #plt.plot(cls_[0]*range_l)
     #plt.show()
 
-    #snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
-    #plt.plot(snr)
-    #plt.axhline(y=1)
-    #plt.title("TT")
-    #plt.show()
+    snr = cls_ * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
+    plt.plot(snr)
+    plt.axhline(y=1)
+    plt.title("TT")
+    plt.show()
     """
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
