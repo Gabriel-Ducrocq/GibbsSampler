@@ -38,7 +38,7 @@ class ASIS(GibbsSampler):
         h_dls.append(binned_dls)
         skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
         for i in range(self.n_iter):
-            if i % 10 == 0:
+            if i % 1 == 0:
                 print("Interweaving, iteration:", i)
 
             start_iteration = time.time()

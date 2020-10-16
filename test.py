@@ -9,13 +9,49 @@ import healpy as hp
 from CenteredGibbs import PolarizedCenteredConstrainedRealization, PolarizedCenteredClsSampler
 from NonCenteredGibbs import PolarizedNonCenteredConstrainedRealization
 import matplotlib.pyplot as plt
+import main
 
-d = np.load("test_polarization.npy", allow_pickle=True)
-d = d.item()
-pix_map = d["pix_map"]
+theta_, cls_, map_true, d = main.generate_dataset(False, config.mask_path)
+
+noise = np.ones(config.Npix)*config.noise_covar
+inv_noise = (1/noise)
+if config.mask_path is not None:
+    mask = hp.ud_grade(hp.read_map(config.mask_path), config.NSIDE)
+    inv_noise *= mask
 
 theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
 cls_TT, cls_EE, cls_BB, cls_TE = utils.generate_cls(theta_, True)
+
+def pCN_step(s_old, var_cls, d, inv_noise, beta = 0.0001):
+    gen = np.sqrt(1/config.w)*hp.alm2map(utils.real_to_complex(
+        config.bl_map*np.sqrt(var_cls)*np.random.normal(size=len(var_cls))), nside=config.NSIDE, lmax=config.L_MAX_SCALARS)
+    s_new = (1-beta)*s_old + np.sqrt(beta)*gen
+
+    log_ratio = -(1/2)*np.sum((d - s_new)**2*inv_noise) + (1/2)*np.sum((d - s_old)**2*inv_noise)
+    print("Log ratio:", log_ratio)
+    if np.log(np.random.uniform()) < log_ratio:
+        return s_new, 1
+
+    return s_old, 0
+
+
+scale = np.array([(l*(l+1)/(2*np.pi)) for l in range(config.L_MAX_SCALARS+1)])
+dls = cls_TT*scale
+var_cls = utils.generate_var_cl(dls)
+s_old = np.zeros(config.Npix)
+all_accept = 0
+for i in range(1, 1001):
+    print(i)
+    s_old, accept = pCN_step(s_old, var_cls, d, inv_noise)
+    all_accept += accept
+    print(all_accept/i)
+
+
+print(all_accept/1000)
+
+
+
+
 
 all_cls = np.zeros((config.L_MAX_SCALARS+1, 3, 3))
 all_cls[:, 0, 0] = cls_TT
