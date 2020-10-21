@@ -57,7 +57,12 @@ if __name__ == "__main__":
     #cls_init_binned = np.random.normal(loc=cls_init_binned, scale=np.sqrt(10))
     #cls_init_binned[:2] = 0
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
+    #theta_, cls_, s_true, pix_map = generate_dataset(polarization=False, mask_path=config.mask_path)
+
+    data_path = "data/skymap_istropic.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
 
     #d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
     #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,

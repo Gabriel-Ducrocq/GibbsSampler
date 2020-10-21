@@ -60,11 +60,12 @@ plt.show()
 plt.close()
 
 def pCN_step(s_old, var_cls, d, inv_noise, beta = 0.0001):
-    gen = np.sqrt(1/config.w)*hp.alm2map(utils.real_to_complex(
-        config.bl_map*np.sqrt(var_cls)*np.random.normal(size=len(var_cls))), nside=config.NSIDE, lmax=config.L_MAX_SCALARS)
-    s_new = (1-beta)*s_old + np.sqrt(beta)*gen
+    s_prop = np.random.normal(size=len(var_cls))*np.sqrt(var_cls)
+    s_new = np.sqrt(1-beta**2)*s_old + beta*s_prop
+    s_new_pix = hp.alm2map(utils.real_to_complex(config.bl_map*s_new), lmax=config.L_MAX_SCALARS, nside=config.NSIDE)
 
-    log_ratio = -(1/2)*np.sum((d - s_new)**2*inv_noise) + (1/2)*np.sum((d - s_old)**2*inv_noise)
+    log_ratio = -(1/2)*np.sum((d - s_new_pix)**2*inv_noise) + (1/2)*np.sum((d - hp.alm2map(utils.real_to_complex(s_old),
+                                                        lmax=config.L_MAX_SCALARS, nside=config.NSIDE))**2*inv_noise)
     print("Log ratio:", log_ratio)
     if np.log(np.random.uniform()) < log_ratio:
         return s_new, 1
@@ -119,6 +120,7 @@ N = 1001
 for i in range(1, N):
     print(i)
     s_old, accept = pCN_likelihood(s_old, inv_var_cls, d_alms, noise, inv_noise)
+    #s_old, accept = pCN_step(s_old, var_cls, d, inv_noise, beta = 0.9)
     #h_s.append((config.w/config.bl_map)[l_interest]*d_alms[l_interest] - s_old[l_interest])
     print((config.w/config.bl_map)[l_interest]*d_alms[l_interest])
     h_s.append(s_old[l_interest])

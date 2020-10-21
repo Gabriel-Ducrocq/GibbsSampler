@@ -4,3 +4,4 @@
 !test_pcg.npy
 !test_gibbs_non_change_variable.npy
 !data/skymap.npy
+!data/skymap_isotropic.npy
