@@ -73,13 +73,13 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
+#noise_covar_temp = (0.2/np.sqrt(2))**2
 noise_covar_temp = 40**2
-#noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
 #noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
-#noise_covar_pol = 4.4**2
+noise_covar_pol = 0.2**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 #var_noise_pol = np.ones(Npix) * noise_covar_pol
 #inv_var_noise = np.ones(Npix) / noise_covar_temp
@@ -155,7 +155,8 @@ import matplotlib.pyplot as plt
 # fwhm_arcmin = 180
 # fwhm_radians = (np.pi/(180*60))*fwhm_arcmin
 beam_fwhm = 0.35
-fwhm_radians = (np.pi / 180) * 0.35
+#beam_fwhm = 0.5
+fwhm_radians = (np.pi / 180) * beam_fwhm
 bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=L_MAX_SCALARS)
 bl_map = generate_var_cl(bl_gauss)
 

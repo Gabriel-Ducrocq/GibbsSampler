@@ -113,15 +113,15 @@ if __name__ == "__main__":
     #                               mask_path = config.mask_path)
 
     asis_sampler = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=120, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=200, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=False, metropolis_blocks=config.blocks)
 
     asis_sampler_gibbs = ASIS(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS,
-                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=120, bins = config.bins,
+                            config.Npix, proposal_variances=config.proposal_variances_nc, n_iter=200, bins = config.bins,
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = False, bins=None, n_iter = 120)
+                                    mask_path = config.mask_path, polarization = False, bins=None, n_iter = 200)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -201,8 +201,20 @@ if __name__ == "__main__":
     print("Total time:", total_time)
     #print("Total Cpu time:",total_cpu_time)
 
-    save_path = config.scratch_path + \
-                "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+    #save_path = config.scratch_path + \
+    #            "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+
+    save_path = "test_nside_512.npy"
+
+    d = {"h_cls": np.array(h_cls_asis), "bins": config.bins, "metropolis_blocks": config.blocks,
+         "h_accept": np.array(h_accept),
+         "h_times_iteration": np.array(times_asis), "h_cpu_time": None}
+
+    np.save(save_path, d, allow_pickle=True)
+
+    l_interest = 600
+    plt.plot(h_cls_asis[:, l_interest])
+    plt.savefig("Trajectory " + str(l_interest))
 
 
     #d = {"h_cls":h_cls_asis, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":h_accept,
