@@ -73,7 +73,7 @@ def pCN_step(s_old, var_cls, d, inv_noise, beta = 0.0001):
     return s_old, 0
 
 
-def pCN_likelihood(s_old, inv_var_cls, d_alms, noise, inv_noise, beta = 0.2):
+def pCN_likelihood(s_old, inv_var_cls, d_alms, noise, inv_noise, beta = 0.9):
     sigma = 1/((1/config.noise_covar_temp)*(1/config.w)*config.bl_map**2)
     s_prop = np.sqrt(sigma)*np.random.normal(size = len(var_cls))
     s_new = np.sqrt(1-beta**2)*s_old + beta*s_prop
@@ -114,16 +114,16 @@ d_alms = utils.complex_to_real(hp.synalm(cls_TT, lmax=config.L_MAX_SCALARS))
 d = hp.alm2map(utils.real_to_complex(d_alms), lmax=config.L_MAX_SCALARS, nside=config.NSIDE)
 #d_alms = np.zeros(len(d_alms))
 #s_old = (1/(config.bl_map**2*(1/config.noise_covar_temp*config.w) + var_cls))*config.bl_map*utils.adjoint_synthesis_hp(inv_noise*d)
-mean_post = (1/(config.bl_map**2*(1/config.noise_covar_temp*config.w) + var_cls))*config.bl_map*utils.adjoint_synthesis_hp(inv_noise*d)
+mean_post = (1/(config.bl_map**2*(1/config.noise_covar_temp)*(1/config.w) + inv_var_cls))*config.bl_map*utils.adjoint_synthesis_hp(inv_noise*d)
+s_old = (1/config.bl_map)[l_interest]*d_alms[l_interest] - mean_post
 N = 1001
+h_s.append(s_old[l_interest])
 #beta = np.array([np.exp(-l/100000000) for l in range(len(inv_var_cls))])(1 - np.sqrt(1-beta**2))*sigma*config.bl_map*hp.map2alm(inv_noise*d)
 for i in range(1, N):
     print(i)
     s_old, accept = pCN_likelihood(s_old, inv_var_cls, d_alms, noise, inv_noise)
     #s_old, accept = pCN_step(s_old, var_cls, d, inv_noise, beta = 0.9)
-    #h_s.append((config.w/config.bl_map)[l_interest]*d_alms[l_interest] - s_old[l_interest])
-    print((config.w/config.bl_map)[l_interest]*d_alms[l_interest])
-    h_s.append(s_old[l_interest])
+    h_s.append((1/config.bl_map)[l_interest]*d_alms[l_interest] - s_old[l_interest])
     all_accept += accept
     print(all_accept/i)
 

@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 
 
 
-d = np.load("data/skymap.npy", allow_pickle=True)
+d = np.load("data/skymap_isotropic.npy", allow_pickle=True)
 d = d.item()
 for k in d.keys():
     print(k)
 
-d = d["pix_map"]
-
+d = d["d_"]
+print(len(d))
+print(config.Npix)
 hp.mollview(d)
 plt.show()
 

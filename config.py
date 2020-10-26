@@ -40,15 +40,15 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 512
+NSIDE = 8
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
-#mask_path = None
+#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+mask_path = None
 
 
 
@@ -73,8 +73,8 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
-#noise_covar_temp = (0.2/np.sqrt(2))**2
-noise_covar_temp = 40**2
+noise_covar_temp = (0.2/np.sqrt(2))**2
+#noise_covar_temp = 40**2
 #noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
@@ -82,7 +82,7 @@ noise_covar = noise_covar_temp
 #noise_covar_temp = 1000**2
 noise_covar_pol = 0.2**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
-#var_noise_pol = np.ones(Npix) * noise_covar_pol
+var_noise_pol = np.ones(Npix) * noise_covar_pol
 #inv_var_noise = np.ones(Npix) / noise_covar_temp
 
 l_cut = 5
@@ -92,14 +92,17 @@ bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669,
 bins = np.concatenate([np.arange(600, 636, 2), bins])
 bins = np.concatenate([range(600), bins])
 
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, 280, 20),range(280, len(bins))])
 
-blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
-blocks[0] = 2
-#blocks = list(range(2, len(bins)))
+#blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
+#blocks[0] = 2
+blocks = list(range(2, len(bins)))
+
+blocks = {"EE":blocks, "BB":blocks}
 
 
 #bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
@@ -155,8 +158,8 @@ import matplotlib.pyplot as plt
 
 # fwhm_arcmin = 180
 # fwhm_radians = (np.pi/(180*60))*fwhm_arcmin
-beam_fwhm = 0.35
-#beam_fwhm = 0.5
+#beam_fwhm = 0.35
+beam_fwhm = 0.5
 fwhm_radians = (np.pi / 180) * beam_fwhm
 bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=L_MAX_SCALARS)
 bl_map = generate_var_cl(bl_gauss)
@@ -171,8 +174,8 @@ w = 4 * np.pi / Npix
 
 def compute_init_values(unbinned_vars):
     vals = []
-    for i, l_start in enumerate(bins[:-1]):
-        l_end = bins[i+1]
+    for i, l_start in enumerate(bins["EE"][:-1]):
+        l_end = bins["EE"][i+1]
         length = l_end - l_start
         vals.append(np.mean(unbinned_vars[l_start:l_end])/length)
 
@@ -183,11 +186,13 @@ def compute_init_values(unbinned_vars):
 scale = [((l*(l+1))**2*2/(4*np.pi**2*(2*l+1))) for l in range(0, L_MAX_SCALARS+1)]
 if mask_path is None:
     unbinned_variances = (w*noise_covar_temp/bl_gauss**2)**2*scale
+    unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
 else:
     mask = hp.ud_grade(hp.read_map(mask_path), NSIDE)
     unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
 
 binned_variances = compute_init_values(unbinned_variances)
+binned_variances_pol = {"EE":compute_init_values(unbinned_variances_pol), "BB":compute_init_values(unbinned_variances_pol)}
 #binned_variances[600:-2] *= 4
 #binned_variances[-2:-1] *= 1
 #binned_variances[-1] *= 0.1
@@ -234,10 +239,8 @@ if preliminary_run:
     #starting_point[:2] = 0
 
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["BB"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["TE"] = np.ones(len(unbinned_variances)) * 60
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
     #proposal_variances_asis = binned_variances[2:]
     #proposal_variances_pncp = binned_variances[2:]
 else:

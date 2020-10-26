@@ -50,90 +50,40 @@ class CenteredClsSampler(ClsSampler):
         return sampled_dls
 
 
-alm_obj = hp.Alm()
-
 class PolarizedCenteredClsSampler(ClsSampler):
-    def sample_unbinned(self, alms):
-        alms_TT_complex = utils.real_to_complex(alms[:, 0])
-        alms_EE_complex = utils.real_to_complex(alms[:, 1])
-        alms_BB_complex = utils.real_to_complex(alms[:, 2])
-        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex], lmax=self.lmax)
 
-        sampled_power_spec = np.zeros((self.lmax+1, 3, 3))
-        for i in range(2, self.lmax+1):
-            deg_freed = 2*i-2
-            param_mat = np.zeros((2, 2))
-            param_mat[0, 0] = spec_TT[i]
-            param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
-            param_mat[1, 1] = spec_EE[i]
-            param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
-            sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
+    def sample_one_pol(self, alms_complex, pol="EE"):
+        """
+        :param alms: alm skymap of the polarization
+        :return: Sample each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
+        """
+        observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax)
+        exponent = np.array([(2 * l + 1) / 2 for l in range(self.lmax + 1)])
+        binned_betas = []
+        binned_alphas = []
+        betas = np.array([(2 * l + 1) * l * (l + 1) * (observed_Cl / (4 * np.pi)) for l, observed_Cl in
+                          enumerate(observed_Cls)])
 
-            beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
-            sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)
-            sampled_power_spec[i, :2, :2] = sampled_TT_TE_EE
-            sampled_power_spec[i, 2, 2] = sampled_BB
+        for i, l in enumerate(self.bins[pol][:-1]):
+            somme_beta = np.sum(betas[l:self.bins[pol][i + 1]])
+            somme_exponent = np.sum(exponent[l:self.bins[pol][i + 1]])
+            alpha = somme_exponent - 1
+            binned_alphas.append(alpha)
+            binned_betas.append(somme_beta)
 
-        return sampled_power_spec
+        binned_alphas[0] = 1
+        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
+        sampled_dls[:2] = 0
+        return sampled_dls
 
-    def sample_bin(self, alms):
-        alms_TT_complex = utils.real_to_complex(alms[:, 0])
-        alms_EE_complex = utils.real_to_complex(alms[:, 1])
-        alms_BB_complex = utils.real_to_complex(alms[:, 2])
-        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex],
-                                                             lmax=self.lmax)
+    def sample(self, alms):
+        alms_EE_complex = utils.real_to_complex(alms["EE"])
+        alms_BB_complex = utils.real_to_complex(alms["BB"])
 
-        rescale = np.array([(2 * i + 1) for i in range(0, config.L_MAX_SCALARS + 1)])
-        scale_mat = np.zeros((config.L_MAX_SCALARS+1, 2, 2))
-        scale_mat[:, 0, 0] = spec_TT*rescale
-        scale_mat[:, 1, 1] = spec_EE*rescale
-        scale_mat[:, 1, 0] = scale_mat[:, 0, 1] = spec_TE*rescale
-        alpha = np.array([(2*i-1)/2 for i in range(2,config.L_MAX_SCALARS+1)])
-        sampled_power_spec = np.zeros((self.lmax + 1, 3, 3))
+        binned_dls_EE = self.sample_one_pol(alms_EE_complex, "EE")
+        binned_dls_BB = self.sample_one_pol(alms_BB_complex, "BB")
 
-        beta_BB = spec_BB*rescale/2
-        sample_BB = invgamma.rvs(a=alpha, scale=beta_BB[2:])
-        sampled_power_spec[2:, 2, 2] = sample_BB
-
-        for i in self.bins["EE"]:
-            beta_EE = scale_mat[i, 1, 1]
-            cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
-            sampled_power_spec[i, 1, 1] = cl_EE
-
-        for i in self.bins["TE"]:
-            determinant = np.linalg.det(scale_mat[i, :, :])
-            student_TE = student.rvs(df=2 * i - 2)
-            cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
-                        scale_mat[i, 1, 1]
-            sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
-
-        observed_spec = np.zeros((self.lmax+1, 2, 2))
-        observed_spec[:, 0, 0] = spec_TT
-        observed_spec[:, 1, 1] = spec_EE
-        observed_spec[:,1, 0] = observed_spec[:, 0, 1] = spec_TE
-        for i,b_inf in enumerate(self.bins["TT"][:-1]):
-            b_sup = self.bins["TT"][i+1]
-            sampled_power_spec_bin = sampled_power_spec[b_inf:b_sup, :, :]
-            observed_spec_bin = observed_spec[b_inf:b_sup, :, :]
-
-            def log_density_TT(x):
-                det = sampled_power_spec_bin[:, 0, 0]*sampled_power_spec_bin[:, 1, 1] - sampled_power_spec_bin[:, 1, 0]*sampled_power_spec_bin[:, 0, 1]
-                second_term = -(1/(det*2))*(observed_spec_bin[:, 0, 0]*sampled_power_spec_bin[:, 1, 1] - observed_spec_bin[:, 0, 1]*sampled_power_spec_bin[:, 0, 1] \
-                - observed_spec_bin[:, 1, 0]*sampled_power_spec_bin[:, 1, 0] + observed_spec_bin[:, 1, 1]*sampled_power_spec_bin[:, 0, 0])
-                first_term = -((2*np.range(b_inf, b_sup)+1)/2)*np.log(det)
-                return np.sum(first_term + second_term)
-
-
-
-
-
-        return sampled_power_spec
-
-    def sample(self, alm_map):
-        if False:
-            return self.sample_unbinned(alm_map)
-        else:
-            return self.sample_bin(alm_map)
+        return {"EE":binned_dls_EE, "BB":binned_dls_BB}
 
 
 
@@ -308,7 +258,7 @@ def matrix_product(dls_, b):
 
     return result
 
-#@njit(parallel=False)
+
 def compute_inverse_and_cholesky(all_cls, pix_part_variance):
     inv_cls = np.zeros((len(all_cls), 3, 3))
     chol_cls = np.zeros((len(all_cls), 3, 3))
@@ -330,12 +280,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
-        self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
+        #self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
 
         self.bl_fwhm = bl_fwhm
-
+    """
     def sample(self, all_dls):
         start = time.time()
         rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
@@ -359,6 +309,35 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         time_to_solution = time.time() - start
         err = 0
         return map, time_to_solution, err
+    """
+    def sample_no_mask(self, all_dls):
+        var_cls_E = utils.generate_var_cl(all_dls["EE"])
+        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0]
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0]
+
+        sigma_E = 1/((self.Npix/(self.noise_pol[0]*4*np.pi))*self.bl_map**2 + inv_var_cls_E)
+        sigma_B = 1/((self.Npix/(self.noise_pol[0]*4*np.pi))*self.bl_map**2 + inv_var_cls_B)
+
+        _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
+                       lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
+        r_E = self.bl_map * utils.complex_to_real(r_E)
+        r_B = self.bl_map * utils.complex_to_real(r_B)
+        mean_E = sigma_E*r_E
+        mean_B = sigma_B*r_B
+
+        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E)
+        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
+
+        return {"EE":alms_E,"BB": alms_B}, 0
+
+    def sample(self, all_dls):
+        return self.sample_no_mask(all_dls)
+
 
 
 
@@ -372,5 +351,5 @@ class CenteredGibbs(GibbsSampler):
                                                                       isotropic=True)
             self.cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
         else:
-            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
+            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
