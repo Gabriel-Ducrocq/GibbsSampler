@@ -81,6 +81,7 @@ noise_covar = noise_covar_temp
 #noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
 noise_covar_pol = 0.2**2
+#noise_covar_pol = 0
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 #inv_var_noise = np.ones(Npix) / noise_covar_temp
@@ -100,7 +101,7 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_S
 
 #blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
 #blocks[0] = 2
-blocks = list(range(2, len(bins)))
+blocks = list(range(2, len(bins["EE"])))
 
 blocks = {"EE":blocks, "BB":blocks}
 
@@ -239,8 +240,8 @@ if preliminary_run:
     #starting_point[:2] = 0
 
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]*10000000000
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]*10000000000
     #proposal_variances_asis = binned_variances[2:]
     #proposal_variances_pncp = binned_variances[2:]
 else:

@@ -846,17 +846,19 @@ def trace_likelihood_binned(h_cl, d, l, maximum, dl=True):
 
 
 
-def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
+def trace_likelihood_pol_binned_bis(h_cl, d_all, l, maximum, pol = "EE", dl=True):
     l_start, l_end = config.bins[pol][l], config.bins[pol][l + 1]
     scale_dl = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)])
     if not dl:
         scale_dl = np.ones(len(scale_dl))
 
-    _, power_spec_EE, power_spec_BB, _, _, _ = hp.anafast([np.zeros(config.Npix), d_all["Q"], d_all["U"]], lmax=config.L_MAX_SCALARS, pol=True)
+    #_, power_spec_EE, power_spec_BB, _, _, _ = hp.anafast([np.zeros(config.Npix), d_all["Q"], d_all["U"]], lmax=config.L_MAX_SCALARS, pol=True)
     if pol == "EE":
-        power_spec = power_spec_EE
+        #power_spec = power_spec_EE
+        power_spec = hp.alm2cl(real_to_complex(d_all["EE"]), lmax=config.L_MAX_SCALARS)
     else:
-        power_spec = power_spec_BB
+        #power_spec = power_spec_BB
+        power_spec = hp.alm2cl(real_to_complex(d_all["BB"]), lmax=config.L_MAX_SCALARS)
 
     observed_cls = power_spec * scale_dl / config.bl_gauss ** 2
 
@@ -888,3 +890,45 @@ def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
 
     return np.array(y), xs, norm
 
+
+def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
+    l_start, l_end = config.bins[pol][l], config.bins[pol][l + 1]
+    scale_dl = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)])
+    if not dl:
+        scale_dl = np.ones(len(scale_dl))
+
+    _, power_spec_EE, power_spec_BB, _, _, _ = hp.anafast([np.zeros(config.Npix), d_all["Q"], d_all["U"]], lmax=config.L_MAX_SCALARS, pol=True)
+    if pol == "EE":
+        power_spec = power_spec_EE
+    else:
+        power_spec = power_spec_BB
+
+    observed_cls = power_spec * scale_dl / config.bl_gauss ** 2
+
+    scale_betas = [(2 * l + 1) / 2 for l in range(config.L_MAX_SCALARS + 1)]
+    alphas = [(2 * l - 1) / 2 for l in range(config.L_MAX_SCALARS + 1)]
+    betas = observed_cls * scale_betas
+    locs = -((4 * np.pi / config.Npix) * config.noise_covar_pol / config.bl_gauss ** 2) * scale_dl
+    denoms_factors = [(config.bl_gauss[l] ** 2) for l in range(config.L_MAX_SCALARS + 1)]
+    if not dl:
+        denoms_factors = np.ones(len(denoms_factors))
+
+    norm, err = scipy.integrate.quad(compute_binned_likelihood, a=0, b=np.inf,
+                                     args=(alphas[l_start:l_end], betas[l_start:l_end],
+                                           locs[l_start:l_end], denoms_factors[l_start:l_end]))
+
+    y = []
+    maxi = np.max(h_cl[:, l])
+    maxi = maximum/100
+    steps = maxi / 100000
+    print("MAXI:", maxi)
+    xs = np.arange(0, maxi, steps)
+    # xs = np.arange(0, 5 ,0.01)
+    print("MAX RANGE")
+    print(np.max(h_cl))
+    for x in xs:
+        res = compute_binned_likelihood(x, alphas[l_start:l_end], betas[l_start:l_end], locs[l_start:l_end],
+                                        denoms_factors[l_start:l_end])
+        y.append(res)
+
+    return np.array(y), xs, norm

@@ -104,14 +104,14 @@ def compute_sigma_and_chol(all_chol_cls, pix_part_variance):
 
 class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
-        super().__init__(pix_map, noise_temp, bl_map, lmax, Npix, isotropic=True)
+        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, isotropic=True)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
-        self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
+        #self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
 
         self.bl_fwhm = bl_fwhm
         self.pol_centered_constraint_realizer = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
@@ -127,11 +127,15 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
         inv_var_cls_B = np.zeros(len(var_cls_B))
         inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0]
 
-        sigma_E = 1/(1 + self.inv_noise_pol*self.bl_map**2*var_cls_E*self.Npix/(4*np.pi))
-        sigma_B = 1/(1 + self.inv_noise_pol * self.bl_map ** 2 * var_cls_B * self.Npix / (4 * np.pi))
+        sigma_E = 1/(1 + self.inv_noise_pol[0]*self.bl_map**2*var_cls_E*self.Npix/(4*np.pi))
+        sigma_B = 1/(1 + self.inv_noise_pol[0] * self.bl_map ** 2 * var_cls_B * self.Npix / (4 * np.pi))
 
-        r_E = np.sqrt(var_cls_E)*self.bl_map*utils.adjoint_synthesis_hp(self.inv_noise*self.pix_map["EE"])
-        r_B = np.sqrt(var_cls_B) * self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map["BB"])
+
+        _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
+                       lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
+
+        r_E = np.sqrt(var_cls_E)*self.bl_map* utils.complex_to_real(r_E)
+        r_B = np.sqrt(var_cls_B) * self.bl_map * utils.complex_to_real(r_B)
 
         mean_E = sigma_E*r_E
         mean_B = sigma_B*r_B
@@ -267,7 +271,7 @@ class NonCenteredClsSampler(MHClsSampler):
 
 class PolarizationNonCenteredClsSampler(MHClsSampler):
     def __init__(self, pix_map, lmax, nside, bins, bl_map, noise_I, noise_Q, metropolis_blocks, proposal_variances, n_iter = 1, polarization=True):
-        super().__init__(pix_map, lmax, bins, bl_map, noise_I, metropolis_blocks, proposal_variances, n_iter = n_iter,
+        super().__init__(pix_map, lmax, nside, bins, bl_map, noise_I, metropolis_blocks, proposal_variances, n_iter = n_iter,
                        polarization=polarization)
         self.nside=nside
         self.noise_temp = noise_I
@@ -303,13 +307,14 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         return np.sum(probas_EE) + np.sum(probas_bb)
 
     def compute_log_likelihood(self, dls, s_nonCentered):
-        all_dls = {"EE":utils.unfold_bins(dls, self.bins["EE"]), "BB":utils.unfold_bins(dls, self.bins["BB"])}
+        all_dls = {"EE":utils.unfold_bins(dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(dls["BB"], self.bins["BB"])}
         var_cls_E = utils.generate_var_cl(all_dls["EE"])
         var_cls_B = utils.generate_var_cl(all_dls["BB"])
-        alm_E_centered = np.sqrt(var_cls_E)*s_nonCentered["EE"]
-        alm_B_centered = np.sqrt(var_cls_B)*s_nonCentered["BB"]
+        alm_E_centered = utils.real_to_complex(np.sqrt(var_cls_E)*s_nonCentered["EE"])
+        alm_B_centered = utils.real_to_complex(np.sqrt(var_cls_B)*s_nonCentered["BB"])
 
-        _, map_Q, map_U = hp.alm2map([np.zeros(len(alm_B_centered)), alm_E_centered,alm_B_centered],lmax=self.lmax, nside=self.nside, pol=True)
+        _, map_Q, map_U = hp.alm2map([utils.real_to_complex(np.zeros(len(var_cls_E))), alm_E_centered,alm_B_centered]
+                                     ,lmax=self.lmax, nside=self.nside, pol=True)
 
         return - (1 / 2) * np.sum(
             ((self.pix_map["Q"] - map_Q)** 2)*self.inv_noise_pol) - (1 / 2) * np.sum(
@@ -332,13 +337,14 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
         and dipole
         """
+
         accept = []
         old_lik = self.compute_log_likelihood(dls_old, alm_map_non_centered)
         for pol in ["EE", "BB"]:
             for i, l_start in enumerate(self.metropolis_blocks[pol][:-1]):
                 l_end = self.metropolis_blocks[pol][i + 1]
                 for _ in range(self.n_iter):
-                    dls_new_block = self.propose_cl(dls_old, l_start, l_end)
+                    dls_new_block = self.propose_dl(dls_old, l_start, l_end, pol)
                     dls_new = dls_old.copy()
                     dls_new[pol][l_start:l_end] = dls_new_block
 
@@ -351,6 +357,8 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
                         accept.append(1)
                     else:
                         accept.append(0)
+
+
 
         return dls_old, accept
 
@@ -370,6 +378,7 @@ class NonCenteredGibbs(GibbsSampler):
                                                                                   self.bl_map, lmax, Npix, beam, isotropic=True)
             self.cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis)
+
 
 
     def run_temperature(self, dl_init):
@@ -410,28 +419,32 @@ class NonCenteredGibbs(GibbsSampler):
         h_time_seconds = []
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
-        skymap, accept = self.constrained_sampler.sample(dls_unbinned)
-        h_dls["EE"].append(binned_dls["EE"])
-        h_dls["BB"].append(binned_dls["BB"])
+        skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
+        h_dls["EE"].append(binned_dls["EE"].copy())
+        h_dls["BB"].append(binned_dls["BB"].copy())
         for i in range(self.n_iter):
             if i % 100== 0:
                 print("Non centered gibbs")
                 print(i)
 
             start_time = time.process_time()
-            s_nonCentered, accept = self.constrained_sampler.sample(dls_unbinned)
-            binned_dls, var_cls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
-            dls_unbinned = utils.unfold_bins(binned_dls, self.bins)
+            s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned.copy())
+            binned_dls, accept = self.cls_sampler.sample(s_nonCentered.copy(), binned_dls.copy())
+            dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"].copy())
+            dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"].copy())
             total_accept.append(accept)
 
             end_time = time.process_time()
-            h_dls["EE"].append(binned_dls["EE"])
-            h_dls["BB"].append(binned_dls["BB"])
+            h_dls["EE"].append(binned_dls["EE"].copy())
+            h_dls["BB"].append(binned_dls["BB"].copy())
             h_time_seconds.append(end_time - start_time)
 
         total_accept = np.array(total_accept)
         print("Non centered acceptance rate:")
         print(np.mean(total_accept, axis=0))
+
+        h_dls["EE"] = np.array(h_dls["EE"])
+        h_dls["BB"] = np.array(h_dls["BB"])
 
         return h_dls, total_accept, np.array(h_time_seconds)
 

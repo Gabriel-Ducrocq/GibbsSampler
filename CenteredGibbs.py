@@ -320,11 +320,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         inv_var_cls_B = np.zeros(len(var_cls_B))
         inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0]
 
-        sigma_E = 1/((self.Npix/(self.noise_pol[0]*4*np.pi))*self.bl_map**2 + inv_var_cls_E)
-        sigma_B = 1/((self.Npix/(self.noise_pol[0]*4*np.pi))*self.bl_map**2 + inv_var_cls_B)
+        sigma_E = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E )
+        sigma_B = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B )
 
         _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
                        lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
+
         r_E = self.bl_map * utils.complex_to_real(r_E)
         r_B = self.bl_map * utils.complex_to_real(r_B)
         mean_E = sigma_E*r_E
