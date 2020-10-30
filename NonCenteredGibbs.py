@@ -81,8 +81,7 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
                 return s_old, 0
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False):
-        #if self.mask_path is not None:
-        if True:
+        if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
             return self.sample_no_mask(cls_, var_cls)
@@ -134,7 +133,7 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
         _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
                        lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
 
-        r_E = np.sqrt(var_cls_E)*self.bl_map* utils.complex_to_real(r_E)
+        r_E = np.sqrt(var_cls_E) * self.bl_map * utils.complex_to_real(r_E)
         r_B = np.sqrt(var_cls_B) * self.bl_map * utils.complex_to_real(r_B)
 
         mean_E = sigma_E*r_E
@@ -296,35 +295,38 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
     def compute_log_proposal(self, dl_old, dl_new, l_start, l_end):
     ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
-        clip_low_EE = -dl_old["EE"][l_start:l_end] / np.sqrt(self.proposal_variances["EE"][l_start - 2:l_end - 2])
-        probas_EE = truncnorm.logpdf(dl_new["EE"][l_start:l_end], a=clip_low_EE, b=np.inf, loc=dl_old["EE"][l_start:l_end],
-                                 scale=np.sqrt(self.proposal_variances["EE"][l_start - 2:l_end - 2]))
+        clip_low_EE = -dl_old["EE"][2:] / np.sqrt(self.proposal_variances["EE"])
+        probas_EE =  np.concatenate([np.zeros(2), truncnorm.logpdf(dl_new["EE"][2:], a=clip_low_EE, b=np.inf, loc=dl_old["EE"][2:],
+                                                         scale=np.sqrt(self.proposal_variances["EE"]))])
 
-        clip_low_BB = -dl_old["EE"][l_start:l_end]/np.sqrt(self.proposal_variances["BB"][l_start - 2:l_end - 2])
-        probas_bb = truncnorm.logpdf(dl_new["BB"][l_start:l_end], a=clip_low_BB, b=np.inf, loc=dl_old["BB"][l_start:l_end],
-                                 scale=np.sqrt(self.proposal_variances["BB"][l_start - 2:l_end - 2]))
+        clip_low_BB = -dl_old["BB"][2:] / np.sqrt(self.proposal_variances["BB"])
+        probas_BB = np.concatenate(
+        [np.zeros(2), truncnorm.logpdf(dl_new["BB"][2:], a=clip_low_BB, b=np.inf, loc=dl_old["BB"][2:],
+                                       scale=np.sqrt(self.proposal_variances["BB"]))])
 
-        return np.sum(probas_EE) + np.sum(probas_bb)
+        return np.sum(probas_EE) + np.sum(probas_BB)
 
     def compute_log_likelihood(self, dls, s_nonCentered):
         all_dls = {"EE":utils.unfold_bins(dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(dls["BB"], self.bins["BB"])}
         var_cls_E = utils.generate_var_cl(all_dls["EE"])
         var_cls_B = utils.generate_var_cl(all_dls["BB"])
-        alm_E_centered = utils.real_to_complex(np.sqrt(var_cls_E)*s_nonCentered["EE"])
-        alm_B_centered = utils.real_to_complex(np.sqrt(var_cls_B)*s_nonCentered["BB"])
+        alm_E_centered = utils.real_to_complex(self.bl_map*np.sqrt(var_cls_E)*s_nonCentered["EE"])
+        alm_B_centered = utils.real_to_complex(self.bl_map*np.sqrt(var_cls_B)*s_nonCentered["BB"])
 
         _, map_Q, map_U = hp.alm2map([utils.real_to_complex(np.zeros(len(var_cls_E))), alm_E_centered,alm_B_centered]
                                      ,lmax=self.lmax, nside=self.nside, pol=True)
 
-        return - (1 / 2) * np.sum(
-            ((self.pix_map["Q"] - map_Q)** 2)*self.inv_noise_pol) - (1 / 2) * np.sum(
-            ((self.pix_map["U"] - map_U)** 2)*self.inv_noise_pol)
+        #return - (1 / 2) * np.sum(
+        #    ((self.pix_map["Q"] - map_Q)** 2)*self.inv_noise_pol) - (1 / 2) * np.sum(
+        #    ((self.pix_map["U"] - map_U)** 2)*self.inv_noise_pol)
+
+        return -(1/2)*np.sum((self.pix_map["Q"] - map_Q + self.pix_map["U"] - map_U)**2*self.inv_noise_pol)
 
     def compute_log_MH_ratio(self, dls_old, dls_new, s_nonCentered, l_start, l_end, old_lik):
-        new_lik = self.compute_log_likelihood(dls_new, s_nonCentered)
+        new_lik = self.compute_log_likelihood(dls_new.copy(), s_nonCentered.copy())
         part1 = new_lik - old_lik
-        part2 = self.compute_log_proposal(dls_new, dls_old, l_start, l_end) - self.compute_log_proposal(dls_old,
-                                                                                            dls_new, l_start, l_end)
+        part2 = self.compute_log_proposal(dls_new.copy(), dls_old.copy(), l_start, l_end) - self.compute_log_proposal(dls_old.copy(),
+                                                                                            dls_new.copy(), l_start, l_end)
         return part1 + part2, new_lik
 
     def sample(self, alm_map_non_centered, dls_old):
@@ -339,21 +341,21 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         """
 
         accept = []
-        old_lik = self.compute_log_likelihood(dls_old, alm_map_non_centered)
+        old_lik = self.compute_log_likelihood(dls_old.copy(), alm_map_non_centered.copy())
         for pol in ["EE", "BB"]:
             for i, l_start in enumerate(self.metropolis_blocks[pol][:-1]):
                 l_end = self.metropolis_blocks[pol][i + 1]
                 for _ in range(self.n_iter):
-                    dls_new_block = self.propose_dl(dls_old, l_start, l_end, pol)
+                    dls_new_block = self.propose_dl(dls_old.copy(), l_start, l_end, pol)
                     dls_new = dls_old.copy()
-                    dls_new[pol][l_start:l_end] = dls_new_block
+                    dls_new[pol][l_start:l_end] = dls_new_block.copy()
 
-                    log_r, new_lik = self.compute_log_MH_ratio(dls_old, dls_new,
-                                                      alm_map_non_centered, l_start, l_end, old_lik)
+                    log_r, new_lik = self.compute_log_MH_ratio(dls_old.copy(), dls_new.copy(),
+                                                      alm_map_non_centered.copy(), l_start, l_end, old_lik)
 
                     if np.log(np.random.uniform()) < log_r:
                         dls_old = dls_new.copy()
-                        old_lik = new_lik
+                        old_lik = new_lik.copy()
                         accept.append(1)
                     else:
                         accept.append(0)

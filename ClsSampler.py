@@ -14,7 +14,7 @@ class ClsSampler():
         self.pix_map = pix_map
         self.bl_map = bl_map
         self.noise = noise
-        #self.inv_noise = 1/noise
+        self.inv_noise = 1/noise
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
             self.inv_noise *= self.mask

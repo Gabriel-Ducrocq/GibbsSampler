@@ -73,14 +73,14 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
-noise_covar_temp = (0.2/np.sqrt(2))**2
-#noise_covar_temp = 40**2
+#noise_covar_temp = (0.2/np.sqrt(2))**2
+noise_covar_temp = 400**2
 #noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
 #noise_covar_pol = 0.00044**2
 #noise_covar_temp = 1000**2
-noise_covar_pol = 0.2**2
+noise_covar_pol = 2**2
 #noise_covar_pol = 0
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
@@ -88,22 +88,23 @@ var_noise_pol = np.ones(Npix) * noise_covar_pol
 
 l_cut = 5
 print("L_CUT")
-bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
-          800, 850, 1001])
-bins = np.concatenate([np.arange(600, 636, 2), bins])
-bins = np.concatenate([range(600), bins])
+#bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
+#          800, 850, 1001])
+#bins = np.concatenate([np.arange(600, 636, 2), bins])
+#bins = np.concatenate([range(600), bins])
 
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
-#bins = np.array(range(L_MAX_SCALARS+1+1))
+bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, 280, 20),range(280, len(bins))])
 
 #blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
 #blocks[0] = 2
-blocks = list(range(2, len(bins["EE"])))
+#blocks = list(range(2, len(bins["EE"])))
+blocks = list(range(2, len(bins)))
 
-blocks = {"EE":blocks, "BB":blocks}
+#blocks = {"EE":blocks, "BB":blocks}
 
 
 #bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
@@ -173,7 +174,7 @@ bl_map = generate_var_cl(bl_gauss)
 # d_ = data["d_"]
 w = 4 * np.pi / Npix
 
-def compute_init_values(unbinned_vars):
+def compute_init_values_pol(unbinned_vars):
     vals = []
     for i, l_start in enumerate(bins["EE"][:-1]):
         l_end = bins["EE"][i+1]
@@ -182,6 +183,15 @@ def compute_init_values(unbinned_vars):
 
     return np.array(vals)
 
+
+def compute_init_values(unbinned_vars):
+    vals = []
+    for i, l_start in enumerate(bins[:-1]):
+        l_end = bins[i+1]
+        length = l_end - l_start
+        vals.append(np.mean(unbinned_vars[l_start:l_end])/length)
+
+    return np.array(vals)
 
 
 scale = [((l*(l+1))**2*2/(4*np.pi**2*(2*l+1))) for l in range(0, L_MAX_SCALARS+1)]
@@ -229,7 +239,7 @@ def get_proposal_variances_preliminary(path):
 
 preliminary_run =True
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
+    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
     #proposal_variances_nc[-8:-3] = proposal_variances_nc[-8:-3]*0.7
     #proposal_variances_nc[-35:-16] = proposal_variances_nc[-35:-16]*1.5
