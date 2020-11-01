@@ -641,12 +641,13 @@ def remove_monopole_dipole_contributions(alms):
     return alms
 
 def adjoint_synthesis_hp(map, bl_map=None):
-    alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
-    if len(alms.shape) == 1:
+    if len(map) == 1:
+        alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
         alms = remove_monopole_dipole_contributions(complex_to_real(alms))
         alms *= config.rescaling_map2alm
         return alms
     else:
+        alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3, pol=True)
         alms_T, alms_E, alms_B = alms
         alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm
         alms_E = remove_monopole_dipole_contributions(complex_to_real(alms_E))*config.rescaling_map2alm
@@ -919,7 +920,7 @@ def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
 
     y = []
     maxi = np.max(h_cl[:, l])
-    maxi = maximum/100
+    #maxi = maximum
     steps = maxi / 100000
     print("MAXI:", maxi)
     xs = np.arange(0, maxi, steps)
@@ -932,3 +933,45 @@ def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
         y.append(res)
 
     return np.array(y), xs, norm
+
+
+
+def compute_log_nc(x, pow_spec, l, s_nonCentered, v):
+    dls= np.zeros(config.L_MAX_SCALARS+1)
+    dls[l] = x
+    var_cls = generate_var_cl(dls)
+    mean_term = np.sum(np.sqrt(var_cls)*s_nonCentered*v)
+
+
+    #return np.exp(-((2 * l + 1) / 2)*((2*np.pi)/(l*(l+1))) * (pow_spec[l] * config.bl_gauss[l] ** 2 / (config.noise_covar_pol * config.w)) * x +
+    #              np.sqrt(2*np.pi/(l*(l+1)))*np.sqrt(x)*mean_term)
+    return np.exp(-((2 * l + 1) / 2)*((2*np.pi)/(l*(l+1))) * (pow_spec[l] * config.bl_gauss[l] ** 2 / (config.noise_covar_pol * config.w)) * x +
+                  mean_term)
+
+def conditionnal_nc(s_nonCentered, l, h, pol, pix_map):
+    _, alm_E, alm_B = adjoint_synthesis_hp([np.zeros(len(pix_map["Q"])), pix_map["Q"]/config.noise_covar_pol,pix_map["U"]/config.noise_covar_pol],
+               bl_map = config.bl_map)
+
+    if pol == "EE":
+        v = alm_E
+    else:
+        v = alm_B
+
+    #indexes = np.array([hp.Alm.getidx(config.L_MAX_SCALARS,l ,m) for m in range(l+1)])
+    s = s_nonCentered[pol]
+    #product = real_to_complex(s*v)
+    #product = product[indexes]
+    #mean_term = product[0].real + (1/np.sqrt(2))* np.sum(product[1:].real + product[1:].imag)
+
+    max = np.max(h)
+    x = np.arange(0, max, 0.001)
+    pow_spec = hp.alm2cl(real_to_complex(s_nonCentered[pol]), lmax=config.L_MAX_SCALARS)
+
+
+    norm, err = scipy.integrate.quad(compute_log_nc, a=0, b=np.inf,
+                                     args=(pow_spec,l, s, v))
+    #return np.exp(-((2*l+1)/2)*((2*np.pi)/(l*(l+1)))*(pow_spec[l]*config.bl_gauss[l]**2/(config.noise_covar_pol*config.w))*x
+    #                + np.sqrt(2*np.pi/(l*(l+1)))*np.sqrt(x)*mean_term), x, norm
+
+    res = np.array([compute_log_nc(xx, pow_spec, l, s, v) for xx in x])
+    return res, x, norm

@@ -101,6 +101,10 @@ if __name__ == "__main__":
     plt.title("TE")
     plt.show()
 
+    pix_map["T"] = np.zeros(len(pix_map["Q"]))
+    pix_map["Q"] = np.zeros(len(pix_map["Q"]))
+    pix_map["U"] = np.zeros(len(pix_map["U"]))
+
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
@@ -108,7 +112,7 @@ if __name__ == "__main__":
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
