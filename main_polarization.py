@@ -101,9 +101,6 @@ if __name__ == "__main__":
     plt.title("TE")
     plt.show()
 
-    pix_map["T"] = np.zeros(len(pix_map["Q"]))
-    pix_map["Q"] = np.zeros(len(pix_map["Q"]))
-    pix_map["U"] = np.zeros(len(pix_map["U"]))
 
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
@@ -138,6 +135,8 @@ if __name__ == "__main__":
         cls_init_E_binned[:2] = 0
         cls_init_B_binned[:2] = 0
         starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
+        rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+        starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
         #starting_point = config.starting_point
     else:
         starting_point = config.starting_point

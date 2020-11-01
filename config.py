@@ -253,8 +253,8 @@ if preliminary_run:
     proposal_variances_nc_polarized = {}
     #proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]*1
     #proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]*1
-    proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.00007
-    proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.00007
+    proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.5
+    proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.1
     #proposal_variances_asis = binned_variances[2:]
     #proposal_variances_pncp = binned_variances[2:]
 else:

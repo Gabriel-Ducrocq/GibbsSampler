@@ -14,6 +14,7 @@ from CenteredGibbs import PolarizedCenteredConstrainedRealization
 import qcinv
 from oldNonCenteredGibbs import *
 from scipy.stats import norm
+from copy import deepcopy
 
 
 
@@ -306,6 +307,21 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         return {"EE":dls_EE, "BB":dls_BB}
 
 
+    def propose_dl_by_l(self, dls_old, l_start, l_end, pol):
+        clip_low = -dls_old[pol][l_start:l_end] / np.sqrt(self.proposal_variances[pol][l_start-2: l_end-2])
+        dls = truncnorm.rvs(a=clip_low, b=np.inf, loc=dls_old[pol][l_start:l_end],
+                             scale=np.sqrt(self.proposal_variances[pol][l_start-2:l_end-2]))
+
+        return dls
+
+    def compute_log_proposal_by_l(self, dls_old, dls_new, l_start, l_end, pol):
+        clip_low = -dls_old[pol][l_start:l_end] / np.sqrt(self.proposal_variances[pol][l_start-2: l_end-2])
+        proba= truncnorm.logpdf(dls_new[pol][l_start:l_end], a=clip_low, b=np.inf,
+                                                                 loc=dls_old[pol][l_start:l_end],
+                                                             scale=np.sqrt(self.proposal_variances[pol][l_start-2:l_end-2]))
+
+        return proba
+
     def propose_dl_bis(self, dls_old):
         """
 
@@ -391,7 +407,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         part2 = log_r_ratio
         return part1 + part2, new_lik
 
-    def sample_bis(self, s_nonCentered, binned_dls_old):
+    def sample(self, s_nonCentered, binned_dls_old):
         """
         :param binned_dls_old: binned power spectrum, including monopole and dipole
         :param var_cls_old: variance associated to this power spectrum, including monopole and dipole
@@ -402,25 +418,24 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         and dipole
         """
         accept = []
-        binned_dls_propose = self.propose_dl(binned_dls_old.copy())
-        log_prop_num = self.compute_log_proposal(binned_dls_propose.copy(), binned_dls_old.copy())
-        log_prop_denom = self.compute_log_proposal(binned_dls_old.copy(), binned_dls_propose.copy())
+        binned_dls_propose = self.propose_dl(binned_dls_old)
+        log_prop_num = self.compute_log_proposal(binned_dls_propose, binned_dls_old)
+        log_prop_denom = self.compute_log_proposal(binned_dls_old, binned_dls_propose)
         log_r_proposal_all = {"EE": log_prop_num["EE"] - log_prop_denom["EE"], "BB":log_prop_num["BB"] - log_prop_denom["BB"]}
-        old_lik = self.compute_log_likelihood(binned_dls_old.copy(), s_nonCentered.copy())
+        old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
         for pol in ["EE", "BB"]:
             for i, l_start in enumerate(self.metropolis_blocks[pol][:-1]):
                 l_end = self.metropolis_blocks[pol][i + 1]
 
                 for _ in range(self.n_iter):
                     ###Be careful, the monopole and dipole are not included in the log_r_prior
-                    binned_dls_new = binned_dls_old.copy()
+                    binned_dls_new = deepcopy(binned_dls_old)
                     binned_dls_new[pol][l_start:l_end] = binned_dls_propose[pol][l_start:l_end].copy()
-                    log_r_all = np.sum(log_r_proposal_all[pol][l_start:l_end].copy())
-                    log_r, new_lik = self.compute_log_MH_ratio(log_r_all.copy(), binned_dls_new.copy(),
-                                                               s_nonCentered.copy(), old_lik.copy())
+                    log_r_all = np.sum(log_r_proposal_all[pol][l_start:l_end])
+                    log_r, new_lik = self.compute_log_MH_ratio(log_r_all, binned_dls_new, s_nonCentered, old_lik)
                     if np.log(np.random.uniform()) < log_r:
-                        binned_dls_old = binned_dls_new.copy()
-                        old_lik = new_lik.copy()
+                        binned_dls_old = deepcopy(binned_dls_new)
+                        old_lik = new_lik
                         accept.append(1)
                     else:
                         accept.append(0)
@@ -428,18 +443,64 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
         return binned_dls_old, accept
 
-    def sample(self, s_nonCentered, binned_dls_old):
+    def sample_bis(self, s_nonCentered, binned_dls_old):
         binned_dls_propose = self.propose_dl(binned_dls_old.copy())
         log_prop_num = self.compute_log_proposal(binned_dls_propose.copy(), binned_dls_old.copy())
         log_prop_denom = self.compute_log_proposal(binned_dls_old.copy(), binned_dls_propose.copy())
         old_lik = self.compute_log_likelihood(binned_dls_old.copy(), s_nonCentered.copy())
-        new_lik = self.compute_log_likelihood(binned_dls_propose.copy(), s_nonCentered.copy())
-        log_r = new_lik - old_lik + np.sum(log_prop_num["EE"] - log_prop_denom["EE"] + log_prop_num["BB"] - log_prop_denom["BB"])
+        log_r_ratio = np.sum(log_prop_num["EE"] - log_prop_denom["EE"] + log_prop_num["BB"] - log_prop_denom["BB"])
+
+        log_r, new_lik = self.compute_log_MH_ratio(log_r_ratio, binned_dls_propose, s_nonCentered, old_lik)
 
         if np.log(np.random.uniform()) < log_r:
             return binned_dls_propose, 1
 
         return binned_dls_old, 0
+
+
+    def sample_bis(self, s_nonCentered, binned_dls_old):
+        accept = []
+
+        for i, l_start in enumerate(self.metropolis_blocks["EE"][:-1]):
+            l_end = self.metropolis_blocks["EE"][i+1]
+
+            binned_dls_propose = self.propose_dl(deepcopy(binned_dls_old))
+            binned_dls_new = deepcopy(binned_dls_old)
+            binned_dls_new["EE"][l_start:l_end] = binned_dls_propose["EE"][l_start:l_end].copy()
+
+            log_prop_num = self.compute_log_proposal(deepcopy(binned_dls_new), deepcopy(binned_dls_old))
+            log_prop_denom = self.compute_log_proposal(deepcopy(binned_dls_old), deepcopy(binned_dls_new))
+            old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
+            new_lik = self.compute_log_likelihood(binned_dls_new, s_nonCentered)
+            log_r_ratio_EE = np.sum(log_prop_num["EE"] - log_prop_denom["EE"])
+
+            log_r = new_lik - old_lik + log_r_ratio_EE
+            if np.log(np.random.uniform()) < log_r:
+                accept.append(1)
+                binned_dls_old = deepcopy(binned_dls_new)
+            else:
+                accept.append(0)
+
+        binned_dls_propose = self.propose_dl(binned_dls_old.copy())
+        binned_dls_new = binned_dls_old.copy()
+        binned_dls_new["BB"] = binned_dls_propose["BB"]
+
+        log_prop_num = self.compute_log_proposal(binned_dls_new.copy(), binned_dls_old.copy())
+        log_prop_denom = self.compute_log_proposal(binned_dls_old.copy(), binned_dls_new.copy())
+        old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
+        new_lik = self.compute_log_likelihood(binned_dls_new, s_nonCentered)
+        log_r_ratio_BB = np.sum(log_prop_num["BB"] - log_prop_denom["BB"])
+
+        log_r = new_lik - old_lik + log_r_ratio_BB
+        if np.log(np.random.uniform()) < log_r:
+            accept.append(1)
+            binned_dls_old = binned_dls_new.copy()
+        else:
+            accept.append(0)
+
+        return binned_dls_old, accept
+
+
 
 
 
@@ -520,25 +581,25 @@ class NonCenteredGibbs(GibbsSampler):
         h_dls = {"EE":[], "BB":[]}
         h_time_seconds = []
         binned_dls = dls_init
-        dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
+        dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
         #skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
-        h_dls["EE"].append(binned_dls["EE"].copy())
-        h_dls["BB"].append(binned_dls["BB"].copy())
+        h_dls["EE"].append(binned_dls["EE"])
+        h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
             if i % 100== 0:
                 print("Non centered gibbs")
                 print(i)
 
             start_time = time.process_time()
-            s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned.copy())
-            binned_dls, accept = self.cls_sampler.sample(s_nonCentered.copy(), binned_dls.copy())
-            dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"].copy())
-            dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"].copy())
+            s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned)
+            binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
+            dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"])
+            dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])
             total_accept.append(accept)
 
             end_time = time.process_time()
-            h_dls["EE"].append(binned_dls["EE"].copy())
-            h_dls["BB"].append(binned_dls["BB"].copy())
+            h_dls["EE"].append(binned_dls["EE"])
+            h_dls["BB"].append(binned_dls["BB"])
             h_time_seconds.append(end_time - start_time)
 
         total_accept = np.array(total_accept)

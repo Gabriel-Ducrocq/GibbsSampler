@@ -75,6 +75,8 @@ for _, pol in enumerate(["EE", "BB"]):
 
 """
 all_dls = {"EE":np.ones(lmax+1)*0.1, "BB":np.ones(lmax+1)*0.1}
+all_dls["EE"][:2] = 0
+all_dls["BB"][:2] = 0
 h_dls = {"EE":[], "BB":[]}
 h_dls["EE"].append(all_dls["EE"].copy())
 h_dls["BB"].append(all_dls["BB"].copy())
