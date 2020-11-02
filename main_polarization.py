@@ -113,6 +113,11 @@ if __name__ == "__main__":
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
+    asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
+                                          proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
+
+
     l_interest =3
 
     np.random.seed()
@@ -145,8 +150,9 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     start = time.time()
     #start_cpu = time.clock()
-    h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
+    h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
+    #h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
@@ -163,15 +169,17 @@ if __name__ == "__main__":
 
     for _, pol in enumerate(["EE", "BB"]):
         for l in range(2, config.L_MAX_SCALARS+1):
-            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_noncentered[pol], pix_map, l, maximum=np.max(h_cls_noncentered[pol][:, l]), pol=pol)
-            plt.plot(h_cls_noncentered[pol][:, l])
+            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_asis[pol], pix_map, l, maximum=np.max(h_cls_asis[pol][:, l]), pol=pol)
+            plt.plot(h_cls_asis[pol][:, l])
             plt.show()
 
 
-            plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs", bins=100)
+            plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=500)
+            #plt.hist(h_cls_centered[pol][100:, l], density=True, alpha=0.5, label="Gibbs Centered", bins=400)
             print("Norm:", norm)
             plt.plot(xs, y/norm)
             plt.title(pol + " with l="+str(l))
+            plt.legend(loc="upper right")
             plt.show()
 
     """

@@ -504,29 +504,6 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class NonCenteredGibbs(GibbsSampler):
     def __init__(self, pix_map, noise_I, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None):

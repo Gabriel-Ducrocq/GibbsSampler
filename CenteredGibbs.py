@@ -274,12 +274,26 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
-        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, isotropic=True)
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None):
+        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
+        if mask_path is not None:
+            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
+            self.inv_noise_temp *= self.mask
+            self.inv_noise_pol *= self.mask
+            self.inv_noise = (self.inv_noise_pol, self.inv_noise_pol)
+
+        self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
+        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
+        self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
+
+        class cl(object):
+            pass
+
+        self.s_cls = cl
         #self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
         #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
         #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
@@ -335,6 +349,36 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
 
         return {"EE":alms_E,"BB": alms_B}, 0
+
+    def sample_mask(self, all_dls):
+        cls_EE = all_dls["EE"]*self.dls_to_cls_array
+        cls_BB = all_dls["BB"]*self.dls_to_cls_array
+        self.s_cls.clee = cls_EE
+        self.s_cls.clbb = cls_BB
+        self.s_cls.lmax = self.lmax
+
+        cl_EE_inv = np.zeros(len(cls_EE))
+        cl_EE_inv[np.where(cls_EE !=0)] = 1/cls_EE[np.where(cls_EE != 0)]
+        cl_BB_inv = np.zeros(len(cls_BB))
+        cl_BB_inv[np.where(cls_BB !=0)] = 1/cls_EE[np.where(cls_BB != 0)]
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=None)
+
+
+        first_term_fluc = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
+                            np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol),
+                           np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
+
+        second_term_fluc = [np.sqrt(cl_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
+                            np.sqrt(cl_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
+
+        b_fluctuations = [first_term_fluc[1] + second_term_fluc[0], first_term_fluc[2] + second_term_fluc[1]]
+        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+
+
+
 
     def sample(self, all_dls):
         return self.sample_no_mask(all_dls)
