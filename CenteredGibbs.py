@@ -285,6 +285,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             self.inv_noise_temp *= self.mask
             self.inv_noise_pol *= self.mask
             self.inv_noise = (self.inv_noise_pol, self.inv_noise_pol)
+        else:
+            self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
 
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
         self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
@@ -348,7 +350,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E)
         alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
 
-        return {"EE":alms_E,"BB": alms_B}, 0
+        return {"EE": utils.remove_monopole_dipole_contributions(alms_E),
+                "BB": utils.remove_monopole_dipole_contributions(alms_B)}, 0
 
     def sample_mask(self, all_dls):
         cls_EE = all_dls["EE"]*self.dls_to_cls_array
@@ -357,10 +360,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.s_cls.clbb = cls_BB
         self.s_cls.lmax = self.lmax
 
-        cl_EE_inv = np.zeros(len(cls_EE))
-        cl_EE_inv[np.where(cls_EE !=0)] = 1/cls_EE[np.where(cls_EE != 0)]
-        cl_BB_inv = np.zeros(len(cls_BB))
-        cl_BB_inv[np.where(cls_BB !=0)] = 1/cls_EE[np.where(cls_BB != 0)]
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)]
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)]
         chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
                                                 debug_log_prefix=None)
 
@@ -371,17 +376,27 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
                            np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
 
-        second_term_fluc = [np.sqrt(cl_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
-                            np.sqrt(cl_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
+        second_term_fluc = [np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
+                            np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
 
-        b_fluctuations = [first_term_fluc[1] + second_term_fluc[0], first_term_fluc[2] + second_term_fluc[1]]
-        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+        b_fluctuations = {"elm":utils.real_to_complex(first_term_fluc[1] + second_term_fluc[0]),
+                          "blm":utils.real_to_complex(first_term_fluc[2] + second_term_fluc[1])}
 
 
+        soltn = qcinv.opfilt_pp.eblm(np.zeros((2, int(qcinv.util_alm.lmax2nlm(self.lmax))), dtype=np.complex))
+        pix_map = [self.pix_map["Q"], self.pix_map["U"]]
+        _ = chain.sample(soltn, pix_map, b_fluctuations, pol=True)
+        #chain.solve(soltn, pix_map)
+        solution = {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}
+
+        return solution, 0
 
 
     def sample(self, all_dls):
-        return self.sample_no_mask(all_dls)
+        if False:
+            return self.sample_no_mask(all_dls)
+        else:
+            return self.sample_mask(all_dls)
 
 
 
@@ -397,4 +412,4 @@ class CenteredGibbs(GibbsSampler):
             self.cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
         else:
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
-            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam)

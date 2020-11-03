@@ -31,7 +31,7 @@ class ASIS(GibbsSampler):
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis)
 
             self.centered_cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
-            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam, isotropic=True)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam)
 
 
 
@@ -116,7 +116,7 @@ class ASIS(GibbsSampler):
 
             all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                        "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-            skymap, _ = self.constrained_sampler.sample_no_mask(all_dls)
+            skymap, _ = self.constrained_sampler.sample(all_dls)
             binned_dls_temp = self.centered_cls_sampler.sample(skymap)
             dls_temp = {"EE":utils.unfold_bins(binned_dls_temp["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls_temp["BB"], self.bins["BB"])}
             var_cls = {"EE": utils.generate_var_cl(dls_temp["EE"]),
