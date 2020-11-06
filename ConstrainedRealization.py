@@ -30,6 +30,7 @@ class ConstrainedRealization():
 
         self.s_cls = cl
 
+
     def sample(self, cls, var_cls):
         return None
 

@@ -280,11 +280,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
+
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
             self.inv_noise_temp *= self.mask
             self.inv_noise_pol *= self.mask
-            self.inv_noise = (self.inv_noise_pol, self.inv_noise_pol)
+            self.inv_noise = [self.inv_noise_pol]
         else:
             self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
 
@@ -301,6 +302,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
 
         self.bl_fwhm = bl_fwhm
+
     """
     def sample(self, all_dls):
         start = time.time()
@@ -411,5 +413,6 @@ class CenteredGibbs(GibbsSampler):
                                                                       isotropic=True)
             self.cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
         else:
-            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
-            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam)
+            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp, mask_path=mask_path)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
+                                                                               self.bl_map, lmax, Npix, beam, mask_path=mask_path)

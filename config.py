@@ -47,8 +47,8 @@ L_MAX_SCALARS=int(2*NSIDE)
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
-mask_path = None
+mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+#mask_path = None
 
 
 
@@ -201,7 +201,7 @@ if mask_path is None:
     unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
 else:
     mask = hp.ud_grade(hp.read_map(mask_path), NSIDE)
-    unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
+    unbinned_variances_pol = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
 
 #binned_variances = compute_init_values(unbinned_variances)
 binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol), "BB":compute_init_values_pol(unbinned_variances_pol)}
