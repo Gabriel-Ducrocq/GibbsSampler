@@ -656,8 +656,10 @@ def adjoint_synthesis_hp(map, bl_map=None):
 
 
     else:
+        #I am not removing monopole and dipole anymore !
         alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
-        alms = remove_monopole_dipole_contributions(complex_to_real(alms))
+        #alms = remove_monopole_dipole_contributions(complex_to_real(alms))
+        alms = complex_to_real(alms)
         alms *= config.rescaling_map2alm
         return alms
 
