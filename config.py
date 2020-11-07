@@ -52,7 +52,7 @@ dimension_h = (L_MAX_SCALARS + 1) ** 2
 mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%.00.fits"
 #mask_path = None
 
-
+mask = hp.ud_grade(hp.read_map(mask_path, 0), NSIDE)
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
 mask_inversion[[0, 1, L_MAX_SCALARS + 1, L_MAX_SCALARS + 2]] = False
 
