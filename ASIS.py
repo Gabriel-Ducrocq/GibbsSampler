@@ -28,10 +28,12 @@ class ASIS(GibbsSampler):
             self.centered_cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
         else:
             self.non_centered_cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise, noise_Q
-                                                                 , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis)
+                                                                 , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis,
+                                                                              mask_path = mask_path)
 
             self.centered_cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
-            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam,
+                                                                               mask_path= mask_path)
 
 
 

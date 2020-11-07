@@ -118,16 +118,16 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
-    #asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-    #                                mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
-    #                                      proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
+    asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                          proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
     l_interest =3
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     start = time.time()
     #start_cpu = time.clock()
-    #h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
+    h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
     h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
     h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
@@ -188,6 +188,7 @@ if __name__ == "__main__":
 
             plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=500)
             plt.hist(h_cls_centered[pol][100:, l], density=True, alpha=0.5, label="Gibbs Centered", bins=400)
+            plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="ASIS", bins=400)
             print("Norm:", norm)
             plt.plot(xs, y/norm)
             plt.title(pol + " with l="+str(l))

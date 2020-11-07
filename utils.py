@@ -641,12 +641,7 @@ def remove_monopole_dipole_contributions(alms):
     return alms
 
 def adjoint_synthesis_hp(map, bl_map=None):
-    if len(map) == 1:
-        alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
-        alms = remove_monopole_dipole_contributions(complex_to_real(alms))
-        alms *= config.rescaling_map2alm
-        return alms
-    else:
+    if len(map) == 3:
         alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3, pol=True)
         alms_T, alms_E, alms_B = alms
         alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm
@@ -658,6 +653,13 @@ def adjoint_synthesis_hp(map, bl_map=None):
             alms_B *= bl_map
 
         return alms_T, alms_E, alms_B
+
+
+    else:
+        alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
+        alms = remove_monopole_dipole_contributions(complex_to_real(alms))
+        alms *= config.rescaling_map2alm
+        return alms
 
 def analysis_hp(map):
     return remove_monopole_dipole_contributions(
@@ -755,6 +757,8 @@ def compute_init_values(cls):
         l_end = config.bins[i+1]
         vals.append(np.mean(cls[l_start:l_end]))
 
+    print("LEN VALS")
+    print(len(vals))
     return np.array(vals)
 
 
