@@ -49,7 +49,7 @@ dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%.00.fits"
+mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
 #mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
