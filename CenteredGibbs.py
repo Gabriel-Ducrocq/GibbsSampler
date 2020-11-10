@@ -441,7 +441,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
         b_flucs = utils.real_to_complex(first_term_fluc + second_term_fluc)
-        soltn = qcinv.opfilt_pp.eblm(-utils.real_to_complex(s_old), dtype=np.complex)
+        filling_soltn = np.zeros((2, (self.lmax+1)*(self.lmax+2)/2))
+        filling_soltn[0, :] = utils.real_to_complex(s_old["EE"])
+        filling_soltn[1, :] = utils.real_to_complex(s_old["BB"])
+        soltn = qcinv.opfilt_pp.eblm(-filling_soltn, dtype=np.complex)
 
         b_system = chain.sample(soltn, self.pix_map, b_flucs, pol = True)
 
@@ -468,9 +471,16 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         ## Once Qf(z) is computed, we compute the error:
         eta_E, eta_B = b_system.elm, b_system.blm
-        r_E = eta_E - alm_E
-        r_B = eta_B - alm_B
+        r_E = utils.complex_to_real(eta_E - alm_E)
+        r_B = utils.complex_to_real(eta_B - alm_B)
+        diff_E = s_old["EE"] - utils.complex_to_real(soltn.elm)
+        diff_B = s_old["BB"] - utils.complex_to_real(soltn.blm)
 
+        log_proba = -np.sum(r_E*diff_E + r_B*diff_B)
+        if np.log(np.random.uniform()) < log_proba:
+            return {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}, 1
+
+        return s_old, 0
 
 
 

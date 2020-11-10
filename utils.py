@@ -644,9 +644,9 @@ def adjoint_synthesis_hp(map, bl_map=None):
     if len(map) == 3:
         alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3, pol=True)
         alms_T, alms_E, alms_B = alms
-        alms_T = remove_monopole_dipole_contributions(complex_to_real(alms_T))*config.rescaling_map2alm
-        alms_E = remove_monopole_dipole_contributions(complex_to_real(alms_E))*config.rescaling_map2alm
-        alms_B = remove_monopole_dipole_contributions(complex_to_real(alms_B))*config.rescaling_map2alm
+        alms_T = complex_to_real(alms_T)*config.rescaling_map2alm
+        alms_E = complex_to_real(alms_E)*config.rescaling_map2alm
+        alms_B = complex_to_real(alms_B)*config.rescaling_map2alm
         if bl_map is not None:
             alms_T *= bl_map
             alms_E *= bl_map
@@ -654,13 +654,15 @@ def adjoint_synthesis_hp(map, bl_map=None):
 
         return alms_T, alms_E, alms_B
 
-
     else:
         #I am not removing monopole and dipole anymore !
         alms = hp.map2alm(map, lmax=config.L_MAX_SCALARS, iter=3)
         #alms = remove_monopole_dipole_contributions(complex_to_real(alms))
         alms = complex_to_real(alms)
         alms *= config.rescaling_map2alm
+        if bl_map is not None:
+            alms *= bl_map
+
         return alms
 
 def analysis_hp(map):
