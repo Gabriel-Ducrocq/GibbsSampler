@@ -127,7 +127,7 @@ if __name__ == "__main__":
                         mask_path = config.mask_path, gibbs_cr=True, metropolis_blocks=config.blocks)
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, None, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = False, bins=None, n_iter = 200)
+                                    mask_path = config.mask_path, polarization = False, bins=None, n_iter = 100000)
     """
     dls_ = np.array([cl*l*(l+1)/(2*np.pi) for l, cl in enumerate(cls_)])
     var_cls_ = utils.generate_var_cl(dls_)
@@ -176,10 +176,10 @@ if __name__ == "__main__":
 
     #h_cls_nc, _ = non_centered_gibbs.run(cls_init)
     l_interest =3
-
-    mask = hp.ud_grade(hp.read_map(config.mask_path, 0), config.NSIDE)
-    hp.mollview(mask)
-    plt.show()
+    if config.mask_path is not None:
+        mask = hp.ud_grade(hp.read_map(config.mask_path, 0), config.NSIDE)
+        hp.mollview(mask)
+        plt.show()
 
     np.random.seed()
     if config.preliminary_run:
@@ -201,12 +201,12 @@ if __name__ == "__main__":
     #cls_init = cls_init[:5]
     start = time.time()
     #start_cpu = time.clock()
-    h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
+    #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
     #end_cpu = time.clock()
-    #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
+    h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     total_time = end - start
     #total_cpu_time = end_cpu - start_cpu
     print("Total time:", total_time)
@@ -229,11 +229,11 @@ if __name__ == "__main__":
     plt.savefig("Trajectory " + str(l_interest))
 
     """
-    d = {"h_cls":h_cls_centered, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":None,
-         "h_times_iteration":None, "total_time":total_time,"total_cpu_time":None ,"data_path":None}
+    #d = {"h_cls":h_cls_centered, "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":None,
+    #     "h_times_iteration":None, "total_time":total_time,"total_cpu_time":None ,"data_path":None}
 
     #np.save(save_path, d, allow_pickle=True)
-    np.save("test_gibbs_512_planck_mask.npy", d, allow_pickle=True)
+    #np.save("test_gibbs_512_planck_mask.npy", d, allow_pickle=True)
     #d = np.load("test_pcg.npy", allow_pickle = True)
     #d = d.item()
     #h_cls_asis = d["h_cls_non_centered"]

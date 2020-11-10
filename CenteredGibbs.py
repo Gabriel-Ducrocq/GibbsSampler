@@ -188,6 +188,26 @@ class CenteredConstrainedRealization(ConstrainedRealization):
 
         return s_new, 1
 
+    def sample_gibbs_pix(self, var_cls, old_s):
+        ##Ne ps oublier le changement de base de départ:
+        old_s = hp.alm2map(utils.real_to_complex(self.bl_map*old_s), lmax=self.lmax, nside=self.nside)
+        bl_times_var_cls = self.bl_map**2*var_cls
+        inv_bl_times_var_cls = np.zeros(len(bl_times_var_cls))
+        inv_bl_times_var_cls[bl_times_var_cls != 0] = 1/bl_times_var_cls[bl_times_var_cls != 0]
+        mu = np.max(inv_bl_times_var_cls) + 1e-5
+
+        variance_v = (mu - inv_bl_times_var_cls)
+        mean_v = utils.complex_to_real(hp.map2alm(old_s, lmax=self.lmax))*variance_v
+        v_new = mean_v + np.random.normal(size = len(mean_v))*np.sqrt(variance_v)
+
+        variance_u = 1/(mu*4*np.pi/self.Npix + self.inv_noise)
+        mean_u = variance_u*(hp.alm2map(utils.real_to_complex(v_new), nside=self.nside, lmax=self.lmax)*4*np.pi/self.Npix
+                 + self.inv_noise*self.pix_map)
+        new_u = np.random.normal(size=len(mean_u))*np.sqrt(variance_u) + mean_u
+        ##Ne pas oublier le changementde base de fin:
+        new_u = (1/self.bl_map)*utils.complex_to_real(hp.map2alm(new_u, lmax=self.lmax))
+        return new_u, 1
+
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
@@ -392,6 +412,37 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         return solution, 0
 
+    def sample_mask_rj(self, all_dls, s_old):
+        cls_EE = all_dls["EE"]*self.dls_to_cls_array
+        cls_BB = all_dls["BB"]*self.dls_to_cls_array
+        self.s_cls.clee = cls_EE
+        self.s_cls.clbb = cls_BB
+        self.s_cls.lmax = self.lmax
+
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)]
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)]
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=None)
+
+
+        first_term_fluc = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
+                            np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol),
+                           np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
+
+        second_term_fluc = [np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
+                            np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
+
+        soltn = qcinv.opfilt_pp.eblm(-utils.real_to_complex(s_old), dtype=np.complex)
+        approx_sol_complex = hp.almxfl(
+            hp.map2alm(hp.alm2map(hp.almxfl(soltn, self.bl_gauss), nside=self.nside) * self.inv_noise,
+                       lmax=self.lmax)
+            * self.Npix / (4 * np.pi), self.bl_gauss) + hp.almxfl(soltn_complex, cl_inv, inplace=False)
 
     def sample(self, all_dls):
         if False:
