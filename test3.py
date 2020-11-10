@@ -6,6 +6,7 @@ import healpy as hp
 import main
 from scipy.stats import invgamma
 import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_acf
 
 
 
@@ -30,7 +31,7 @@ s_old2 = s_old.copy()
 h_s = []
 h_s2 = []
 h_s.append(s_old)
-for i in range(100000):
+for i in range(1000):
     print(i)
     s_old, _ = centered_gibbs.constrained_sampler.sample_gibbs_pix(var_cls, s_old)
     #s_old2, _ = centered_gibbs.constrained_sampler.sample_gibbs_change_variable(var_cls, s_old2)
@@ -42,8 +43,8 @@ for i in range(100000):
 sigma = 1/(config.bl_map**2/(config.w*config.noise_covar_temp) + inv_var_cls)
 mean = sigma*utils.adjoint_synthesis_hp((1/config.noise_covar_temp)*pix_map)*config.bl_map
 
-l_interest = 10
-true = mean[l_interest] + np.random.normal(size = 100000)*np.sqrt(sigma[l_interest])
+l_interest = 2
+true = mean[l_interest] + np.random.normal(size = 10000)*np.sqrt(sigma[l_interest])
 h_s = np.array(h_s)
 #h_s2 = np.array(h_s2)
 
@@ -59,3 +60,8 @@ plt.hist(h_s[10:, l_interest], bins = 20, label="Pix", alpha = 0.5, density=True
 plt.hist(true, bins = 20, label="True", alpha = 0.5, density=True)
 plt.legend(loc = "upper right")
 plt.show()
+
+
+plot_acf(h_s[100:, l_interest], lags = 100)
+plt.show()
+

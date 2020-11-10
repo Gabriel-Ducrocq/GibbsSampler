@@ -438,11 +438,44 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         second_term_fluc = [np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
                             np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
 
+
+
+        b_flucs = utils.real_to_complex(first_term_fluc + second_term_fluc)
         soltn = qcinv.opfilt_pp.eblm(-utils.real_to_complex(s_old), dtype=np.complex)
-        approx_sol_complex = hp.almxfl(
-            hp.map2alm(hp.alm2map(hp.almxfl(soltn, self.bl_gauss), nside=self.nside) * self.inv_noise,
-                       lmax=self.lmax)
-            * self.Npix / (4 * np.pi), self.bl_gauss) + hp.almxfl(soltn_complex, cl_inv, inplace=False)
+
+        b_system = chain.sample(soltn, self.pix_map, b_flucs, pol = True)
+
+        sol_elm = soltn.elm.copy()
+        sol_blm = soltn.blm.copy()
+
+        ### Compute Q times solution of system
+        hp.almxfl(sol_elm, self.bl_gauss, inplace=True)
+        hp.almxfl(sol_blm, self.bl_gauss, inplace=True)
+
+        _, Q, U = hp.alm2map([np.zeros(len(sol_elm)), sol_elm, sol_blm], nside=self.nside, lmax=self.lmax)
+        Q *= self.inv_noise_pol
+        U *= self.inv_noise_pol
+
+        _, alm_E, alm_B = hp.map2alm([np.zeros(self.Npix), Q, U], pol=True, lmax=config.L_MAX_SCALARS)*self.Npix/(4*np.pi)
+        hp.almxfl(alm_E, self.bl_gauss, inplace=True)
+        hp.almxfl(alm_B, self.bl_gauss, inplace=True)
+
+        alm_E = utils.complex_to_real(alm_E)
+        alm_B = utils.complex_to_real(alm_B)
+
+        alm_E += var_cls_EE_inv * soltn.elm
+        alm_B += var_cls_BB_inv * soltn.blm
+
+        ## Once Qf(z) is computed, we compute the error:
+        eta_E, eta_B = b_system.elm, b_system.blm
+        r_E = eta_E - alm_E
+        r_B = eta_B - alm_B
+
+
+
+
+
+
 
     def sample(self, all_dls):
         if False:

@@ -40,17 +40,17 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 32
+NSIDE = 512
 Npix = 12 * NSIDE ** 2
-L_MAX_SCALARS=int(2*NSIDE)
-#L_MAX_SCALARS = 1000
+#L_MAX_SCALARS=int(2*NSIDE)
+L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
-mask_path = None
+#mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
 mask_inversion[[0, 1, L_MAX_SCALARS + 1, L_MAX_SCALARS + 2]] = False
@@ -74,7 +74,7 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
 #noise_covar_temp = (0.2/np.sqrt(2))**2
-noise_covar_temp = 0.1**2
+noise_covar_temp = 40**2
 #noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
