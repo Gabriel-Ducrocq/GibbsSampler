@@ -22,7 +22,7 @@ class ConstrainedRealization():
             self.inv_noise *= self.mask
 
         self.n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv(self.inv_noise, self.bl_gauss)
-        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
+        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
 
         self.mu = np.max(self.inv_noise) + 0.0000001
         class cl(object):

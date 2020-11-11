@@ -14,7 +14,7 @@ all_dls = {"EE": cls_[1]*rescaling, "BB":cls_[2]*rescaling}
 
 
 centered = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, config.bl_map,
-                                                   config.L_MAX_SCALARS, config.Npix, config.beam_fwhm, mask_path=None)
+                                                   config.L_MAX_SCALARS, config.Npix, config.beam_fwhm, mask_path=config.mask_path)
 
 h_no_mask = {"EE":[], "BB":[]}
 h_mask = {"EE":[], "BB":[]}
