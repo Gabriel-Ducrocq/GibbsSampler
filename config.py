@@ -40,17 +40,17 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 512
+NSIDE = 256
 Npix = 12 * NSIDE ** 2
-#L_MAX_SCALARS=int(2*NSIDE)
-L_MAX_SCALARS = 1000
+L_MAX_SCALARS=int(2*NSIDE)
+#L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
-#mask_path = None
+mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
 mask_inversion[[0, 1, L_MAX_SCALARS + 1, L_MAX_SCALARS + 2]] = False
@@ -93,19 +93,19 @@ print("L_CUT")
 #bins = np.concatenate([np.arange(600, 636, 2), bins])
 #bins = np.concatenate([range(600), bins])
 
-#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
-bins = np.array(range(L_MAX_SCALARS+1+1))
+#bins = np.array(range(L_MAX_SCALARS+1+1))
 #blocks = np.concatenate([np.arange(0, 280, 20),range(280, len(bins))])
 
 #blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
 #blocks[0] = 2
-blocks = list(range(2, len(bins)))
-#blocks_EE = list(range(2, len(bins["EE"])))
-#blocks_BB = list(range(2, len(bins["BB"])))
+#blocks = list(range(2, len(bins)))
+blocks_EE = list(range(2, len(bins["EE"])))
+blocks_BB = list(range(2, len(bins["BB"])))
 
-#blocks = {"EE":blocks_EE, "BB":blocks_BB}
+blocks = {"EE":blocks_EE, "BB":blocks_BB}
 
 
 metropolis_blocks_gibbs_nc = blocks
@@ -155,8 +155,8 @@ import matplotlib.pyplot as plt
 
 # fwhm_arcmin = 180
 # fwhm_radians = (np.pi/(180*60))*fwhm_arcmin
-beam_fwhm = 0.35
-#beam_fwhm = 0.5
+#beam_fwhm = 0.35
+beam_fwhm = 0.5
 fwhm_radians = (np.pi / 180) * beam_fwhm
 bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=L_MAX_SCALARS)
 bl_map = generate_var_cl(bl_gauss)
@@ -198,8 +198,8 @@ else:
     unbinned_variances_pol = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
     unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale * 1 / np.mean(mask)
 
-binned_variances = compute_init_values(unbinned_variances)
-#binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol), "BB":compute_init_values_pol(unbinned_variances_pol)}
+#binned_variances = compute_init_values(unbinned_variances)
+binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol), "BB":compute_init_values_pol(unbinned_variances_pol)}
 #binned_variances[600:-2] *= 4
 #binned_variances[-2:-1] *= 1
 #binned_variances[-1] *= 0.1
@@ -235,7 +235,7 @@ def get_proposal_variances_preliminary(path):
 
 preliminary_run =True
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
+    #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
     #proposal_variances_nc[-8:-3] = proposal_variances_nc[-8:-3]*0.7
     #proposal_variances_nc[-35:-16] = proposal_variances_nc[-35:-16]*1.5

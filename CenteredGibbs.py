@@ -429,24 +429,25 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
                                                 debug_log_prefix=None)
 
 
-        first_term_fluc = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
+        _, first_term_fluc_EE, first_term_fluc_BB = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
                             np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise_pol),
                            np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
 
-        second_term_fluc = [np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
-                            np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
+        second_term_fluc_EE = np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)
+        second_term_fluc_BB = np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)
 
 
-
-        b_flucs = utils.real_to_complex(first_term_fluc + second_term_fluc)
-        filling_soltn = np.zeros((2, (self.lmax+1)*(self.lmax+2)/2))
+        b_flucs = {"elm":utils.real_to_complex(first_term_fluc_EE + second_term_fluc_EE),
+                   "blm":utils.real_to_complex(first_term_fluc_BB + second_term_fluc_BB)}
+        filling_soltn = np.zeros((2, int((self.lmax+1)*(self.lmax+2)/2)), dtype=np.complex)
         filling_soltn[0, :] = utils.real_to_complex(s_old["EE"])
         filling_soltn[1, :] = utils.real_to_complex(s_old["BB"])
-        soltn = qcinv.opfilt_pp.eblm(-filling_soltn, dtype=np.complex)
+        soltn = qcinv.opfilt_pp.eblm(-filling_soltn)
 
-        b_system = chain.sample(soltn, self.pix_map, b_flucs, pol = True)
+        pix_map = [self.pix_map["Q"], self.pix_map["U"]]
+        b_system = chain.sample(soltn, pix_map, b_flucs, pol = True)
 
         sol_elm = soltn.elm.copy()
         sol_blm = soltn.blm.copy()
@@ -455,7 +456,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         hp.almxfl(sol_elm, self.bl_gauss, inplace=True)
         hp.almxfl(sol_blm, self.bl_gauss, inplace=True)
 
-        _, Q, U = hp.alm2map([np.zeros(len(sol_elm)), sol_elm, sol_blm], nside=self.nside, lmax=self.lmax)
+
+        _, Q, U = hp.alm2map([np.zeros(len(sol_elm), dtype=np.complex), sol_elm, sol_blm], nside=self.nside, lmax=self.lmax, pol=True)
         Q *= self.inv_noise_pol
         U *= self.inv_noise_pol
 
@@ -466,13 +468,13 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         alm_E = utils.complex_to_real(alm_E)
         alm_B = utils.complex_to_real(alm_B)
 
-        alm_E += var_cls_EE_inv * soltn.elm
-        alm_B += var_cls_BB_inv * soltn.blm
+        alm_E += var_cls_EE_inv * utils.complex_to_real(soltn.elm)
+        alm_B += var_cls_BB_inv * utils.complex_to_real(soltn.blm)
 
         ## Once Qf(z) is computed, we compute the error:
-        eta_E, eta_B = b_system.elm, b_system.blm
-        r_E = utils.complex_to_real(eta_E - alm_E)
-        r_B = utils.complex_to_real(eta_B - alm_B)
+        eta_E, eta_B = utils.complex_to_real(b_system.elm), utils.complex_to_real(b_system.blm)
+        r_E = eta_E - alm_E
+        r_B = eta_B - alm_B
         diff_E = s_old["EE"] - utils.complex_to_real(soltn.elm)
         diff_B = s_old["BB"] - utils.complex_to_real(soltn.blm)
 
@@ -483,12 +485,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return s_old, 0
 
 
-
-
-
-
-    def sample(self, all_dls):
-        if False:
+    def sample(self, all_dls, s_old = None):
+        if s_old is not None:
+            return self.sample_mask_rj(all_dls, s_old)
+        if self.mask_path is None:
             return self.sample_no_mask(all_dls)
         else:
             return self.sample_mask(all_dls)

@@ -31,12 +31,12 @@ s_old2 = s_old.copy()
 h_s = []
 h_s2 = []
 h_s.append(s_old)
-for i in range(1000):
+for i in range(10000):
     print(i)
     s_old, _ = centered_gibbs.constrained_sampler.sample_gibbs_pix(var_cls, s_old)
-    #s_old2, _ = centered_gibbs.constrained_sampler.sample_gibbs_change_variable(var_cls, s_old2)
+    s_old2, _ = centered_gibbs.constrained_sampler.sample_gibbs_change_variable(var_cls, s_old2)
     h_s.append(s_old)
-    #h_s2.append(s_old2)
+    h_s2.append(s_old2)
 
 
 
@@ -46,12 +46,12 @@ mean = sigma*utils.adjoint_synthesis_hp((1/config.noise_covar_temp)*pix_map)*con
 l_interest = 2
 true = mean[l_interest] + np.random.normal(size = 10000)*np.sqrt(sigma[l_interest])
 h_s = np.array(h_s)
-#h_s2 = np.array(h_s2)
+h_s2 = np.array(h_s2)
 
 
 plt.plot(h_s[:, l_interest], label="Pix", alpha = 0.5)
-#plt.plot(h_s2[:, l_interest], label="Sph", alpha = 0.5)
-plt.plot(true, label="True", alpha = 0.5)
+plt.plot(h_s2[:, l_interest], label="Sph", alpha = 0.5)
+#plt.plot(true, label="True", alpha = 0.5)
 plt.legend(loc = "upper right")
 plt.show()
 
@@ -63,5 +63,8 @@ plt.show()
 
 
 plot_acf(h_s[100:, l_interest], lags = 100)
+plt.show()
+
+plot_acf(h_s2[100:, l_interest], lags = 100)
 plt.show()
 
