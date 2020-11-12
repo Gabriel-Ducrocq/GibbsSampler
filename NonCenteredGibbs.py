@@ -377,7 +377,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
         and dipole
         """
-        accept = []
+        accept = {"EE": [], "BB":[]}
         binned_dls_propose = self.propose_dl(binned_dls_old)
         log_prop_num = self.compute_log_proposal(binned_dls_propose, binned_dls_old)
         log_prop_denom = self.compute_log_proposal(binned_dls_old, binned_dls_propose)
@@ -396,9 +396,9 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
                     if np.log(np.random.uniform()) < log_r:
                         binned_dls_old = deepcopy(binned_dls_new)
                         old_lik = new_lik
-                        accept.append(1)
+                        accept[pol].append(1)
                     else:
-                        accept.append(0)
+                        accept[pol].append(0)
 
 
         return binned_dls_old, accept

@@ -109,7 +109,7 @@ class ASIS(GibbsSampler):
 
 
     def run_polarization(self, dls_init):
-        accept = []
+        accept = {"EE":[], "BB":[]}
         accept_cr = []
         h_dls = {"EE":[], "BB":[]}
         binned_dls = dls_init
@@ -139,7 +139,8 @@ class ASIS(GibbsSampler):
             inv_var_BB[var_cls["BB"] != 0] = 1 / var_cls["BB"][var_cls["BB"] != 0]
             s_nonCentered = {"EE": np.sqrt(inv_var_EE)*skymap["EE"], "BB": np.sqrt(inv_var_BB)*skymap["BB"]}
             binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp)
-            accept.append(acception)
+            accept["EE"].append(acception["EE"])
+            accept["BB"].append(acception["BB"])
 
             all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                        "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
@@ -147,9 +148,11 @@ class ASIS(GibbsSampler):
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
 
-        total_accept = np.array(accept)
-        print("Interweaving acceptance rate:")
-        print(np.mean(total_accept, axis=0))
+        total_accept = {"EE":np.array(accept["EE"]), "BB":np.array(accept["BB"])}
+        print("Interweaving acceptance rate EE:")
+        print(np.mean(total_accept["EE"], axis=0))
+        print("Interweaving acceptance rate BB:")
+        print(np.mean(total_accept["BB"], axis=0))
         if self.rj_step is True:
             print("Acceptance rate constrained realization:")
             print(np.mean(accept_cr))

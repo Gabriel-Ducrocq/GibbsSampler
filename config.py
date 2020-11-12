@@ -94,7 +94,7 @@ print("L_CUT")
 #bins = np.concatenate([range(600), bins])
 
 #bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
-bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 3, 7, 9])}
+bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 2, 4, 9])}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
@@ -104,8 +104,10 @@ bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 3, 7, 9])}
 #blocks[0] = 2
 #blocks = list(range(2, len(bins)))
 
-blocks_EE = list(range(2, len(bins["EE"])))
-blocks_BB = list(range(2, len(bins["BB"])))
+#blocks_EE = list(range(2, len(bins["EE"])))
+#blocks_BB = list(range(2, len(bins["BB"])))
+blocks_EE = [2, 4, 6]
+blocks_BB = [2, 5]
 
 blocks = {"EE":blocks_EE, "BB":blocks_BB}
 
