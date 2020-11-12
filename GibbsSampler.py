@@ -8,7 +8,8 @@ from default_gibbs import sample_cls
 
 
 class GibbsSampler():
-    def __init__(self, pix_map, noise, beam_fwhm, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000, gibbs_cr = False):
+    def __init__(self, pix_map, noise, beam_fwhm, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000,
+                 gibbs_cr = False, rj_step = False):
         self.noise = noise
         self.beam = beam_fwhm
         self.nside = nside
@@ -22,6 +23,7 @@ class GibbsSampler():
         self.cls_sampler = None
         self.n_iter = n_iter
         self.gibbs_cr = gibbs_cr
+        self.rj_step = rj_step
         if bins is None:
             if not polarization:
                 self.bins = np.array([l for l in range(lmax+2)])
@@ -79,7 +81,9 @@ class GibbsSampler():
         h_time_seconds = []
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
-        skymap, accept = self.constrained_sampler.sample(dls_unbinned)
+        if self.rj_step == True:
+            skymap, accept = self.constrained_sampler.sample(dls_unbinned)
+
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
@@ -88,7 +92,12 @@ class GibbsSampler():
                 print(i)
 
             start_time = time.process_time()
-            skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
+            if self.rj_step == False:
+                skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
+            else:
+                skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy(), skymap)
+                h_accept_cr.append(accept)
+
             binned_dls = self.cls_sampler.sample(skymap.copy())
             dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
 
@@ -98,7 +107,9 @@ class GibbsSampler():
             h_dls["BB"].append(binned_dls["BB"])
             h_time_seconds.append(end_time - start_time)
 
-        print("Acception rate constrained realization:", np.mean(h_accept_cr))
+        if self.rj_step == True:
+            print("Acception rate constrained realization:", np.mean(h_accept_cr))
+
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])
         return h_dls, np.array(h_accept_cr), h_time_seconds

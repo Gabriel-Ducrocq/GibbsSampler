@@ -755,15 +755,24 @@ def compute_binned_lik(x, alphas, betas, locs):
                     loc=locs, scale = betas))
 
 
-def compute_init_values(cls):
+def compute_init_values(cls, pol = None):
     vals = []
-    for i, l_start in enumerate(config.bins[:-1]):
-        l_end = config.bins[i+1]
-        vals.append(np.mean(cls[l_start:l_end]))
+    if pol is None:
+        for i, l_start in enumerate(config.bins[:-1]):
+            l_end = config.bins[i+1]
+            vals.append(np.mean(cls[l_start:l_end]))
 
-    print("LEN VALS")
-    print(len(vals))
-    return np.array(vals)
+        print("LEN VALS")
+        print(len(vals))
+        return np.array(vals)
+    else:
+        for i, l_start in enumerate(config.bins[pol][:-1]):
+            l_end = config.bins[pol][i + 1]
+            vals.append(np.mean(cls[l_start:l_end]))
+
+        print("LEN VALS")
+        print(len(vals))
+        return np.array(vals)
 
 
 def generate_init_values(cls):
@@ -841,7 +850,7 @@ def trace_likelihood_binned(h_cl, d, l, maximum, dl=True):
     y = []
     maxi = np.max(h_cl)
     maxi = maximum
-    steps = maxi / 10000
+    steps = maxi / 100000
     xs = np.arange(0, maxi, steps)
     # xs = np.arange(0, 5 ,0.01)
     print("MAX RANGE")
@@ -927,9 +936,9 @@ def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
                                            locs[l_start:l_end], denoms_factors[l_start:l_end]))
 
     y = []
-    maxi = np.max(h_cl[:, l])
+    maxi = np.max(h_cl[:, l])/10000
     #maxi = maximum
-    steps = maxi / 100000
+    steps = maxi / 10000
     print("MAXI:", maxi)
     xs = np.arange(0, maxi, steps)
     # xs = np.arange(0, 5 ,0.01)

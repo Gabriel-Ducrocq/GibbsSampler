@@ -30,9 +30,9 @@ for i in range(1000):
     h_no_mask["EE"].append(alms["EE"])
     h_no_mask["BB"].append(alms["BB"])
 
-    alms_mask, _ = centered.sample_mask(all_dls)
-    h_mask["EE"].append(alms_mask["EE"])
-    h_mask["BB"].append(alms_mask["BB"])
+    #alms_mask, _ = centered.sample_mask(all_dls)
+    #h_mask["EE"].append(alms_mask["EE"])
+    #h_mask["BB"].append(alms_mask["BB"])
     print("Now, reversble jump:")
     s_old, accept = centered.sample_mask_rj(all_dls, s_old)
     h_rj["EE"].append(s_old["EE"])

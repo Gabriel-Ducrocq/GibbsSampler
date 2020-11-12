@@ -309,7 +309,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
 
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
-        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0e-4, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
+        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, 1.0e-6, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
         self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
 
         class cl(object):
@@ -499,8 +499,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 100000):
-        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
+                 polarization = False, bins=None, n_iter = 100000, rj_step = False):
+        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter
+                         ,rj_step=rj_step)
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
                                                                       isotropic=True)
@@ -508,4 +509,5 @@ class CenteredGibbs(GibbsSampler):
         else:
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp, mask_path=mask_path)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
-                                                                               self.bl_map, lmax, Npix, beam, mask_path=mask_path)
+                                                                               self.bl_map, lmax, Npix, beam,
+                                                                               mask_path=mask_path)

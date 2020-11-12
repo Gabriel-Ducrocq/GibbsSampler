@@ -16,9 +16,9 @@ import utils
 class ASIS(GibbsSampler):
 
     def __init__(self, pix_map, noise, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
-                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False):
+                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False,rj_step=False):
         super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins,
-                         n_iter = n_iter, gibbs_cr=gibbs_cr)
+                         n_iter = n_iter, gibbs_cr=gibbs_cr, rj_step=rj_step)
 
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise, self.bl_map, beam, lmax, Npix,
@@ -110,15 +110,24 @@ class ASIS(GibbsSampler):
 
     def run_polarization(self, dls_init):
         accept = []
+        accept_cr = []
         h_dls = {"EE":[], "BB":[]}
         binned_dls = dls_init
+        all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
+                   "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
+        if self.rj_step == True:
+            skymap, _ = self.constrained_sampler.sample(all_dls)
+
         for i in range(self.n_iter):
-            if i % 100 == 0:
+            if i % 1 == 0:
                 print("Interweaving, iteration: "+str(i))
 
-            all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
-                       "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-            skymap, _ = self.constrained_sampler.sample(all_dls)
+            if self.rj_step is False:
+                skymap, _ = self.constrained_sampler.sample(all_dls)
+            else:
+                skymap, acc = self.constrained_sampler.sample(all_dls, skymap)
+                accept_cr.append(acc)
+
             binned_dls_temp = self.centered_cls_sampler.sample(skymap)
             dls_temp = {"EE":utils.unfold_bins(binned_dls_temp["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls_temp["BB"], self.bins["BB"])}
             var_cls = {"EE": utils.generate_var_cl(dls_temp["EE"]),
@@ -132,13 +141,18 @@ class ASIS(GibbsSampler):
             binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp)
             accept.append(acception)
 
+            all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
+                       "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
+
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
-
 
         total_accept = np.array(accept)
         print("Interweaving acceptance rate:")
         print(np.mean(total_accept, axis=0))
+        if self.rj_step is True:
+            print("Acceptance rate constrained realization:")
+            print(np.mean(accept_cr))
 
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])

@@ -118,16 +118,18 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
+                                   rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
-                                          proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
+                                          proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
+                                    rj_step = False)
 
 
     l_interest =3
@@ -137,11 +139,15 @@ if __name__ == "__main__":
         cls_init_E = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
         cls_init_B = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
 
-        cls_init_E_binned = np.concatenate([np.zeros(2), cls_init_E])
-        #cls_init_E_binned = utils.generate_init_values(cls_init_E)
+        #cls_init_E_binned = np.concatenate([np.zeros(2), cls_init_E])
+        #cls_init_E_binned = utils.generate_init_values(cls_init_E, pol="EE")
+        cls_init_E_binned = utils.compute_init_values(cls_init_E, pol="EE")
 
-        cls_init_B_binned = np.concatenate([np.zeros(2), cls_init_B])
-        #cls_init_B_binned = utils.generate_init_values(cls_init_B)
+        print("EEEEEEEEEEEEEEE")
+        print(cls_init_E)
+        #cls_init_B_binned = np.concatenate([np.zeros(2), cls_init_B])
+        #cls_init_B_binned = utils.generate_init_values(cls_init_B, pol="BB")
+        cls_init_B_binned = utils.compute_init_values(cls_init_B, pol="BB")
 
         scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
 
@@ -153,7 +159,7 @@ if __name__ == "__main__":
         cls_init_B_binned[:2] = 0
         starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
         rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-        starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
+        #starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
         #starting_point = config.starting_point
     else:
         starting_point = config.starting_point
@@ -164,7 +170,7 @@ if __name__ == "__main__":
     #start_cpu = time.clock()
     h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
     h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
-    h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
+    #h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
@@ -180,13 +186,14 @@ if __name__ == "__main__":
 
 
     for _, pol in enumerate(["EE", "BB"]):
-        for l in range(2, config.L_MAX_SCALARS+1):
-            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_noncentered[pol], pix_map, l, maximum=np.max(h_cls_noncentered[pol][:, l]), pol=pol)
-            plt.plot(h_cls_noncentered[pol][:, l])
-            plt.show()
+        #for l in range(2, config.L_MAX_SCALARS+1):
+        for l in range(2, len(config.bins[pol][:-1])):
+            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_centered[pol], pix_map, l, maximum=np.max(h_cls_centered[pol][:, l]), pol=pol)
+            #plt.plot(h_cls_centered[pol][:, l])
+            #plt.show()
 
 
-            plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=500)
+            #plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=500)
             plt.hist(h_cls_centered[pol][100:, l], density=True, alpha=0.5, label="Gibbs Centered", bins=400)
             plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="ASIS", bins=400)
             print("Norm:", norm)

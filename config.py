@@ -40,17 +40,17 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 32
+NSIDE = 4
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+#1mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
-#mask_path = None
+mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
 mask_inversion[[0, 1, L_MAX_SCALARS + 1, L_MAX_SCALARS + 2]] = False
@@ -79,7 +79,7 @@ noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
 #noise_covar_pol = 0.00044**2
-noise_covar_pol = 0.3**2
+noise_covar_pol = 0.05**2
 #noise_covar_pol = 0.2**2
 #noise_covar_pol = 0
 var_noise_temp = np.ones(Npix) * noise_covar_temp
@@ -93,7 +93,8 @@ print("L_CUT")
 #bins = np.concatenate([np.arange(600, 636, 2), bins])
 #bins = np.concatenate([range(600), bins])
 
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 3, 7, 9])}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
@@ -102,6 +103,7 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_S
 #blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
 #blocks[0] = 2
 #blocks = list(range(2, len(bins)))
+
 blocks_EE = list(range(2, len(bins["EE"])))
 blocks_BB = list(range(2, len(bins["BB"])))
 
@@ -169,17 +171,17 @@ bl_map = generate_var_cl(bl_gauss)
 # d_ = data["d_"]
 w = 4 * np.pi / Npix
 
-def compute_init_values_pol(unbinned_vars):
+def compute_init_values_pol(unbinned_vars, pol):
     vals = []
-    for i, l_start in enumerate(bins["EE"][:-1]):
-        l_end = bins["EE"][i+1]
+    for i, l_start in enumerate(bins[pol][:-1]):
+        l_end = bins[pol][i+1]
         length = l_end - l_start
         vals.append(np.mean(unbinned_vars[l_start:l_end])/length)
 
     return np.array(vals)
 
 
-def compute_init_values(unbinned_vars):
+def compute_init_values(unbinned_vars, pol = None):
     vals = []
     for i, l_start in enumerate(bins[:-1]):
         l_end = bins[i+1]
@@ -199,7 +201,7 @@ else:
     unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale * 1 / np.mean(mask)
 
 #binned_variances = compute_init_values(unbinned_variances)
-binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol), "BB":compute_init_values_pol(unbinned_variances_pol)}
+binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol, "EE"), "BB":compute_init_values_pol(unbinned_variances_pol, "BB")}
 #binned_variances[600:-2] *= 4
 #binned_variances[-2:-1] *= 1
 #binned_variances[-1] *= 0.1
@@ -246,10 +248,10 @@ if preliminary_run:
     #starting_point[:2] = 0
 
     proposal_variances_nc_polarized = {}
-    #proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]*1
-    #proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]*1
-    proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.5
-    proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.1
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]*1
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]*1
+    #proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.5
+    #proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.1
     #proposal_variances_asis = binned_variances[2:]
     #proposal_variances_pncp = binned_variances[2:]
 else:
