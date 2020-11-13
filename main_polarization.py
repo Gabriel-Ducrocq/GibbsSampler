@@ -72,30 +72,13 @@ if __name__ == "__main__":
          "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
          "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
 
-    #data_path = "data/skymap_isotropic.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["d_"]
-    #cls_ = d["cls_"]
+    np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy", d, allow_pickle=True)
 
-    #d = {"pix_map":pix_map, "theta":theta_, "cls_":cls_, "s_true":s_true, "beam_fwhm":config.beam_fwhm,
-    #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
-    #     "LMAX":config.L_MAX_SCALARS}
 
-    np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap", d, allow_pickle=True)
-    #print(pix_map)
-    #hp.mollview(pix_map)
-    #plt.show()
-
-    #data_path = config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy"
-    #data_path = "data/skymap.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["pix_map"]
-
-    #range_l = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-    #plt.plot(cls_[0]*range_l)
-    #plt.show()
+    data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
 
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -128,7 +111,7 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                    rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -186,28 +169,34 @@ if __name__ == "__main__":
         #starting_point = config.starting_point
     else:
         starting_point = config.starting_point
-    """
+
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     start = time.time()
-    #start_cpu = time.clock()
-    #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
+    start_cpu = time.clock()
+    h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
-    h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
+    #h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
-    #end_cpu = time.clock()
+    end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     total_time = end - start
-    #total_cpu_time = end_cpu - start_cpu
+    total_cpu_time = end_cpu - start_cpu
     print("Total time:", total_time)
     #print("Total Cpu time:",total_cpu_time)
 
-    #save_path = config.scratch_path + \
-    #            "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+    save_path = config.scratch_path + \
+                "/data/polarization_runs/full_sky/centered_gibbs/centeredGibbs_" + str(config.slurm_task_id) + ".npy"
 
+    d = {"h_cls":h_cls_centered, "h_accept_cr":h_accept_cr_centered, "h_duration_cls":h_duration_cls_sampling,
+         "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"], "blocks_EE":None,
+         "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None}
 
+    np.save(save_path, d, allow_pickle=True)
+
+    """
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):
         for l in range(2, len(config.bins[pol][:-1])):

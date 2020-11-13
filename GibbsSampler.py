@@ -77,8 +77,9 @@ class GibbsSampler():
 
     def run_polarization(self, dls_init):
         h_accept_cr = []
+        h_duration_cr = []
+        h_duration_cls_sampling = []
         h_dls = {"EE":[], "BB":[]}
-        h_time_seconds = []
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
         if self.rj_step == True:
@@ -91,28 +92,34 @@ class GibbsSampler():
                 print("Default Gibbs")
                 print(i)
 
-            start_time = time.process_time()
+            start_time = time.clock()
             if self.rj_step == False:
                 skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
             else:
                 skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy(), skymap)
                 h_accept_cr.append(accept)
 
+            end_time = time.clock()
+            duration = end_time - start_time
+            h_duration_cr.append(duration)
+
+            start_time = time.clock()
             binned_dls = self.cls_sampler.sample(skymap.copy())
+            end_time = time.clock()
+            duration =end_time - start_time
+            h_duration_cls_sampling.append(duration)
             dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
 
             h_accept_cr.append(accept)
-            end_time = time.process_time()
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
-            h_time_seconds.append(end_time - start_time)
 
         if self.rj_step == True:
             print("Acception rate constrained realization:", np.mean(h_accept_cr))
 
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])
-        return h_dls, np.array(h_accept_cr), h_time_seconds
+        return h_dls, np.array(h_accept_cr), np.array(h_duration_cr), np.array(h_duration_cls_sampling)
 
 
     def run(self, dls_init):
