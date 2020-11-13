@@ -28,6 +28,10 @@ def generate_dataset(polarization=True, mask_path = None):
         d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
         d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
         if mask_path is None:
+            hp.mollview(d[1])
+            plt.show()
+            hp.mollview(d[2])
+            plt.show()
             return theta_, cls_, map_true,  {"Q":d[1], "U":d[2]}
         else:
             mask = hp.ud_grade(hp.read_map(mask_path, 0), config.NSIDE)
@@ -64,6 +68,10 @@ if __name__ == "__main__":
 
     theta_, cls_, s_true, pix_map = generate_dataset(polarization=True, mask_path=config.mask_path)
 
+    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
+
     #data_path = "data/skymap_isotropic.npy"
     #d = np.load(data_path, allow_pickle=True)
     #d = d.item()
@@ -74,7 +82,7 @@ if __name__ == "__main__":
     #     "mask_path":config.mask_path, "noise_rms":np.sqrt(config.noise_covar_temp), "nside":config.NSIDE,
     #     "LMAX":config.L_MAX_SCALARS}
 
-    #np.save(config.scratch_path + "/data/non_isotropic_runs/skymap/skymap.npy", d, allow_pickle=True)
+    np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap", d, allow_pickle=True)
     #print(pix_map)
     #hp.mollview(pix_map)
     #plt.show()
@@ -138,39 +146,54 @@ if __name__ == "__main__":
 
     np.random.seed()
     if config.preliminary_run:
-        cls_init_E = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-        cls_init_B = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
+        _, cls_EE, cls_BB, _ = utils.generate_cls(config.COSMO_PARAMS_PLANCK, pol=True)
+        scale = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)])
+        dls_EE = scale*cls_EE
+        dls_BB = scale*cls_BB
+        all_dls = {"EE":dls_EE, "BB":dls_BB}
+
+        starting_point = {"EE":[], "BB":[]}
+        for pol in ["EE", "BB"]:
+            for i, l_start in enumerate(config.bins[pol][:-1]):
+                l_end = config.bins[pol][i+1]
+                starting_point[pol].append(np.mean(all_dls[pol][l_start:l_end]))
+
+        starting_point["EE"] = np.array(starting_point["EE"])
+        starting_point["BB"] = np.array(starting_point["BB"])
+
+        #cls_init_E = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
+        #cls_init_B = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
 
         #cls_init_E_binned = np.concatenate([np.zeros(2), cls_init_E])
         #cls_init_E_binned = utils.generate_init_values(cls_init_E, pol="EE")
-        cls_init_E_binned = utils.compute_init_values(cls_init_E, pol="EE")
+        #cls_init_E_binned = utils.compute_init_values(cls_init_E, pol="EE")
 
         #cls_init_B_binned = np.concatenate([np.zeros(2), cls_init_B])
         #cls_init_B_binned = utils.generate_init_values(cls_init_B, pol="BB")
-        cls_init_B_binned = utils.compute_init_values(cls_init_B, pol="BB")
+        #cls_init_B_binned = utils.compute_init_values(cls_init_B, pol="BB")
 
-        scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+        #scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
 
-        cls_init_E_binned = np.ones(len(cls_init_E_binned)) * 3000
-        cls_init_B_binned = np.ones(len(cls_init_B_binned)) * 3000
-        cls_init_binned_E = np.random.normal(loc=cls_init_E_binned, scale=np.sqrt(10))
-        cls_init_binned_B = np.random.normal(loc=cls_init_B_binned, scale=np.sqrt(10))
-        cls_init_E_binned[:2] = 0
-        cls_init_B_binned[:2] = 0
-        starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
-        rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
+        #cls_init_E_binned = np.ones(len(cls_init_E_binned)) * 3000
+        #cls_init_B_binned = np.ones(len(cls_init_B_binned)) * 3000
+        #cls_init_binned_E = np.random.normal(loc=cls_init_E_binned, scale=np.sqrt(10))
+        #cls_init_binned_B = np.random.normal(loc=cls_init_B_binned, scale=np.sqrt(10))
+        #cls_init_E_binned[:2] = 0
+        #cls_init_B_binned[:2] = 0
+        #starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
+        #rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
         #starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
         #starting_point = config.starting_point
     else:
         starting_point = config.starting_point
-
+    """
     ###Checker que ça marche avec bruit différent de 100**2
     #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     start = time.time()
     #start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, _ = centered_gibbs.run(starting_point)
-    h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
-    #h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
+    #h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
+    h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
@@ -188,13 +211,13 @@ if __name__ == "__main__":
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):
         for l in range(2, len(config.bins[pol][:-1])):
-            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_asis[pol], pix_map, l, maximum=np.max(h_cls_asis[pol][:, l]), pol=pol)
-            plt.plot(h_cls_asis[pol][:, l])
+            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_noncentered[pol], pix_map, l, maximum=np.max(h_cls_noncentered[pol][:, l]), pol=pol)
+            plt.plot(h_cls_noncentered[pol][:, l])
             plt.show()
 
-            #plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=500)
+            plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=300)
             #plt.hist(h_cls_centered[pol][100:, l], density=True, alpha=0.5, label="Gibbs Centered", bins=400)
-            plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="ASIS", bins=400)
+            #plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="ASIS", bins=400)
             print("Norm:", norm)
             plt.plot(xs, y/norm)
             plt.title(pol + " with l="+str(l))
@@ -203,17 +226,3 @@ if __name__ == "__main__":
 
 
     """
-    save_path = "test_nside_512.npy"
-
-    d = {"h_cls": np.array(h_cls_asis), "bins": config.bins, "metropolis_blocks": config.blocks,
-         "h_accept": np.array(h_accept),
-         "h_times_iteration": np.array(times_asis), "h_cpu_time": None}
-
-    np.save(save_path, d, allow_pickle=True)
-
-    l_interest = 600
-    plt.plot(h_cls_asis[:, l_interest])
-    plt.savefig("Trajectory " + str(l_interest))
-    """
-
-

@@ -3,8 +3,8 @@ import os
 import healpy as hp
 
 
-#scratch_path = os.environ['SCRATCH']
-#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+scratch_path = os.environ['SCRATCH']
+slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
 
 def compute_observed_spectrum(d):
     observed_cls = []
@@ -40,7 +40,7 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 4
+NSIDE = 256
 Npix = 12 * NSIDE ** 2
 L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
@@ -79,7 +79,7 @@ noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 #noise_covar_temp = 500**2
 #noise_covar_pol = 0.00044**2
-noise_covar_pol = 100**2
+noise_covar_pol = 0.2**2
 #noise_covar_pol = 0.2**2
 #noise_covar_pol = 0
 var_noise_temp = np.ones(Npix) * noise_covar_temp
@@ -93,8 +93,8 @@ print("L_CUT")
 #bins = np.concatenate([np.arange(600, 636, 2), bins])
 #bins = np.concatenate([range(600), bins])
 
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
-#bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 2, 4, 9])}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+bins = {"EE":np.array([0, 1, 2, 3, 5, 9]),"BB":np.array([0, 1, 2, 4, 9])}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
@@ -104,10 +104,10 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_S
 #blocks[0] = 2
 #blocks = list(range(2, len(bins)))
 
-blocks_EE = list(range(2, len(bins["EE"])))
-blocks_BB = list(range(2, len(bins["BB"])))
-#blocks_EE = [2, 4, 6]
-#blocks_BB = [2, 5]
+#blocks_EE = list(range(2, len(bins["EE"])))
+#blocks_BB = list(range(2, len(bins["BB"])))
+blocks_EE = [2, 4, 6]
+blocks_BB = [2, 5]
 
 blocks = {"EE":blocks_EE, "BB":blocks_BB}
 
