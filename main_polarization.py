@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     d = {"h_cls":h_cls_centered, "h_accept_cr":h_accept_cr_centered, "h_duration_cls":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"], "blocks_EE":None,
-         "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None}
+         "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None, "total_cpu_time":total_cpu_time}
 
     np.save(save_path, d, allow_pickle=True)
 
