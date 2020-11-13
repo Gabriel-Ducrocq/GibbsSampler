@@ -160,7 +160,7 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def sample(self, all_dls):
-        if False:
+        if self.mask_path is None:
             return self.sample_no_mask(all_dls)
         else:
             return self.sample_mask(all_dls)
@@ -300,12 +300,12 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         self.inv_noise_pol = 1/self.noise_pol
         self.sigma = 0.8
         self.mask_path = mask_path
-        print("MASK PATH II")
-        print(self.mask_path)
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
             self.inv_noise_pol *= self.mask
 
+        print("Proposal variances:")
+        print(self.proposal_variances)
 
     def propose_dl(self, dls_old):
         """
@@ -415,8 +415,6 @@ class NonCenteredGibbs(GibbsSampler):
             self.cls_sampler = NonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, metropolis_blocks,
                                                      proposal_variances, n_iter = n_iter_metropolis, mask_path=mask_path)
         else:
-            print("MASK PATH 1")
-            print(mask_path)
             self.constrained_sampler = PolarizedNonCenteredConstrainedRealization(pix_map, noise_I, noise_Q,
                                                                                   self.bl_map, lmax, Npix, beam,
                                                                                   mask_path=mask_path)
@@ -457,7 +455,7 @@ class NonCenteredGibbs(GibbsSampler):
         return np.array(h_dl), total_accept, np.array(h_time_seconds)
 
     def run_polarization(self, dls_init):
-        total_accept = []
+        total_accept = {"EE":[], "BB":[]}
         h_dls = {"EE":[], "BB":[]}
         h_time_seconds = []
         binned_dls = dls_init
@@ -475,16 +473,19 @@ class NonCenteredGibbs(GibbsSampler):
             binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
             dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"])
             dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])
-            total_accept.append(accept)
+            total_accept["EE"].append(accept["EE"])
+            total_accept["BB"].append(accept["BB"])
 
             end_time = time.process_time()
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
             h_time_seconds.append(end_time - start_time)
 
-        total_accept = np.array(total_accept)
-        print("Non centered acceptance rate:")
-        print(np.mean(total_accept, axis=0))
+        total_accept = {"EE": np.array(total_accept["EE"]), "BB": np.array(total_accept["BB"])}
+        print("Non Centered gibbs acceptance rate EE:")
+        print(np.mean(total_accept["EE"], axis=0))
+        print("Non Centered Gibbs rate BB:")
+        print(np.mean(total_accept["BB"], axis=0))
 
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])

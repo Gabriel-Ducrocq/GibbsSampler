@@ -936,7 +936,8 @@ def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
                                            locs[l_start:l_end], denoms_factors[l_start:l_end]))
 
     y = []
-    maxi = np.max(h_cl[:, l])/10000
+    #maxi = np.max(h_cl[:, l])/10000
+    maxi = np.max(h_cl[:, l])
     #maxi = maximum
     steps = maxi / 10000
     print("MAXI:", maxi)
