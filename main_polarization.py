@@ -111,7 +111,7 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
                                    rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
