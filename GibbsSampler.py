@@ -8,17 +8,17 @@ from default_gibbs import sample_cls
 
 
 class GibbsSampler():
-    def __init__(self, pix_map, noise, beam_fwhm, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000,
+    def __init__(self, pix_map, noise, beam_fwhm_deg, nside, lmax, Npix, polarization = False, bins=None, n_iter = 10000,
                  gibbs_cr = False, rj_step = False):
         self.noise = noise
-        self.beam = beam_fwhm
+        self.beam = beam_fwhm_deg
         self.nside = nside
         self.lmax = lmax
         self.polarization = polarization
         self.bins = bins
         self.pix_map = pix_map
         self.Npix = Npix
-        self.bl_map = self.compute_bl_map(beam_fwhm)
+        self.bl_map = self.compute_bl_map(beam_fwhm_deg)
         self.constrained_sampler = None
         self.cls_sampler = None
         self.n_iter = n_iter

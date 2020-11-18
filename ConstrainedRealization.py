@@ -4,7 +4,7 @@ import qcinv
 
 class ConstrainedRealization():
 
-    def __init__(self, pix_map, noise, bl_map, fwhm, lmax, Npix, mask_path=None, isotropic=True):
+    def __init__(self, pix_map, noise, bl_map, fwhm_deg, lmax, Npix, mask_path=None, isotropic=True):
         self.pix_map = pix_map
         self.isotropic = isotropic
         self.noise = noise
@@ -14,7 +14,7 @@ class ConstrainedRealization():
         self.dimension_alm = (lmax + 1) ** 2
         self.Npix = Npix
         self.nside = hp.npix2nside(Npix)
-        self.fwhm_radians = (np.pi/180)*fwhm
+        self.fwhm_radians = (np.pi/180)*fwhm_deg
         self.bl_gauss = hp.gauss_beam(fwhm=self.fwhm_radians, lmax=lmax)
         self.mask_path = mask_path
         if mask_path is not None:

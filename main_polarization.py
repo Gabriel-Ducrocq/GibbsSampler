@@ -18,10 +18,13 @@ from default_gibbs import default_gibbs
 from CenteredGibbs import CenteredGibbs
 
 
-def generate_dataset(polarization=True, mask_path = None):
+def generate_cls(polarization = True):
     theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
-    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.beam_fwhm, new=True)
+    return theta_, cls_
+
+def generate_dataset(cls_, polarization=True, mask_path = None):
+    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.fwhm_radians, new=True)
     d = map_true
     if polarization:
         d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
@@ -32,7 +35,7 @@ def generate_dataset(polarization=True, mask_path = None):
             plt.show()
             hp.mollview(d[2])
             plt.show()
-            return theta_, cls_, map_true,  {"Q":d[1], "U":d[2]}
+            return map_true,  {"Q":d[1], "U":d[2]}
         else:
             mask = hp.ud_grade(hp.read_map(mask_path, 0), config.NSIDE)
             hp.mollview(mask)
@@ -42,7 +45,7 @@ def generate_dataset(polarization=True, mask_path = None):
             hp.mollview(mask*d[2])
             plt.show()
             print("Mask taken into account")
-            return theta_, cls_, map_true, {"Q": d[1]*mask, "U": d[2]*mask}
+            return map_true, {"Q": d[1]*mask, "U": d[2]*mask}
 
     else:
         d += np.random.normal(scale=np.sqrt(config.var_noise_temp))
@@ -66,7 +69,9 @@ def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
 if __name__ == "__main__":
     np.random.seed()
 
-    theta_, cls_, s_true, pix_map = generate_dataset(polarization=True, mask_path=config.mask_path)
+    theta_, cls_ = generate_cls()
+    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+
 
     d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
          "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
@@ -74,11 +79,11 @@ if __name__ == "__main__":
 
     np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy", d, allow_pickle=True)
 
-
-    data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
-    d = np.load(data_path, allow_pickle=True)
-    d = d.item()
-    pix_map = d["pix_map"]
+    """
+    #data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
+    #d = np.load(data_path, allow_pickle=True)
+    #d = d.item()
+    #pix_map = d["pix_map"]
 
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -170,8 +175,6 @@ if __name__ == "__main__":
     else:
         starting_point = config.starting_point
 
-    ###Checker que ça marche avec bruit différent de 100**2
-    #h_old_centered, _ = default_gibbs(pix_map, cls_init)
     start = time.time()
     start_cpu = time.clock()
     h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
@@ -195,7 +198,7 @@ if __name__ == "__main__":
          "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None, "total_cpu_time":total_cpu_time}
 
     np.save(save_path, d, allow_pickle=True)
-
+    """
     """
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):
@@ -212,6 +215,5 @@ if __name__ == "__main__":
             plt.title(pol + " with l="+str(l))
             plt.legend(loc="upper right")
             plt.show()
-
-
     """
+

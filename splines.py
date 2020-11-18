@@ -114,3 +114,4 @@ def sample_splines(log_func, hard_lower_bound=-np.inf, hard_upper_bound=np.inf, 
     cs, integs, xx = spline_approximation(funct, lower_bound, upper_bound)
     sampled_point = sampling(integs, xx)
     return sampled_point
+
