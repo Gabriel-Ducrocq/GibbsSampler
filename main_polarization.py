@@ -69,22 +69,22 @@ def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
 if __name__ == "__main__":
     np.random.seed()
 
-    theta_, cls_ = generate_cls()
-    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+    #theta_, cls_ = generate_cls()
+    #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
 
 
-    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
+    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
 
-    np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy", d, allow_pickle=True)
+    #np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy", d, allow_pickle=True)
+
+    data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
 
     """
-    #data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["pix_map"]
-
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -111,12 +111,12 @@ if __name__ == "__main__":
 
     print("Variances pol FIRST")
     print(config.proposal_variances_nc_polarized)
-
+    """
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                    rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -198,7 +198,6 @@ if __name__ == "__main__":
          "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None, "total_cpu_time":total_cpu_time}
 
     np.save(save_path, d, allow_pickle=True)
-    """
     """
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):

@@ -94,7 +94,7 @@ print("L_CUT")
 #bins = np.concatenate([range(600), bins])
 
 #@bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
-bins_BB = np.concatenate([range(0, 400), np.array([400, 402, 406, 410, 415, 420, 425, 430, 440, 450, 460, 475, 480, 495, 513])])
+bins_BB = np.concatenate([range(0, 396), np.array([398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
 bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
