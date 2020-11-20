@@ -455,6 +455,8 @@ class NonCenteredGibbs(GibbsSampler):
         return np.array(h_dl), total_accept, np.array(h_time_seconds)
 
     def run_polarization(self, dls_init):
+        h_duration_cr = []
+        h_duration_cls_sampling = []
         total_accept = {"EE":[], "BB":[]}
         h_dls = {"EE":[], "BB":[]}
         h_time_seconds = []
@@ -468,9 +470,17 @@ class NonCenteredGibbs(GibbsSampler):
                 print("Non centered gibbs")
                 print(i)
 
-            start_time = time.process_time()
+            start_time = time.clock()
             s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned)
+            end_time = time.clock()
+            duration = end_time - start_time
+            h_duration_cr.append(duration)
+
+            start_time = time.clock()
             binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
+            end_time = time.clock()
+            duration =end_time - start_time
+            h_duration_cls_sampling.append(duration)
             dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"])
             dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])
             total_accept["EE"].append(accept["EE"])
@@ -490,7 +500,7 @@ class NonCenteredGibbs(GibbsSampler):
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])
 
-        return h_dls, total_accept, np.array(h_time_seconds)
+        return h_dls, total_accept, np.array(h_duration_cr), np.array(h_duration_cls_sampling)
 
     def run(self, dls_init):
         if not self.polarization:

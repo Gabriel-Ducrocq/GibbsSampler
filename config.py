@@ -105,8 +105,11 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #blocks[0] = 2
 #blocks = list(range(2, len(bins)))
 
-blocks_EE = list(range(2, len(bins["EE"])))
-blocks_BB = list(range(2, len(bins["BB"])))
+#blocks_EE = list(range(2, len(bins["EE"])))
+#blocks_BB = list(range(2, len(bins["BB"])))
+
+blocks_EE = [2, len(bins["EE"])]
+blocks_BB = np.concatenate([[2, 280], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
 #blocks_EE = [2, 4, 6]
 #blocks_BB = [2, 5]
 
@@ -251,8 +254,8 @@ if preliminary_run:
     #starting_point[:2] = 0
 
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]*100
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]*200
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
 
     #proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.5
     #proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.1

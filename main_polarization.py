@@ -121,7 +121,7 @@ if __name__ == "__main__":
                                    rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
@@ -178,9 +178,9 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    #h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
-    #h_cls_noncentered, h_accept_cr_noncentered, _ = non_centered_gibbs.run(starting_point)
+    h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
@@ -192,11 +192,13 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/centered_gibbs/centeredGibbs_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
 
-    d = {"h_cls":h_cls_centered, "h_accept_cr":h_accept_cr_centered, "h_duration_cls":h_duration_cls_sampling,
-         "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"], "blocks_EE":None,
-         "blocks_BB":None, "proposal_variances_EE":None, "proposal_variances_BB":None, "total_cpu_time":total_cpu_time}
+    d = {"h_cls":h_cls_noncentered, "h_accept_cr":h_accept_cr_noncentered, "h_duration_cls":h_duration_cls_sampling,
+         "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
+         "blocks_EE":config.blocks["EE"],
+         "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
+         "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time}
 
     np.save(save_path, d, allow_pickle=True)
     """
