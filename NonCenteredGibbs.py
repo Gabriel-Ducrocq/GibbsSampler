@@ -319,9 +319,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         proposal variance also starts at l = 2. But then we need to take the first element of this array, hence setting
         l_start - 2:l_end - 2
         """
-        print(dls_old["EE"][2:])
         clip_low_EE = -dls_old["EE"][2:] / np.sqrt(self.proposal_variances["EE"])
-        print(clip_low_EE)
         dls_EE = np.concatenate([np.zeros(2), truncnorm.rvs(a=clip_low_EE, b=np.inf, loc=dls_old["EE"][2:],
                              scale=np.sqrt(self.proposal_variances["EE"]))])
 
