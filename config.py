@@ -308,6 +308,8 @@ else:
     proposal_variances_nc, starting_point = get_proposal_variances_preliminary_pol(path_nc)
     starting_point["EE"][:2] = 0
     starting_point["BB"][:2] = 0
+    print("Proposalvariances:")
+    print(proposal_variances_nc["BB"])
     proposal_variances_nc_polarized = {"EE":None, "BB":None}
     proposal_variances_nc_polarized["EE"] = proposal_variances_nc["EE"][2:]
     proposal_variances_nc_polarized["BB"] = proposal_variances_nc["BB"][2:]
