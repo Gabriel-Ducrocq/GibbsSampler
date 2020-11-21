@@ -313,7 +313,7 @@ else:
     proposal_variances_nc_polarized["BB"] = proposal_variances_nc["BB"][2:]
 
     proposal_variances_nc_polarized["BB"][0:2] *= 10
-    proposal_variances_nc_polarized["BB"][2:9] /= 20
+    proposal_variances_nc_polarized["BB"][2:9] *= 0.0001
     proposal_variances_nc_polarized["BB"][9] *= 2
     proposal_variances_nc_polarized["BB"][10:13] *= 0.7
     proposal_variances_nc_polarized["BB"][14:20] *= 0.7
