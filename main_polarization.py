@@ -121,7 +121,7 @@ if __name__ == "__main__":
                                    rj_step=False)
 
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 200,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks)
 
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/non_centered_gibbs/run/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_noncentered, "h_accept_cr":h_accept_cr_noncentered, "h_duration_cls":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],

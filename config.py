@@ -241,7 +241,34 @@ def get_proposal_variances_preliminary(path):
 
 
 
-preliminary_run =True
+def get_proposal_variances_preliminary_pol(path):
+    list_files = os.listdir(path)
+    chains = []
+    times = []
+    accept_rate = []
+
+    for i, name in enumerate(list_files):
+        if name not in [".ipynb_checkpoints", "Untitled.ipynb", "preliminary_runs"]:
+            data = np.load(path + name, allow_pickle=True)
+            data = data.item()
+            chains.append(data["h_cls"])
+
+        all_paths = {"EE":[], "BB":[]}
+        for pol in ["EE", "BB"]:
+            for i, chain in enumerate(chains):
+                all_paths[pol].append(chain[pol][:, :])
+
+        all_paths["EE"] = np.array(all_paths["EE"])
+        all_paths["BB"] = np.array(all_paths["BB"])
+        variances = {"EE":np.var(all_paths["EE"][:, 50:, :], axis=(0, 1)), "BB":np.var(all_paths["BB"][:, 50:, :], axis=(0, 1))}
+        means = {"EE": np.mean(all_paths["EE"][:, 50:, :], axis=(0, 1)),
+                     "BB": np.mean(all_paths["BB"][:, 50:, :], axis=(0, 1))}
+
+        return variances, means
+
+
+
+preliminary_run =False
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
@@ -276,7 +303,10 @@ else:
     proposal_variances_pncp[-1:] *= 0.7
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
-    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
-    proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
-    starting_point[:2] = 0
-    proposal_variances_nc = proposal_variances_nc[2:]
+
+    path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
+    proposal_variances_nc, starting_point = get_proposal_variances_preliminary(path_nc)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
+    proposal_variances_nc["EE"] = proposal_variances_nc["EE"][2:]
+    proposal_variances_nc["BB"] = proposal_variances_nc["BB"][2:]
