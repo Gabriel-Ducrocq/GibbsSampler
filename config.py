@@ -3,8 +3,8 @@ import os
 import healpy as hp
 
 
-scratch_path = os.environ['SCRATCH']
-slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+#scratch_path = os.environ['SCRATCH']
+#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
 
 def compute_observed_spectrum(d):
     observed_cls = []
@@ -304,15 +304,17 @@ else:
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
 
-    path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
-    _, starting_point = get_proposal_variances_preliminary_pol(path_nc)
+    #path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
+    #_, starting_point = get_proposal_variances_preliminary_pol(path_nc)
     #starting_point["EE"][:2] = 0
     #starting_point["BB"][:2] = 0
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    #proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    #proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"]
 
-    bl = blocks["BB"]
+    bl = blocks["BB"][:-1]
     proposal_variances_nc_polarized["BB"][bl[-2]:] *= 3.5
     #proposal_variances_nc_polarized["BB"][bl[-4]:bl[-2]] *= 1.7
     proposal_variances_nc_polarized["BB"][bl[-4]:bl[-2]] *= 100000
@@ -326,5 +328,18 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-26]:bl[-25]] *= 0.9
     proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 5
 
+    """
+    print(proposal_variances_nc_polarized["BB"][bl[-2]:])
+    print(len(proposal_variances_nc_polarized["BB"]))
+    print(len(bins["BB"]))
+    print(bl[-2:])
+    print(len(bl))
+    print(proposal_variances_nc_polarized["BB"][bl[-2]:])
+    print(proposal_variances_nc_polarized["BB"][-2:])
 
 
+    print("\n\n\n")
+    print(bl[-31])
+    print(proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]])
+    print(proposal_variances_nc_polarized["BB"][2:280])
+    """
