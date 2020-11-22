@@ -304,8 +304,8 @@ else:
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
 
-    #path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
-    #proposal_variances_nc, starting_point = get_proposal_variances_preliminary_pol(path_nc)
+    path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
+    _, starting_point = get_proposal_variances_preliminary_pol(path_nc)
     #starting_point["EE"][:2] = 0
     #starting_point["BB"][:2] = 0
     proposal_variances_nc_polarized = {}
