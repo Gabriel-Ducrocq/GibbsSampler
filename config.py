@@ -315,7 +315,7 @@ else:
     bl = blocks["BB"][:-1]
     proposal_variances_nc_polarized["BB"][bl[-2]:] *= 3.5
     proposal_variances_nc_polarized["BB"][bl[-4]:bl[-2]] *= 2.5
-    proposal_variances_nc_polarized["BB"][bl[-11]:bl[-4]] *= 3.8
+    proposal_variances_nc_polarized["BB"][bl[-11]:bl[-4]] *= 4.2
     proposal_variances_nc_polarized["BB"][bl[-14]:bl[-11]] *= 0.7
     proposal_variances_nc_polarized["BB"][bl[-17]:bl[-16]] *= 0.7
     proposal_variances_nc_polarized["BB"][bl[-21]:bl[-20]] *= 1.7
