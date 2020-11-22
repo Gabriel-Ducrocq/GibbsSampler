@@ -312,15 +312,16 @@ else:
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
 
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-2]:] *= 2
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-4]:blocks["BB"][-2]] *= 1.7
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-11]:blocks["BB"][-4]] *= 2.5
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-14]:blocks["BB"][-11]] *= 0.5
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-17]:blocks["BB"][-16]] *= 0.7
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-22]:blocks["BB"][-21]] *= 3
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-25]:blocks["BB"][-22]] *= 0.7
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-26]:blocks["BB"][-25]] *= 0.9
-    proposal_variances_nc_polarized["BB"][blocks["BB"][-31]:blocks["BB"][-30]] *= 5
+    block = blocks[:-1]
+    proposal_variances_nc_polarized["BB"][blocks[-2]:] *= 3.5
+    proposal_variances_nc_polarized["BB"][blocks[-4]:blocks[-2]] *= 1.7
+    proposal_variances_nc_polarized["BB"][blocks[-11]:blocks[-4]] *= 2.5
+    proposal_variances_nc_polarized["BB"][blocks[-14]:blocks[-11]] *= 0.5
+    proposal_variances_nc_polarized["BB"][blocks[-17]:blocks[-16]] *= 0.7
+    proposal_variances_nc_polarized["BB"][blocks[-22]:blocks[-21]] *= 1000000
+    proposal_variances_nc_polarized["BB"][blocks[-25]:blocks[-22]] *= 0.7
+    proposal_variances_nc_polarized["BB"][blocks[-26]:blocks[-25]] *= 0.9
+    proposal_variances_nc_polarized["BB"][blocks[-31]:blocks[-30]] *= 5
 
 
 
