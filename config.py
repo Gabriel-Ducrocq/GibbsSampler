@@ -93,7 +93,7 @@ print("L_CUT")
 #bins = np.concatenate([np.arange(600, 636, 2), bins])
 #bins = np.concatenate([range(600), bins])
 
-#@bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
 bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #bins = np.array([279, 300, 350, 410, 470, 513])
@@ -109,6 +109,10 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #blocks_BB = list(range(2, len(bins["BB"])))
 
 blocks_EE = [2, len(bins["EE"])]
+#blocks_BB = [2, len(bins["BB"])]
+#blocks_EE = range(2, len(bins["EE"]))
+#blocks_BB = range(2, len(bins["BB"]))
+
 blocks_BB = np.concatenate([[2, 280], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
 #blocks_EE = [2, 4, 6]
 #blocks_BB = [2, 5]
@@ -268,7 +272,7 @@ def get_proposal_variances_preliminary_pol(path):
 
 
 
-preliminary_run =False
+preliminary_run =True
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
@@ -304,26 +308,26 @@ else:
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
 
-    path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
-    _, starting_point = get_proposal_variances_preliminary_pol(path_nc)
-    starting_point["EE"][:2] = 0
-    starting_point["BB"][:2] = 0
-    proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"]
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"]
+    #path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
+    #_, starting_point = get_proposal_variances_preliminary_pol(path_nc)
+    #starting_point["EE"][:2] = 0
+    #starting_point["BB"][:2] = 0
+    #proposal_variances_nc_polarized = {}
+    #proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"]
+    #proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"]
 
-    bl = blocks["BB"][:-1]
-    proposal_variances_nc_polarized["BB"][bl[-2]:] *= 3.5
-    proposal_variances_nc_polarized["BB"][bl[-4]:bl[-2]] *= 2.5
-    proposal_variances_nc_polarized["BB"][bl[-11]:bl[-4]] *= 4.2
-    proposal_variances_nc_polarized["BB"][bl[-14]:bl[-11]] *= 0.7
-    proposal_variances_nc_polarized["BB"][bl[-17]:bl[-16]] *= 0.7
-    proposal_variances_nc_polarized["BB"][bl[-21]:bl[-20]] *= 1.7
-    proposal_variances_nc_polarized["BB"][bl[-22]:bl[-21]] *= 12
-    proposal_variances_nc_polarized["BB"][bl[-25]:bl[-22]] *= 0.7
-    proposal_variances_nc_polarized["BB"][bl[-26]:bl[-25]] *= 0.9
-    proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 5
+    #bl = blocks["BB"][:-1]
+    #proposal_variances_nc_polarized["BB"][bl[-2]:] *= 3.5
+    #proposal_variances_nc_polarized["BB"][bl[-4]:bl[-2]] *= 2.5
+    #proposal_variances_nc_polarized["BB"][bl[-11]:bl[-4]] *= 4.2
+    #proposal_variances_nc_polarized["BB"][bl[-14]:bl[-11]] *= 0.7
+    #proposal_variances_nc_polarized["BB"][bl[-17]:bl[-16]] *= 0.7
+    #proposal_variances_nc_polarized["BB"][bl[-21]:bl[-20]] *= 1.7
+    #proposal_variances_nc_polarized["BB"][bl[-22]:bl[-21]] *= 12
+    #proposal_variances_nc_polarized["BB"][bl[-25]:bl[-22]] *= 0.7
+    #proposal_variances_nc_polarized["BB"][bl[-26]:bl[-25]] *= 0.9
+    #proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 5
 
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    #proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    #proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
 

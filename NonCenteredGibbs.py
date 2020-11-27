@@ -104,13 +104,14 @@ def compute_sigma_and_chol(all_chol_cls, pix_part_variance):
 
 
 class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph = False):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
         self.mask_path = mask_path
+        self.all_sph = all_sph
 
         self.bl_fwhm = bl_fwhm
         self.pol_centered_constraint_realizer = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
@@ -130,15 +131,23 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
         sigma_E = 1/(1 + self.inv_noise_pol[0]*self.bl_map**2*var_cls_E*self.Npix/(4*np.pi))
         sigma_B = 1/(1 + self.inv_noise_pol[0] * self.bl_map ** 2 * var_cls_B * self.Npix / (4 * np.pi))
 
+        if not self.all_sph:
+            _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
+                           lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
 
-        _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
-                       lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
+            r_E = np.sqrt(var_cls_E) * self.bl_map * utils.complex_to_real(r_E)
+            r_B = np.sqrt(var_cls_B) * self.bl_map * utils.complex_to_real(r_B)
+        else:
+            r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi))* self.pix_map["EE"]
+            r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"]
 
-        r_E = np.sqrt(var_cls_E) * self.bl_map * utils.complex_to_real(r_E)
-        r_B = np.sqrt(var_cls_B) * self.bl_map * utils.complex_to_real(r_B)
+            r_E = np.sqrt(var_cls_E) * self.bl_map * r_E
+            r_B = np.sqrt(var_cls_B) * self.bl_map * r_B
+
 
         mean_E = sigma_E*r_E
         mean_B = sigma_B*r_B
+
 
         alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E)
         alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
@@ -291,7 +300,8 @@ class NonCenteredClsSampler(MHClsSampler):
 
 
 class PolarizationNonCenteredClsSampler(MHClsSampler):
-    def __init__(self, pix_map, lmax, nside, bins, bl_map, noise_I, noise_Q, metropolis_blocks, proposal_variances, n_iter = 1, mask_path=None, polarization=True):
+    def __init__(self, pix_map, lmax, nside, bins, bl_map, noise_I, noise_Q, metropolis_blocks, proposal_variances, n_iter = 1, mask_path=None, polarization=True,
+                 all_sph = False):
         super().__init__(pix_map, lmax, nside, bins, bl_map, noise_I, metropolis_blocks, proposal_variances, n_iter = n_iter,
                        polarization=polarization)
         self.nside=nside
@@ -299,6 +309,8 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         self.noise_pol = noise_Q
         self.inv_noise_pol = 1/self.noise_pol
         self.sigma = 0.8
+        self.Npix = 12*nside**2
+        self.all_sph = all_sph
         self.mask_path = mask_path
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
@@ -358,9 +370,25 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
             ((self.pix_map["Q"] - map_Q)** 2)*self.inv_noise_pol) + np.sum(
             ((self.pix_map["U"] - map_U)** 2)*self.inv_noise_pol))
 
+    def compute_log_likelihood_all_sph(self,dls, s_nonCentered):
+        all_dls = {"EE":utils.unfold_bins(dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(dls["BB"], self.bins["BB"])}
+        var_cls_E = utils.generate_var_cl(all_dls["EE"])
+        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+        alm_E_centered = self.bl_map*np.sqrt(var_cls_E)*s_nonCentered["EE"]
+        alm_B_centered = self.bl_map*np.sqrt(var_cls_B)*s_nonCentered["BB"]
+
+
+        return - (1 / 2) *( np.sum(
+            ((self.pix_map["EE"] - alm_E_centered)** 2)*self.inv_noise_pol[0]*self.Npix/(4*np.pi)) + np.sum(
+            ((self.pix_map["BB"] - alm_B_centered)** 2)*self.inv_noise_pol[0]*self.Npix/(4*np.pi)))
+
 
     def compute_log_MH_ratio(self, log_r_ratio, dls_new, s_nonCentered, old_lik):
-        new_lik = self.compute_log_likelihood(dls_new, s_nonCentered)
+        if not self.all_sph:
+            new_lik = self.compute_log_likelihood(dls_new, s_nonCentered)
+        else:
+            new_lik = self.compute_log_likelihood_all_sph(dls_new, s_nonCentered)
+
         part1 = new_lik - old_lik
         part2 = log_r_ratio
         return part1 + part2, new_lik
@@ -380,7 +408,11 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         log_prop_num = self.compute_log_proposal(binned_dls_propose, binned_dls_old)
         log_prop_denom = self.compute_log_proposal(binned_dls_old, binned_dls_propose)
         log_r_proposal_all = {"EE": log_prop_num["EE"] - log_prop_denom["EE"], "BB":log_prop_num["BB"] - log_prop_denom["BB"]}
-        old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
+        if not self.all_sph:
+            old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
+        else:
+            old_lik = self.compute_log_likelihood_all_sph(binned_dls_old, s_nonCentered)
+
         for pol in ["EE", "BB"]:
             for i, l_start in enumerate(self.metropolis_blocks[pol][:-1]):
                 l_end = self.metropolis_blocks[pol][i + 1]
@@ -405,7 +437,7 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
 class NonCenteredGibbs(GibbsSampler):
     def __init__(self, pix_map, noise_I, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
-                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None):
+                 polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, all_sph = False):
         super().__init__(pix_map, noise_I, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
         if not polarization:
             self.constrained_sampler = NonCenteredConstrainedRealization(pix_map, noise_I, self.bl_map, beam, lmax, Npix, isotropic=True,
@@ -415,10 +447,10 @@ class NonCenteredGibbs(GibbsSampler):
         else:
             self.constrained_sampler = PolarizedNonCenteredConstrainedRealization(pix_map, noise_I, noise_Q,
                                                                                   self.bl_map, lmax, Npix, beam,
-                                                                                  mask_path=mask_path)
+                                                                                  mask_path=mask_path, all_sph=all_sph)
             self.cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis,
-                                                                 mask_path=mask_path)
+                                                                 mask_path=mask_path, all_sph=all_sph)
 
     def run_temperature(self, dl_init):
         h_time_seconds = []
@@ -464,21 +496,21 @@ class NonCenteredGibbs(GibbsSampler):
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
-            if i % 100== 0:
+            if i % 1== 0:
                 print("Non centered gibbs")
                 print(i)
 
-            start_time = time.clock()
+            #start_time = time.clock()
             s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned)
-            end_time = time.clock()
-            duration = end_time - start_time
-            h_duration_cr.append(duration)
+            #end_time = time.clock()
+            #duration = end_time - start_time
+            #h_duration_cr.append(duration)
 
-            start_time = time.clock()
+            #start_time = time.clock()
             binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
-            end_time = time.clock()
-            duration =end_time - start_time
-            h_duration_cls_sampling.append(duration)
+            #end_time = time.clock()
+            #duration =end_time - start_time
+            #h_duration_cls_sampling.append(duration)
             dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"])
             dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])
             total_accept["EE"].append(accept["EE"])
@@ -487,7 +519,7 @@ class NonCenteredGibbs(GibbsSampler):
             end_time = time.process_time()
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
-            h_time_seconds.append(end_time - start_time)
+            #h_time_seconds.append(end_time - start_time)
 
         total_accept = {"EE": np.array(total_accept["EE"]), "BB": np.array(total_accept["BB"])}
         print("Non Centered gibbs acceptance rate EE:")

@@ -909,13 +909,19 @@ def trace_likelihood_pol_binned_bis(h_cl, d_all, l, maximum, pol = "EE", dl=True
     return np.array(y), xs, norm
 
 
-def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True):
+def trace_likelihood_pol_binned(h_cl, d_all, l, maximum, pol = "EE", dl=True, all_sph = False):
     l_start, l_end = config.bins[pol][l], config.bins[pol][l + 1]
     scale_dl = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)])
     if not dl:
         scale_dl = np.ones(len(scale_dl))
 
-    _, power_spec_EE, power_spec_BB, _, _, _ = hp.anafast([np.zeros(config.Npix), d_all["Q"], d_all["U"]], lmax=config.L_MAX_SCALARS, pol=True)
+    if not all_sph:
+        _, power_spec_EE, power_spec_BB, _, _, _ = hp.anafast([np.zeros(config.Npix), d_all["Q"], d_all["U"]], lmax=config.L_MAX_SCALARS, pol=True)
+    else:
+        _, power_spec_EE, power_spec_BB, _, _, _ = hp.alm2cl([real_to_complex(np.zeros(len(d_all["EE"]))),
+                                                              real_to_complex(d_all["EE"]), real_to_complex(d_all["BB"])],
+                                                             lmax=config.L_MAX_SCALARS)
+
     if pol == "EE":
         power_spec = power_spec_EE
     else:
