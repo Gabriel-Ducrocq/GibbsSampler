@@ -327,7 +327,7 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-25]:bl[-22]] *= 0.7
     proposal_variances_nc_polarized["BB"][bl[-26]:bl[-25]] *= 0.9
     proposal_variances_nc_polarized["BB"][bl[-30]:bl[-29]] *= 100000000
-    proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 0.1
+    proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 0.05
 
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
