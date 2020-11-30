@@ -113,7 +113,7 @@ blocks_EE = [2, len(bins["EE"])]
 #blocks_EE = range(2, len(bins["EE"]))
 #blocks_BB = range(2, len(bins["BB"]))
 
-blocks_BB = np.concatenate([[2, 280], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
+blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
 #blocks_EE = [2, 4, 6]
 #blocks_BB = [2, 5]
 
@@ -326,8 +326,7 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-22]:bl[-21]] *= 12
     proposal_variances_nc_polarized["BB"][bl[-25]:bl[-22]] *= 0.7
     proposal_variances_nc_polarized["BB"][bl[-26]:bl[-25]] *= 0.9
-    proposal_variances_nc_polarized["BB"][bl[-30]:bl[-29]] *= 100000000
-    proposal_variances_nc_polarized["BB"][bl[-31]:bl[-30]] *= 0.05
+    proposal_variances_nc_polarized["BB"][bl[-30]:bl[-39]] *= 0.05
 
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
