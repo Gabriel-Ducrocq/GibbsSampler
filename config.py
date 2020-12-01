@@ -353,5 +353,8 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-98]:bl[-20]] *= 7
     proposal_variances_nc_polarized["BB"][bl[-99]:bl[-98]] = binned_variances_pol["BB"][bl[-99]:bl[-98]]*0.07
 
+    proposal_variances_nc_polarized["BB"][bl[-62]:bl[-9]] *= 1.7
+
+
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
