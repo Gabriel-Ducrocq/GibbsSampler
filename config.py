@@ -273,7 +273,7 @@ def get_proposal_variances_preliminary_pol(path):
 
 
 
-preliminary_run = True
+preliminary_run = False
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
@@ -309,6 +309,9 @@ else:
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
 
+
+####Number ONE:
+    """
     path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run/"
     _, starting_point = get_proposal_variances_preliminary_pol(path_nc)
     starting_point["EE"][:2] = 0
@@ -332,4 +335,23 @@ else:
 
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    """
 
+
+####Number TWO
+    path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run3/"
+    _, starting_point = get_proposal_variances_preliminary_pol(path_nc)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
+    proposal_variances_nc_polarized = {}
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"]
+
+    bl = blocks["BB"][:-1]
+    proposal_variances_nc_polarized["BB"][bl[-7]:] *= 2
+    proposal_variances_nc_polarized["BB"][bl[-20]:bl[-7]] *= 4
+    proposal_variances_nc_polarized["BB"][bl[-98]:bl[-20]] *= 5
+    proposal_variances_nc_polarized["BB"][bl[-99]:bl[-98]] = binned_variances_pol["BB"][bl[-99]:bl[-98]]*0.001
+
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
