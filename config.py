@@ -113,7 +113,8 @@ blocks_EE = [2, len(bins["EE"])]
 #blocks_EE = range(2, len(bins["EE"]))
 #blocks_BB = range(2, len(bins["BB"]))
 
-blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
+# Number ONE : blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
+blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 2),range(351, len(bins["BB"]))])
 #blocks_EE = [2, 4, 6]
 #blocks_BB = [2, 5]
 
@@ -272,7 +273,7 @@ def get_proposal_variances_preliminary_pol(path):
 
 
 
-preliminary_run =False
+preliminary_run = True
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
