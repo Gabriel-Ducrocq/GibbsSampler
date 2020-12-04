@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 2500,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
                                           all_sph=True)
 
