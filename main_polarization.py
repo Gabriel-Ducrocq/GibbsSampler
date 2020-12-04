@@ -199,7 +199,7 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run4/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/non_centered_gibbs/run4/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_noncentered, "h_accept_cr":h_accept_cr_noncentered, "h_duration_cls":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
