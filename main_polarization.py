@@ -31,10 +31,10 @@ def generate_dataset(cls_, polarization=True, mask_path = None):
         d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
         d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
         if mask_path is None:
-            hp.mollview(d[1])
-            plt.show()
-            hp.mollview(d[2])
-            plt.show()
+            #hp.mollview(d[1])
+            #plt.show()
+            #hp.mollview(d[2])
+            #plt.show()
             return map_true,  {"Q":d[1], "U":d[2]}
         else:
             mask = hp.ud_grade(hp.read_map(mask_path, 0), config.NSIDE)
@@ -69,8 +69,13 @@ def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
 if __name__ == "__main__":
     np.random.seed()
 
+    ####Be careful of the cls_TT and cls_TE
     #theta_, cls_ = generate_cls()
     #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+
+
+
+
 
 
     #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
@@ -194,7 +199,7 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/non_centered_gibbs/run3/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run4/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_noncentered, "h_accept_cr":h_accept_cr_noncentered, "h_duration_cls":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
