@@ -374,11 +374,14 @@ else:
     bl = blocks["BB"][:-1]
     proposal_variances_nc_polarized["BB"][bl[-7]:] *= 5
     proposal_variances_nc_polarized["BB"][bl[-20]:bl[-7]] *= 5
-    proposal_variances_nc_polarized["BB"][bl[-62]:bl[-9]] *= 1.7
+    proposal_variances_nc_polarized["BB"][bl[-62]:bl[-9]] *= 3
     proposal_variances_nc_polarized["BB"][bl[-64]:bl[-38]] *= 1.5
     proposal_variances_nc_polarized["BB"][bl[-99]:bl[-64]] *= 2
     proposal_variances_nc_polarized["BB"][bl[-132]:bl[-99]] *= 4
-    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-132]] *= 7
+
+    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-132]] *= 20
+    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.01
+    proposal_variances_nc_polarized["BB"][bl[-132]:bl[-21]] *= 3
 
 
 
