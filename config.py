@@ -114,8 +114,8 @@ blocks_EE = [2, len(bins["EE"])]
 #blocks_BB = range(2, len(bins["BB"]))
 
 # Number ONE : blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 10), np.arange(351, 401, 5), range(401, len(bins["BB"]))])
-# Number TWO : blocks_BB = np.concatenate([[2, 280], np.arange(280, 351, 2),range(351, len(bins["BB"]))])
-blocks_BB = np.concatenate([[2, 280], np.arange(280, len(bins["BB"]), 1)])
+# Number TWO : blocks_BB = np.concatenate([[2, 279], np.arange(280, 351, 2),range(351, len(bins["BB"]))])
+blocks_BB = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
 #blocks_EE = [2, 4, 6]
 #blocks_BB = [2, 5]
 
@@ -379,11 +379,14 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-99]:bl[-64]] *= 2
     proposal_variances_nc_polarized["BB"][bl[-132]:bl[-99]] *= 4
 
-    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-132]] *= 2000000
-    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.05
+    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.08
     proposal_variances_nc_polarized["BB"][bl[-132]:bl[-21]] *= 20
     proposal_variances_nc_polarized["BB"][bl[-132]:bl[-62]] *= 1.2
     proposal_variances_nc_polarized["BB"][bl[-62]:bl[-21]] *= 1.2
+
+    proposal_variances_nc_polarized["BB"][bl[-132]:bl[-99]] *= 0.8
+    proposal_variances_nc_polarized["BB"][bl[-62]:bl[-21]] *= 0.8
+    proposal_variances_nc_polarized["BB"][bl[-21]:bl[-21]] *= 2.5
 
 
 
