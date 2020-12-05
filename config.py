@@ -380,8 +380,10 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-132]:bl[-99]] *= 4
 
     proposal_variances_nc_polarized["BB"][bl[-133]:bl[-132]] *= 20
-    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.01
-    proposal_variances_nc_polarized["BB"][bl[-132]:bl[-21]] *= 3
+    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.05
+    proposal_variances_nc_polarized["BB"][bl[-132]:bl[-21]] *= 20
+    proposal_variances_nc_polarized["BB"][bl[-132]:bl[-62]] *= 3
+    proposal_variances_nc_polarized["BB"][bl[-62]:bl[-21]] *= 1.5
 
 
 
