@@ -293,12 +293,13 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
+        self.all_sph = all_sph
 
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
@@ -360,11 +361,21 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         sigma_E = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E )
         sigma_B = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B )
 
-        _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
+        if not self.all_sph:
+            _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
                        lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
 
-        r_E = self.bl_map * utils.complex_to_real(r_E)
-        r_B = self.bl_map * utils.complex_to_real(r_B)
+            r_E = self.bl_map * utils.complex_to_real(r_E)
+            r_B = self.bl_map * utils.complex_to_real(r_B)
+
+        else:
+            r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi)) * self.pix_map["EE"]
+            r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"]
+
+            r_E = self.bl_map * r_E
+            r_B = self.bl_map * r_B
+
+
         mean_E = sigma_E*r_E
         mean_B = sigma_B*r_B
 
@@ -499,7 +510,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 100000, rj_step = False):
+                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False):
         super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter
                          ,rj_step=rj_step)
         if not polarization:
@@ -510,4 +521,4 @@ class CenteredGibbs(GibbsSampler):
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp, mask_path=mask_path)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
                                                                                self.bl_map, lmax, Npix, beam,
-                                                                               mask_path=mask_path)
+                                                                               mask_path=mask_path, all_sph=all_sph)

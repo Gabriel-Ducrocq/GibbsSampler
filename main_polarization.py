@@ -132,10 +132,11 @@ if __name__ == "__main__":
                                           all_sph=True)
 
 
+    ### ALL SPH ACTIVATED
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False)
+                                    rj_step = False, all_sph=True)
 
 
     l_interest =3
@@ -186,8 +187,8 @@ if __name__ == "__main__":
     start = time.time()
     start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
-    #h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
-    h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
+    h_cls_asis, h_accept_asis, _ = asis.run(starting_point)
+    #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept, h_accept_cr_asis, times_asis = asis_sampler.run(starting_point)
     #h_cls_asis_gibbs, h_accept, h_accept_cr_asis_gibbs,times_asis_gibbs = asis_sampler_gibbs.run(starting_point)
     end = time.time()
@@ -199,10 +200,10 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/non_centered_gibbs/run4/nonCenteredGibbs_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/asis/preliminary_run/asis_" + str(config.slurm_task_id) + ".npy"
 
-    d = {"h_cls":h_cls_noncentered, "h_accept_cr":h_accept_cr_noncentered, "h_duration_cls":h_duration_cls_sampling,
-         "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
+    d = {"h_cls":h_cls_asis, "h_accept_cr":h_accept_asis, "h_duration_cls":None,
+         "h_duration_cr":None, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
          "blocks_EE":config.blocks["EE"],
          "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time}
