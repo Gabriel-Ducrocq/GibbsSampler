@@ -63,7 +63,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/splines.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1725">
+            <state relative-caret-position="618">
               <caret line="117" selection-start-line="117" selection-end-line="117" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
@@ -75,8 +75,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main_polarization.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="233">
-              <caret line="199" column="44" lean-forward="true" selection-start-line="199" selection-start-column="44" selection-end-line="199" selection-end-column="44" />
+            <state relative-caret-position="150">
+              <caret line="202" column="70" selection-start-line="202" selection-start-column="70" selection-end-line="202" selection-end-column="70" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -806,16 +806,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/splines.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1725">
-          <caret line="117" selection-start-line="117" selection-end-line="117" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="630">
@@ -856,16 +846,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/NonCenteredGibbs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="513">
-          <caret line="144" column="27" selection-start-line="144" selection-start-column="27" selection-end-line="144" selection-end-column="27" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
@@ -886,10 +866,30 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/NonCenteredGibbs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="513">
+          <caret line="144" column="27" selection-start-line="144" selection-start-column="27" selection-end-line="144" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/splines.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="618">
+          <caret line="117" selection-start-line="117" selection-end-line="117" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/main_polarization.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="233">
-          <caret line="199" column="44" lean-forward="true" selection-start-line="199" selection-start-column="44" selection-end-line="199" selection-end-column="44" />
+        <state relative-caret-position="150">
+          <caret line="202" column="70" selection-start-line="202" selection-start-column="70" selection-end-line="202" selection-end-column="70" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
           </folding>

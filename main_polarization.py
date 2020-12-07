@@ -200,7 +200,7 @@ if __name__ == "__main__":
     #print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/full_sky/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/full_sky/asis/run_preliminary/asis_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_asis, "h_accept_cr":h_accept_asis, "h_duration_cls":None,
          "h_duration_cr":None, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
