@@ -186,6 +186,7 @@ if __name__ == "__main__":
     else:
         starting_point = config.starting_point
 
+    """
     start = time.time()
     start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
@@ -211,6 +212,7 @@ if __name__ == "__main__":
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time}
 
     np.save(save_path, d, allow_pickle=True)
+    """
     """
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):
