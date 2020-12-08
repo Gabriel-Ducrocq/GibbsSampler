@@ -3,7 +3,7 @@ import os
 import healpy as hp
 
 
-#scratch_path = os.environ['SCRATCH']
+scratch_path = os.environ['SCRATCH']
 #slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
 
 def compute_observed_spectrum(d):
