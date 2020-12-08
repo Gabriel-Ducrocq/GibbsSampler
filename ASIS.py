@@ -110,6 +110,10 @@ class ASIS(GibbsSampler):
 
 
     def run_polarization(self, dls_init):
+        h_duration_cr = []
+        h_duration_cls_nc_sampling = []
+        h_duration_cls_sampling = []
+        h_iteration_duration = []
         accept = {"EE":[], "BB":[]}
         accept_cr = []
         h_dls = {"EE":[], "BB":[]}
@@ -123,13 +127,23 @@ class ASIS(GibbsSampler):
             if i % 1 == 0:
                 print("Interweaving, iteration: "+str(i))
 
+            start_iteration = time.clock()
+            start_time = time.clock()
             if self.rj_step is False:
                 skymap, _ = self.constrained_sampler.sample(all_dls)
             else:
                 skymap, acc = self.constrained_sampler.sample(all_dls, skymap)
                 accept_cr.append(acc)
 
+            end_time = time.clock()
+            duration = end_time - start_time
+            h_duration_cr.append(duration)
+
+            start_time = time.clock()
             binned_dls_temp = self.centered_cls_sampler.sample(skymap)
+            end_time = time.clock()
+            duration =end_time - start_time
+            h_duration_cls_sampling.append(duration)
             dls_temp = {"EE":utils.unfold_bins(binned_dls_temp["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls_temp["BB"], self.bins["BB"])}
             var_cls = {"EE": utils.generate_var_cl(dls_temp["EE"]),
                              "BB": utils.generate_var_cl(dls_temp["BB"])}
@@ -139,7 +153,11 @@ class ASIS(GibbsSampler):
             inv_var_EE[var_cls["EE"] != 0] = 1/var_cls["EE"][var_cls["EE"] != 0]
             inv_var_BB[var_cls["BB"] != 0] = 1 / var_cls["BB"][var_cls["BB"] != 0]
             s_nonCentered = {"EE": np.sqrt(inv_var_EE)*skymap["EE"], "BB": np.sqrt(inv_var_BB)*skymap["BB"]}
+            start_time = time.clock()
             binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp)
+            end_time = time.clock()
+            duration =end_time - start_time
+            h_duration_cls_nc_sampling.append(duration)
             accept["EE"].append(acception["EE"])
             accept["BB"].append(acception["BB"])
 
@@ -148,6 +166,8 @@ class ASIS(GibbsSampler):
 
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
+            end_iteration = time.clock()
+            h_iteration_duration.append(end_iteration - start_iteration)
 
         total_accept = {"EE":np.array(accept["EE"]), "BB":np.array(accept["BB"])}
         print("Interweaving acceptance rate EE:")
@@ -161,8 +181,11 @@ class ASIS(GibbsSampler):
         h_dls["EE"] = np.array(h_dls["EE"])
         h_dls["BB"] = np.array(h_dls["BB"])
 
-        return h_dls, total_accept, None
+        if not self.rj_step:
+            return h_dls, total_accept, None, np.array(h_iteration_duration), np.array(h_duration_cr), np.array(h_duration_cls_sampling), np.array(h_duration_cls_nc_sampling)
 
+        else:
+            return h_dls, total_accept, np.array(accept_cr), np.array(h_iteration_duration), np.array(h_duration_cr), np.array(h_duration_cls_sampling), np.array(h_duration_cls_nc_sampling)
 
     def run(self, dls_init):
         if self.polarization:
