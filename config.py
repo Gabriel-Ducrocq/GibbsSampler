@@ -209,7 +209,7 @@ if mask_path is None:
     unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
 else:
     mask = hp.ud_grade(hp.read_map(mask_path), NSIDE)
-    unbinned_variances_pol = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
+    unbinned_variances_pol = (w * noise_covar_pol / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
     unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale * 1 / np.mean(mask)
 
 #binned_variances = compute_init_values(unbinned_variances)
