@@ -70,19 +70,21 @@ if __name__ == "__main__":
     np.random.seed()
 
     ####Be careful of the cls_TT and cls_TE
-    #theta_, cls_ = generate_cls()
-    #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+    theta_, cls_ = generate_cls()
+    cls_[0] = np.zeros(len(cls_[0]))
+    cls_[3] = np.zeros(len(cls_[0]))
+    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
 
 
 
 
 
 
-    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
+    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
 
-    #np.save(config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy", d, allow_pickle=True)
+    np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy", d, allow_pickle=True)
 
     data_path = config.scratch_path + "/data/polarization_runs/full_sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
