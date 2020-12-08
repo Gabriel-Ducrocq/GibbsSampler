@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
     ####Be careful of the cls_TT and cls_TE
     theta_, cls_ = generate_cls()
+    cls_ = np.array([cls for cls in cls_])
     cls_[0] = np.zeros(len(cls_[0]))
     cls_[3] = np.zeros(len(cls_[0]))
     s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
