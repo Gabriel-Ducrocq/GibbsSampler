@@ -266,15 +266,15 @@ def get_proposal_variances_preliminary_pol(path):
 
         all_paths["EE"] = np.array(all_paths["EE"])
         all_paths["BB"] = np.array(all_paths["BB"])
-        variances = {"EE":np.var(all_paths["EE"][:, 50:, :], axis=(0, 1)), "BB":np.var(all_paths["BB"][:, 50:, :], axis=(0, 1))}
-        means = {"EE": np.mean(all_paths["EE"][:, 50:, :], axis=(0, 1)),
-                     "BB": np.mean(all_paths["BB"][:, 50:, :], axis=(0, 1))}
+        variances = {"EE":np.var(all_paths["EE"][:, :, :], axis=(0, 1)), "BB":np.var(all_paths["BB"][:, :, :], axis=(0, 1))}
+        means = {"EE": np.mean(all_paths["EE"][:, :, :], axis=(0, 1)),
+                     "BB": np.mean(all_paths["BB"][:, :, :], axis=(0, 1))}
 
         return variances, means
 
 
 
-preliminary_run = True
+preliminary_run = False
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
@@ -361,6 +361,7 @@ else:
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
     """
 
+    """
 ##### Number THREE:
 
     path_nc = scratch_path + "/data/polarization_runs/full_sky/non_centered_gibbs/preliminary_run3/"
@@ -392,7 +393,13 @@ else:
 
     proposal_variances_nc_polarized["BB"][bl[-56]:bl[-27]] *= 0.7
 
+    """
 
+    path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
+    empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
 
-    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
-    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    proposal_variances_nc_polarized = {}
+    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = empirical_variances["BB"][2:]
