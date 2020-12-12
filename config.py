@@ -400,6 +400,9 @@ else:
     starting_point["EE"][:2] = 0
     starting_point["BB"][:2] = 0
 
+    bl = blocks["BB"][:-1]
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["EE"] = empirical_variances["EE"][2:]*0.01
     proposal_variances_nc_polarized["BB"] = empirical_variances["BB"][2:]*5
+    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-14]] *= 1.5
+    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.001
