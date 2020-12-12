@@ -401,5 +401,5 @@ else:
     starting_point["BB"][:2] = 0
 
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"][2:]
-    proposal_variances_nc_polarized["BB"] = empirical_variances["BB"][2:]*2.5
+    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"][2:]*0.01
+    proposal_variances_nc_polarized["BB"] = empirical_variances["BB"][2:]*5
