@@ -214,6 +214,7 @@ if __name__ == "__main__":
          "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time,
          "pcg_accuracy": asis.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
+         "rj_step": asis.rj_step
          }
 
     np.save(save_path, d, allow_pickle=True)
