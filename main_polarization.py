@@ -137,11 +137,13 @@ if __name__ == "__main__":
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 2,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False, all_sph=False)
+                                    rj_step = True, all_sph=False)
 
 
+    print("PCG accuracy:")
+    print(asis.constrained_sampler.pcg_accuracy)
     l_interest =3
 
     np.random.seed()
@@ -204,7 +206,7 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/cut_sky/asis_rjpo_short/run/asis_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":h_duration_centered,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
