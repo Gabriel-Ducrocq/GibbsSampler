@@ -47,7 +47,7 @@ L_MAX_SCALARS=int(2*NSIDE)
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
 mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
-#1mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+#mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
 #mask_path = None
@@ -394,6 +394,7 @@ else:
     proposal_variances_nc_polarized["BB"][bl[-56]:bl[-27]] *= 0.7
 
     """
+
 
     path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
     empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)

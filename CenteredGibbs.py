@@ -14,7 +14,7 @@ from splines import sample_splines
 import scipy
 import matplotlib.pyplot as plt
 import qcinv
-
+import copy
 import warnings
 
 warnings.simplefilter('always', UserWarning)
@@ -309,7 +309,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         else:
             self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
 
-        self.pcg_accuracy = 1.0e-4
+        self.pcg_accuracy = 1.0e-5
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
         self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, self.pcg_accuracy, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
         self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
@@ -425,6 +425,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return solution, 0
 
     def sample_mask_rj(self, all_dls, s_old):
+        true_sol, _ = self.sample_no_mask(all_dls)
+
         cls_EE = all_dls["EE"]*self.dls_to_cls_array
         cls_BB = all_dls["BB"]*self.dls_to_cls_array
         self.s_cls.clee = cls_EE
@@ -440,6 +442,38 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
                                                 debug_log_prefix=None)
 
+        fwd_op = chain.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
+
+        """
+        inv_var_cls_E = np.zeros(len(var_cls_EE))
+        inv_var_cls_E[var_cls_EE != 0] = 1/var_cls_EE[var_cls_EE != 0]
+        inv_var_cls_B = np.zeros(len(var_cls_BB))
+        inv_var_cls_B[var_cls_BB != 0] = 1/var_cls_BB[var_cls_BB != 0]
+        q_E = (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E
+        q_B = (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B
+
+        _, r_E, r_B = hp.map2alm(
+            [np.zeros(self.Npix), self.pix_map["Q"] * self.inv_noise_pol, self.pix_map["U"] * self.inv_noise_pol],
+            lmax=self.lmax, pol=True) * self.Npix / (4 * np.pi)
+
+        r_E = self.bl_map * utils.complex_to_real(r_E)
+        r_B = self.bl_map * utils.complex_to_real(r_B)
+
+        mu_bis_E = r_E/q_E
+        mu_bis_B = r_B/q_B
+
+        eta_bis_E = mu_bis_E + np.random.normal(size=len(q_E)) * np.sqrt(q_E)
+        eta_bis_B = mu_bis_B + np.random.normal(size=len(q_B)) * np.sqrt(q_B)
+
+        sol_bis_E = eta_bis_E/q_E
+        sol_bis_B = eta_bis_B/q_B
+
+        r_E = eta_bis_E - q_E*sol_bis_E
+        r_B = eta_bis_B - q_B*sol_bis_B
+
+        diff_E = s_old["EE"] - sol_bis_E
+        diff_B = s_old["BB"] - sol_bis_B
+        """
 
         _, first_term_fluc_EE, first_term_fluc_BB = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
                             np.random.normal(loc=0, scale=1, size=self.Npix)
@@ -465,6 +499,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         sol_blm = soltn.blm.copy()
 
         ### Compute Q times solution of system
+        """
         hp.almxfl(sol_elm, self.bl_gauss, inplace=True)
         hp.almxfl(sol_blm, self.bl_gauss, inplace=True)
 
@@ -482,6 +517,14 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         alm_E += var_cls_EE_inv * utils.complex_to_real(soltn.elm)
         alm_B += var_cls_BB_inv * utils.complex_to_real(soltn.blm)
+        """
+        soltn_bis = copy.deepcopy(soltn)
+
+        result = fwd_op(soltn_bis)
+        alm_E = utils.complex_to_real(result.elm)
+        alm_B = utils.complex_to_real(result.blm)
+
+
 
         ## Once Qf(z) is computed, we compute the error:
         eta_E, eta_B = utils.complex_to_real(b_system.elm), utils.complex_to_real(b_system.blm)
@@ -490,7 +533,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         diff_E = s_old["EE"] - utils.complex_to_real(soltn.elm)
         diff_B = s_old["BB"] - utils.complex_to_real(soltn.blm)
 
+
         log_proba = -np.sum(r_E*diff_E + r_B*diff_B)
+        #print("LOG PROBA:")
+        #print(log_proba)
         if np.log(np.random.uniform()) < log_proba:
             return {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}, 1
 

@@ -82,6 +82,7 @@ class GibbsSampler():
         h_dls = {"EE":[], "BB":[]}
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
+        print("RJ_STEP ?:", self.rj_step)
         if self.rj_step == True:
             skymap, accept = self.constrained_sampler.sample(dls_unbinned)
 
@@ -92,22 +93,22 @@ class GibbsSampler():
                 print("Default Gibbs")
                 print(i)
 
-            start_time = time.clock()
+            #start_time = time.clock()
             if self.rj_step == False:
                 skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
             else:
                 skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy(), skymap)
                 h_accept_cr.append(accept)
 
-            end_time = time.clock()
-            duration = end_time - start_time
-            h_duration_cr.append(duration)
+            #end_time = time.clock()
+            #duration = end_time - start_time
+            #h_duration_cr.append(duration)
 
-            start_time = time.clock()
+            #start_time = time.clock()
             binned_dls = self.cls_sampler.sample(skymap.copy())
-            end_time = time.clock()
-            duration =end_time - start_time
-            h_duration_cls_sampling.append(duration)
+            #end_time = time.clock()
+            #duration =end_time - start_time
+            #h_duration_cls_sampling.append(duration)
             dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
 
             h_accept_cr.append(accept)
