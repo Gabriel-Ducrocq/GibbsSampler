@@ -70,27 +70,27 @@ if __name__ == "__main__":
     np.random.seed()
 
     ####Be careful of the cls_TT and cls_TE
-    theta_, cls_ = generate_cls()
-    cls_ = np.array([cls for cls in cls_])
-    cls_[0] = np.zeros(len(cls_[0]))
-    cls_[3] = np.zeros(len(cls_[0]))
-    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+    #theta_, cls_ = generate_cls()
+    #cls_ = np.array([cls for cls in cls_])
+    #cls_[0] = np.zeros(len(cls_[0]))
+    #cls_[3] = np.zeros(len(cls_[0]))
+    #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
 
 
 
 
 
 
-    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
+    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
 
-    np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True)
+    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True)
 
-    #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["pix_map"]
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
     """
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     d_sph_TT, d_sph_EE, d_sph_BB = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"], pix_map["U"]], lmax=config.L_MAX_SCALARS)
     pix_map = {"EE": utils.complex_to_real(d_sph_EE), "BB":utils.complex_to_real(d_sph_BB)}
     """
-    """
+
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
@@ -138,9 +138,9 @@ if __name__ == "__main__":
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 2,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False, all_sph=False, gibbs_cr = True)
+                                    rj_step = False, all_sph=False, gibbs_cr = False)
 
 
     print("PCG accuracy:")
@@ -191,12 +191,12 @@ if __name__ == "__main__":
 
 
     start = time.time()
-    #start_cpu = time.clock()
+    start_cpu = time.clock()
     #h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
-    #end_cpu = time.clock()
+    end_cpu = time.clock()
     #h_cls_nonCentered, _, times = non_centered_gibbs.run(cls_init)
     total_time = end - start
     total_cpu_time = end_cpu - start_cpu
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/asis_rjpo_short/run/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/cut_sky/planck_mask_runs/asis/preliminary_runs/asis_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":h_duration_centered,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
@@ -216,7 +216,7 @@ if __name__ == "__main__":
          }
 
     np.save(save_path, d, allow_pickle=True)
-    """
+
     """
     for _, pol in enumerate(["EE", "BB"]):
         #for l in range(2, config.L_MAX_SCALARS+1):
