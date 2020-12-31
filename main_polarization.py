@@ -70,11 +70,11 @@ if __name__ == "__main__":
     np.random.seed()
 
     ####Be careful of the cls_TT and cls_TE
-    theta_, cls_ = generate_cls()
-    cls_ = np.array([cls for cls in cls_])
-    cls_[0] = np.zeros(len(cls_[0]))
-    cls_[3] = np.zeros(len(cls_[0]))
-    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+    #theta_, cls_ = generate_cls()
+    #cls_ = np.array([cls for cls in cls_])
+    #cls_[0] = np.zeros(len(cls_[0]))
+    #cls_[3] = np.zeros(len(cls_[0]))
+    #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
 
 
 
@@ -87,10 +87,10 @@ if __name__ == "__main__":
 
     #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy", d, allow_pickle=True)
 
-    #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy"
-    #d = np.load(data_path, allow_pickle=True)
-    #d = d.item()
-    #pix_map = d["pix_map"]
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy"
+    d = np.load(data_path, allow_pickle=True)
+    d = d.item()
+    pix_map = d["pix_map"]
     """
     snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
     plt.plot(snr)
@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 2,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
                                     rj_step = True, all_sph=False)
 
@@ -145,7 +145,6 @@ if __name__ == "__main__":
     print("PCG accuracy:")
     print(centered_gibbs.constrained_sampler.pcg_accuracy)
     l_interest =3
-
     np.random.seed()
     if config.preliminary_run:
         _, cls_EE, cls_BB, _ = utils.generate_cls(config.COSMO_PARAMS_PLANCK, pol=True)
