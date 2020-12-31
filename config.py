@@ -46,10 +46,10 @@ L_MAX_SCALARS=int(2*NSIDE)
 #L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
-mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
+#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-#mask_path = "HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
 #mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
@@ -165,11 +165,6 @@ def generate_var_cl(cls_):
     return var_cl_full
 
 
-import matplotlib.pyplot as plt
-
-# fwhm_arcmin = 180
-# fwhm_radians = (np.pi/(180*60))*fwhm_arcmin
-#beam_fwhm = 0.35
 beam_fwhm = 0.5
 fwhm_radians = (np.pi / 180) * beam_fwhm
 bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=L_MAX_SCALARS)
@@ -274,7 +269,7 @@ def get_proposal_variances_preliminary_pol(path):
 
 
 
-preliminary_run = False
+preliminary_run = True
 if preliminary_run:
     #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4

@@ -34,7 +34,7 @@ class ASIS(GibbsSampler):
 
             self.centered_cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam,
-                                                                               mask_path= mask_path, all_sph=all_sph)
+                                                                               mask_path= mask_path, all_sph=all_sph, gibbs_cr = gibbs_cr)
 
 
 
@@ -120,30 +120,30 @@ class ASIS(GibbsSampler):
         binned_dls = dls_init
         all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                    "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-        if self.rj_step == True:
+        if self.rj_step == True or self.gibbs_cr == True:
             skymap, _ = self.constrained_sampler.sample(all_dls)
 
         for i in range(self.n_iter):
             if i % 1 == 0:
                 print("Interweaving, iteration: "+str(i))
 
-            start_iteration = time.clock()
-            start_time = time.clock()
-            if self.rj_step is False:
+            #start_iteration = time.clock()
+            #start_time = time.clock()
+            if self.rj_step is False and self.gibbs_cr is False:
                 skymap, _ = self.constrained_sampler.sample(all_dls)
             else:
                 skymap, acc = self.constrained_sampler.sample(all_dls, skymap)
                 accept_cr.append(acc)
 
-            end_time = time.clock()
-            duration = end_time - start_time
-            h_duration_cr.append(duration)
+            #end_time = time.clock()
+            #duration = end_time - start_time
+            #h_duration_cr.append(duration)
 
-            start_time = time.clock()
+            #start_time = time.clock()
             binned_dls_temp = self.centered_cls_sampler.sample(skymap)
-            end_time = time.clock()
-            duration =end_time - start_time
-            h_duration_cls_sampling.append(duration)
+            #end_time = time.clock()
+            #duration =end_time - start_time
+            #h_duration_cls_sampling.append(duration)
             dls_temp = {"EE":utils.unfold_bins(binned_dls_temp["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls_temp["BB"], self.bins["BB"])}
             var_cls = {"EE": utils.generate_var_cl(dls_temp["EE"]),
                              "BB": utils.generate_var_cl(dls_temp["BB"])}
@@ -153,11 +153,11 @@ class ASIS(GibbsSampler):
             inv_var_EE[var_cls["EE"] != 0] = 1/var_cls["EE"][var_cls["EE"] != 0]
             inv_var_BB[var_cls["BB"] != 0] = 1 / var_cls["BB"][var_cls["BB"] != 0]
             s_nonCentered = {"EE": np.sqrt(inv_var_EE)*skymap["EE"], "BB": np.sqrt(inv_var_BB)*skymap["BB"]}
-            start_time = time.clock()
+            #start_time = time.clock()
             binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp)
-            end_time = time.clock()
-            duration =end_time - start_time
-            h_duration_cls_nc_sampling.append(duration)
+            #end_time = time.clock()
+            #duration =end_time - start_time
+            #h_duration_cls_nc_sampling.append(duration)
             accept["EE"].append(acception["EE"])
             accept["BB"].append(acception["BB"])
 
@@ -166,8 +166,8 @@ class ASIS(GibbsSampler):
 
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
-            end_iteration = time.clock()
-            h_iteration_duration.append(end_iteration - start_iteration)
+            #end_iteration = time.clock()
+            #h_iteration_duration.append(end_iteration - start_iteration)
 
         total_accept = {"EE":np.array(accept["EE"]), "BB":np.array(accept["BB"])}
         print("Interweaving acceptance rate EE:")

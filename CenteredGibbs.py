@@ -293,7 +293,7 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False, gibbs_cr = False):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
@@ -309,6 +309,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         else:
             self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
 
+        self.mu = np.max(self.inv_noise) + 0.0000001
+        self.gibbs_cr = gibbs_cr
         self.pcg_accuracy = 1.0e-5
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
         self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, self.pcg_accuracy, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
@@ -324,31 +326,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.bl_fwhm = bl_fwhm
 
-    """
-    def sample(self, all_dls):
-        start = time.time()
-        rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
-        all_cls = all_dls.copy()
-        for i in range(self.lmax+1):
-            all_cls[i, :, :] *= rescaling[i]
-
-
-        inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
-
-
-        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_map)
-
-        b_weiner = np.stack(b_weiner_unpacked, axis = 1)
-        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3))
-
-        weiner_map = matrix_product(inv_cls, b_weiner)
-        fluctuations = matrix_product(chol_cls, b_fluctuations)
-        map = weiner_map + fluctuations
-        time_to_solution = time.time() - start
-        err = 0
-        return map, time_to_solution, err
-    """
     def sample_no_mask(self, all_dls):
         var_cls_E = utils.generate_var_cl(all_dls["EE"])
         var_cls_B = utils.generate_var_cl(all_dls["BB"])
@@ -419,7 +396,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         soltn = qcinv.opfilt_pp.eblm(np.zeros((2, int(qcinv.util_alm.lmax2nlm(self.lmax))), dtype=np.complex))
         pix_map = [self.pix_map["Q"], self.pix_map["U"]]
         _ = chain.sample(soltn, pix_map, b_fluctuations, pol=True)
-        #chain.solve(soltn, pix_map)
         solution = {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}
 
         return solution, 0
@@ -444,37 +420,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         fwd_op = chain.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
 
-        """
-        inv_var_cls_E = np.zeros(len(var_cls_EE))
-        inv_var_cls_E[var_cls_EE != 0] = 1/var_cls_EE[var_cls_EE != 0]
-        inv_var_cls_B = np.zeros(len(var_cls_BB))
-        inv_var_cls_B[var_cls_BB != 0] = 1/var_cls_BB[var_cls_BB != 0]
-        q_E = (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E
-        q_B = (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B
-
-        _, r_E, r_B = hp.map2alm(
-            [np.zeros(self.Npix), self.pix_map["Q"] * self.inv_noise_pol, self.pix_map["U"] * self.inv_noise_pol],
-            lmax=self.lmax, pol=True) * self.Npix / (4 * np.pi)
-
-        r_E = self.bl_map * utils.complex_to_real(r_E)
-        r_B = self.bl_map * utils.complex_to_real(r_B)
-
-        mu_bis_E = r_E/q_E
-        mu_bis_B = r_B/q_B
-
-        eta_bis_E = mu_bis_E + np.random.normal(size=len(q_E)) * np.sqrt(q_E)
-        eta_bis_B = mu_bis_B + np.random.normal(size=len(q_B)) * np.sqrt(q_B)
-
-        sol_bis_E = eta_bis_E/q_E
-        sol_bis_B = eta_bis_B/q_B
-
-        r_E = eta_bis_E - q_E*sol_bis_E
-        r_B = eta_bis_B - q_B*sol_bis_B
-
-        diff_E = s_old["EE"] - sol_bis_E
-        diff_B = s_old["BB"] - sol_bis_B
-        """
-
         _, first_term_fluc_EE, first_term_fluc_BB = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
                             np.random.normal(loc=0, scale=1, size=self.Npix)
                                                               * np.sqrt(self.inv_noise_pol),
@@ -495,29 +440,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         pix_map = [self.pix_map["Q"], self.pix_map["U"]]
         b_system = chain.sample(soltn, pix_map, b_flucs, pol = True)
 
-        sol_elm = soltn.elm.copy()
-        sol_blm = soltn.blm.copy()
-
         ### Compute Q times solution of system
-        """
-        hp.almxfl(sol_elm, self.bl_gauss, inplace=True)
-        hp.almxfl(sol_blm, self.bl_gauss, inplace=True)
-
-
-        _, Q, U = hp.alm2map([np.zeros(len(sol_elm), dtype=np.complex), sol_elm, sol_blm], nside=self.nside, lmax=self.lmax, pol=True)
-        Q *= self.inv_noise_pol
-        U *= self.inv_noise_pol
-
-        _, alm_E, alm_B = hp.map2alm([np.zeros(self.Npix), Q, U], pol=True, lmax=config.L_MAX_SCALARS)*self.Npix/(4*np.pi)
-        hp.almxfl(alm_E, self.bl_gauss, inplace=True)
-        hp.almxfl(alm_B, self.bl_gauss, inplace=True)
-
-        alm_E = utils.complex_to_real(alm_E)
-        alm_B = utils.complex_to_real(alm_B)
-
-        alm_E += var_cls_EE_inv * utils.complex_to_real(soltn.elm)
-        alm_B += var_cls_BB_inv * utils.complex_to_real(soltn.blm)
-        """
         soltn_bis = copy.deepcopy(soltn)
 
         result = fwd_op(soltn_bis)
@@ -535,21 +458,70 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
         log_proba = -np.sum(r_E*diff_E + r_B*diff_B)
-        #print("LOG PROBA:")
-        #print(log_proba)
         if np.log(np.random.uniform()) < log_proba:
             return {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}, 1
 
         return s_old, 0
 
+    def sample_gibbs_change_variable(self, all_dls, old_s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        var_v_Q = self.mu - self.inv_noise_pol
+        var_v_U = self.mu - self.inv_noise_pol
+
+        for m in range(20):
+            print("Gibbs CR iteration:", m)
+
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q) + mean_Q
+            v_U = np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U) + mean_U
+
+
+
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE) + mean_s_EE
+            s_new_BB = np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB) + mean_s_BB
+
+            old_s = {"EE":s_new_EE, "BB":s_new_BB}
+
+        return old_s, 1
 
     def sample(self, all_dls, s_old = None):
+        if self.gibbs_cr == True and s_old is not None:
+            return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:
             return self.sample_no_mask(all_dls)
         else:
             return self.sample_mask(all_dls)
+
+
+
 
 
 
