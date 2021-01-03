@@ -311,7 +311,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.mu = np.max(self.inv_noise) + 0.0000001
         self.gibbs_cr = gibbs_cr
-        self.pcg_accuracy = 1.0e-6
+        self.pcg_accuracy = 1.0e-5
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
         self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, self.pcg_accuracy, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
         self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
