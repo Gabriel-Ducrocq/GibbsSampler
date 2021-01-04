@@ -17,7 +17,7 @@ class ASIS(GibbsSampler):
 
     def __init__(self, pix_map, noise, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False,
-                 rj_step=False, all_sph=False):
+                 rj_step=False, all_sph=False, n_gibbs = 20):
         super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins,
                          n_iter = n_iter, gibbs_cr=gibbs_cr, rj_step=rj_step)
 
@@ -34,7 +34,8 @@ class ASIS(GibbsSampler):
 
             self.centered_cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam,
-                                                                               mask_path= mask_path, all_sph=all_sph, gibbs_cr = gibbs_cr)
+                                                                               mask_path= mask_path, all_sph=all_sph,
+                                                                               gibbs_cr = gibbs_cr, n_gibbs = n_gibbs)
 
 
 

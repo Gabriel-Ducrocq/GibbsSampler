@@ -293,13 +293,15 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False, gibbs_cr = False):
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False,
+                 gibbs_cr = False, n_gibbs = 20):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
         self.all_sph = all_sph
+        self.n_gibbs = n_gibbs
 
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
@@ -470,7 +472,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         var_v_Q = self.mu - self.inv_noise_pol
         var_v_U = self.mu - self.inv_noise_pol
 
-        for m in range(20):
+        for m in range(self.n_gibbs):
             print("Gibbs CR iteration:", m)
 
             old_s_EE = utils.real_to_complex(old_s["EE"])
