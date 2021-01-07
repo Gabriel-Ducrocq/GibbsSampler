@@ -204,7 +204,7 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs/runs/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs_long/runs/asis_" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":h_duration_centered,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
@@ -212,7 +212,8 @@ if __name__ == "__main__":
          "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time,
          "pcg_accuracy": asis.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
-         "rj_step": asis.rj_step
+         "rj_step": asis.rj_step, "gibbs_iterations":asis.constrained_sampler.n_gibbs,
+         "gibbs_cr":asis.constrained_sampler.gibbs_cr
          }
 
     np.save(save_path, d, allow_pickle=True)

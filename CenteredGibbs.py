@@ -294,7 +294,7 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False,
-                 gibbs_cr = False, n_gibbs = 20):
+                 gibbs_cr = False, n_gibbs = 65):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
