@@ -500,7 +500,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
             _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
                         v_Q + self.inv_noise_pol * self.pix_map["Q"],
-                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True)
+                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
 
             mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
             mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
