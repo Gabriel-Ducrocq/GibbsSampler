@@ -550,18 +550,19 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         return first_term_E + self.second_part_grad_E, first_term_B + self.second_part_grad_B
 
-    def compute_h(self, s_old_Q, s_old_U, y_Q, y_U, A):
+    def compute_h(self, s_old_Q, s_old_U, y_Q, y_U, A_EE, A_BB):
         grad_y_E, grad_y_B = self.compute_grad_log_lik(y_Q, y_U)
 
-        h_E = np.dot(s_old_Q - (2/self.delta)*np.dot(A, y_Q + (self.delta/4)* grad_y_E),  grad_y_E/((self.delta/2)*A+ 1))
-        h_B = np.dot(s_old_U - (2 / self.delta) * np.dot(A, y_U + (self.delta / 4) * grad_y_B),
-                     grad_y_B / ((self.delta / 2) * A + 1))
+        h_E = np.dot(s_old_Q - (2/self.delta)*np.dot(A_EE, y_Q + (self.delta/4)* grad_y_E),  grad_y_E/((self.delta/2)*A_EE+ 1))
+        h_B = np.dot(s_old_U - (2 / self.delta) * np.dot(A_BB, y_U + (self.delta / 4) * grad_y_B),
+                     grad_y_B / ((self.delta / 2) * A_BB + 1))
 
         return h_E + h_B
 
-    def compute_log_ratio(self, s_old_Q, s_old_U, y_Q, y_U, A):
+    def compute_log_ratio(self, s_old_Q, s_old_U, y_Q, y_U, A_EE, A_BB):
         first_part = self.compute_log_lik(y_Q, y_U) - self.compute_log_lik(s_old_Q, s_old_U)
-        second_part = self.compute_h(s_old_Q, s_old_U, y_Q, y_U, A) - self.compute_h(y_Q, y_U, s_old_Q, s_old_U, A)
+        second_part = self.compute_h(s_old_Q, s_old_U, y_Q, y_U, A_EE, A_BB) - self.compute_h(y_Q, y_U, s_old_Q,
+                                                                                              s_old_U, A_EE, A_BB)
         return first_part + second_part
 
     def aux_grad(self, all_dls, old_s):
@@ -596,7 +597,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         _, y_Q, y_U = hp.alm2map([np.zeros(len(y_E)), y_E, y_B], lmax=self.lmax, nside=self.nside, pol=True)
 
-        log_r = self.compute_log_ratio(s_Q, s_U, y_Q, y_U, A)
+        log_r = self.compute_log_ratio(s_Q, s_U, y_Q, y_U, A_EE, A_BB)
 
         if np.log(np.random.uniform()) < log_r:
             return {"EE":utils.real_to_complex(y_E), "BB":utils.real_to_complex(y_B)}, 1
