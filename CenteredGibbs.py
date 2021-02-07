@@ -327,6 +327,21 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
 
         self.bl_fwhm = bl_fwhm
+        _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
+                                            pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
+
+        second_part_grad_E *= (self.Npix/(4*np.pi))
+        second_part_grad_B *= (self.Npix/(4*np.pi))
+
+        hp.almxfl(second_part_grad_E, self.bl_gauss, inplace = True)
+        hp.almxfl(second_part_grad_B, self.bl_gauss, inplace=True)
+
+        self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
+        self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
+
+        self.delta = self.noise_pol
+
+
 
     def sample_no_mask(self, all_dls):
         var_cls_E = utils.generate_var_cl(all_dls["EE"])
@@ -511,6 +526,84 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             old_s = {"EE":s_new_EE, "BB":s_new_BB}
 
         return old_s, 1
+
+
+    def compute_log_lik(self, s_Q, s_U):
+        Q_part = -(1/2)*np.sum((self.pix_map["Q"] -s_Q)**2*self.inv_noise_pol)
+        U_part = -(1/2)*np.sum((self.pix_map["U"] -s_U)**2*self.inv_noise_pol)
+
+        return Q_part + U_part
+
+    def compute_grad_log_lik(self, s_Q, s_U):
+        s_Q *= self.inv_noise_pol
+        s_U *= self.inv_noise_pol
+
+        _, first_term_E, first_term_B = hp.map2alm([np.zeros(len(s_Q), s_Q, s_U)], lmax=self.lmax, iter=0, pol=True)
+        first_term_E *= (self.Npix/(4*np.pi))
+        first_term_B *= (self.Npix/(4*np.pi))
+
+        hp.almxfl(first_term_E, self.bl_gauss, inplace=True)
+        hp.almxfl(first_term_B, self.bl_gauss, inplace=True)
+
+        first_term_E = utils.complex_to_real(first_term_E)
+        first_term_B = utils.complex_to_real(first_term_B)
+
+        return first_term_E + self.second_part_grad_E, first_term_B + self.second_part_grad_B
+
+    def compute_h(self, s_old_Q, s_old_U, y_Q, y_U, A):
+        grad_y_E, grad_y_B = self.compute_grad_log_lik(y_Q, y_U)
+
+        h_E = np.dot(s_old_Q - (2/self.delta)*np.dot(A, y_Q + (self.delta/4)* grad_y_E),  grad_y_E/((self.delta/2)*A+ 1))
+        h_B = np.dot(s_old_U - (2 / self.delta) * np.dot(A, y_U + (self.delta / 4) * grad_y_B),
+                     grad_y_B / ((self.delta / 2) * A + 1))
+
+        return h_E + h_B
+
+    def compute_log_ratio(self, s_old_Q, s_old_U, y_Q, y_U, A):
+        first_part = self.compute_log_lik(y_Q, y_U) - self.compute_log_lik(s_old_Q, s_old_U)
+        second_part = self.compute_h(s_old_Q, s_old_U, y_Q, y_U, A) - self.compute_h(y_Q, y_U, s_old_Q, s_old_U, A)
+        return first_part + second_part
+
+    def aux_grad(self, all_dls, old_s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        A_EE = (var_cls_EE/(var_cls_EE + self.delta/2))*(self.delta/2)
+        A_BB = (var_cls_BB / (var_cls_BB + self.delta / 2)) * (self.delta / 2)
+        sigma_proposal_EE = (2/self.delta)*A_EE**2 + A_EE
+        sigma_proposal_BB = (2 / self.delta) * A_BB ** 2 + A_BB
+
+        s_complex_EE = old_s["EE"][:]
+        s_complex_BB = old_s["BB"][:]
+
+        hp.almxfl(s_complex_EE, self.bl_gauss, inplace=True)
+        hp.almxfl(s_complex_BB, self.bl_gauss, inplace=True)
+
+        _, s_Q, s_U = hp.alm2map([np.zeros(s_complex_EE, dtype=np.complex),s_complex_EE, s_complex_BB],
+                                 lmax=self.lmax, nside=self.nside, pol=True)
+
+        mean_E, mean_B = self.compute_log_lik(s_Q, s_U)
+        mean_E *= self.delta/2
+        mean_B *= self.delta/2
+        mean_E += old_s["EE"]
+        mean_B += old_s["BB"]
+
+        mean_E *= (self.delta/2)*A_EE
+        mean_B *= (self.delta / 2) * A_BB
+
+        y_E = np.random.normal(size = len(mean_E))*np.sqrt(sigma_proposal_EE) + mean_E
+        y_B = np.random.normal(size=len(mean_B)) * np.sqrt(sigma_proposal_BB) + mean_B
+
+        _, y_Q, y_U = hp.alm2map([np.zeros(len(y_E)), y_E, y_B], lmax=self.lmax, nside=self.nside, pol=True)
+
+        log_r = self.compute_log_ratio(s_Q, s_U, y_Q, y_U, A)
+
+        if np.log(np.random.uniform()) < log_r:
+            return {"EE":utils.real_to_complex(y_E), "BB":utils.real_to_complex(y_B)}, 1
+
+
+        return old_s, 0
+
 
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None:
