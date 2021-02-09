@@ -44,10 +44,41 @@ all_dls = {"EE": dls_EE, "BB": dls_BB}
 init_s = {"EE": np.zeros((config.L_MAX_SCALARS+1)**2), "BB": np.zeros((config.L_MAX_SCALARS+1)**2)}
 
 
+var_cls_E = utils.generate_var_cl(all_dls["EE"])
+var_cls_B = utils.generate_var_cl(all_dls["BB"])
+
+inv_var_cls_E = np.zeros(len(var_cls_E))
+inv_var_cls_E[var_cls_E != 0] = 1 / var_cls_E[var_cls_E != 0]
+
+inv_var_cls_B = np.zeros(len(var_cls_B))
+inv_var_cls_B[var_cls_B != 0] = 1 / var_cls_B[var_cls_B != 0]
+
+sigma_E = 1 / ((config.Npix / (config.noise_covar_pol * 4 * np.pi)) * config.bl_map ** 2 + inv_var_cls_E)
+sigma_B = 1 / ((config.Npix / (config.noise_covar_pol * 4 * np.pi)) * config.bl_map ** 2 + inv_var_cls_B)
+
+
+_, pix_map_E, pix_map_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"], pix_map["U"]],
+                                     lmax=config.L_MAX_SCALARS, pol=True, iter = 0)
+
+pix_map_E = utils.complex_to_real(pix_map_E)
+pix_map_B = utils.complex_to_real(pix_map_B)
+
+r_E = (config.Npix * (1/config.noise_covar_pol) / (4 * np.pi)) * pix_map_E
+r_B = (config.Npix * (1/config.noise_covar_pol) / (4 * np.pi)) * pix_map_B
+
+r_E = config.bl_map * r_E
+r_B = config.bl_map * r_B
+
+mean_E = sigma_E * r_E
+mean_B = sigma_B * r_B
+
+init_s = {"EE":mean_E, "BB":mean_B}
+
+
 s = copy.deepcopy(init_s)
 s_exact = copy.deepcopy(init_s)
 acceptance = 0
-N_iter = 10000
+N_iter = 1000
 all_s_E = []
 all_s_B = []
 all_s_E_exact = []
@@ -65,30 +96,6 @@ for i in range(N_iter):
 print(acceptance/N_iter)
 
 
-"""
-var_cls_E = utils.generate_var_cl(all_dls["EE"])
-var_cls_B = utils.generate_var_cl(all_dls["BB"])
-
-inv_var_cls_E = np.zeros(len(var_cls_E))
-inv_var_cls_E[var_cls_E != 0] = 1 / var_cls_E[var_cls_E != 0]
-
-inv_var_cls_B = np.zeros(len(var_cls_B))
-inv_var_cls_B[var_cls_B != 0] = 1 / var_cls_B[var_cls_B != 0]
-
-sigma_E = 1 / ((config.Npix / (config.noise_covar_pol * 4 * np.pi)) * config.bl_map ** 2 + inv_var_cls_E)
-sigma_B = 1 / ((config.Npix / (config.noise_covar_pol * 4 * np.pi)) * config.bl_map ** 2 + inv_var_cls_B)
-
-r_E = (config.Npix * (1/config.noise_covar_pol) / (4 * np.pi)) * pix_map["EE"]
-r_B = (config.Npix * (1/config.noise_covar_pol) / (4 * np.pi)) * pix_map["BB"]
-
-r_E = config.bl_map * r_E
-r_B = config.bl_map * r_B
-
-mean_E = sigma_E * r_E
-mean_B = sigma_B * r_B
-
-true_dist = np.random.normal(size = 10000)*np.sqrt(sigma_E[interest]) + mean_E[interest]
-"""
 interest = 10
 all_s_E = np.array(all_s_E)
 all_s_B = np.array(all_s_B)
@@ -98,9 +105,14 @@ all_s_B_exact = np.array(all_s_B_exact)
 results = {"all_s_E":all_s_E, "all_s_B":all_s_B, "all_s_E_exact": all_s_E_exact, "all_s_B_exact":all_s_B_exact}
 np.save("results.npy", results, allow_pickle=True)
 
-plt.hist(all_s_E[1000:, interest], alpha = 0.5, label="Aux grad E", density = True, bins=30)
+plt.hist(all_s_E[:, interest], alpha = 0.5, label="Aux grad E", density = True, bins=30)
 plt.hist(all_s_E_exact[:, interest], alpha = 0.5, label="True", density=True, bins=30)
+plt.axvline(x = mean_E[interest])
 plt.legend(loc="upper right")
+plt.show()
+
+
+plt.plot(all_s_E[:, interest])
 plt.show()
 
 

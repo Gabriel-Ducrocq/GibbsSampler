@@ -302,7 +302,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.inv_noise_pol = 1/self.noise_pol
         self.all_sph = all_sph
         self.n_gibbs = n_gibbs
-        self.delta = self.noise_pol[0]*0.2
+        self.delta = self.noise_pol[0]*0.00000015
 
         if mask_path is not None:
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
@@ -721,9 +721,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False):
+                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False, gibbs_cr = False):
         super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter
-                         ,rj_step=rj_step)
+                         ,rj_step=rj_step, gibbs_cr = gibbs_cr)
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
                                                                       isotropic=True)
@@ -732,4 +732,5 @@ class CenteredGibbs(GibbsSampler):
             self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp, mask_path=mask_path)
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
                                                                                self.bl_map, lmax, Npix, beam,
-                                                                               mask_path=mask_path, all_sph=all_sph)
+                                                                               mask_path=mask_path, all_sph=all_sph,
+                                                                               gibbs_cr =gibbs_cr)
