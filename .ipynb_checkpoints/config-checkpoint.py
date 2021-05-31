@@ -40,17 +40,18 @@ observations = None
 N_MAX_PROCESS = 40
 
 N_Stoke = 1
-NSIDE = 512
+NSIDE = 256
 Npix = 12 * NSIDE ** 2
-#L_MAX_SCALARS=int(2*NSIDE)
-L_MAX_SCALARS = 1000
+L_MAX_SCALARS=int(2*NSIDE)
+#L_MAX_SCALARS = 1000
 dimension_sph = int((L_MAX_SCALARS * (L_MAX_SCALARS + 1) / 2) + L_MAX_SCALARS + 1)
 dimension_h = (L_MAX_SCALARS + 1) ** 2
-mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
+#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
+#mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
+#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
 #mask_path = None
-
-
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
 mask_inversion[[0, 1, L_MAX_SCALARS + 1, L_MAX_SCALARS + 2]] = False
@@ -69,41 +70,47 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 # Les tests sur NSIDE = 32 ont été effectués avec un bruit multiplié par 1000 pour avoir un SNR de 1 à environ l = 18
 # noise_covar = noise_covar_one_pix[7]*1000
 # noise_covar = noise_covar_one_pix[7]*100*10000
-# Pour nside = 8 et L_cut = 10: noise_covar = noise_covar_one_pix[7]*50000
 # noise_covar = noise_covar_one_pix[7]*1000000
 #noise_covar = noise_covar_one_pix[7]*100*10000*20
 #noise_covar_temp =100**2
-#noise_covar_temp = 80**2
+#noise_covar_temp = (0.2/np.sqrt(2))**2
 noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
-#noise_covar_temp = 500**2
-#noise_covar_pol = 0.00044**2
-#noise_covar_temp = 1000**2
-#noise_covar_pol = 4.4**2
+#noise_covar_pol_planck = 0.2**2
+noise_covar_pol = 0.2765256170806511**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
-#var_noise_pol = np.ones(Npix) * noise_covar_pol
-#inv_var_noise = np.ones(Npix) / noise_covar_temp
+var_noise_pol = np.ones(Npix) * noise_covar_pol
+
 
 l_cut = 5
 print("L_CUT")
-bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
-          800, 850, 1001])
-bins = np.concatenate([np.arange(600, 636, 2), bins])
-bins = np.concatenate([range(600), bins])
+#bins = np.array([636, 638, 640, 642, 644, 646, 648, 650, 653, 656, 660,664, 669, 675,682, 690, 695, 705, 720, 730, 750, 770,
+#          800, 850, 1001])
+#bins = np.concatenate([np.arange(600, 636, 2), bins])
+#bins = np.concatenate([range(600), bins])
+
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+#bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, #513])])
+bins_BB = np.concatenate([range(0, 320), np.array([320, 322,324, 326, 328 ,333, 338 ,363, 388, 413, 463, 513])])
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
+#bins = np.array([279, 300, 350, 410, 470, 513])
+#bins = np.concatenate([range(279), bins])
 #bins = np.array(range(L_MAX_SCALARS+1+1))
-#blocks = np.concatenate([np.arange(0, len(bins), 10), [len(bins)+1]])
+#blocks = np.concatenate([np.arange(0, 280, 20),range(280, len(bins))])
 
-
-blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
-blocks[0] = 2
+#blocks = np.concatenate([np.arange(0, 557, 20),np.arange(557, 600+1, 10), range(601, len(bins))])
+#blocks[0] = 2
 #blocks = list(range(2, len(bins)))
 
+#blocks_EE = list(range(2, len(bins["EE"])))
+#blocks_BB = list(range(2, len(bins["BB"])))
 
-#bins = np.array([0, 1, 2, 3, 4, 5, 7, 9])
-#bins = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-#bins = np.array([l for l in range(L_MAX_SCALARS+2)])
-#blocks = list(range(2, len(bins)))
-#bins = np.array([850, 851])
+blocks_EE = [2, len(bins["EE"])]
+#blocks_BB_planck = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
+blocks_BB = np.concatenate([[2, 280], np.arange(281, len(bins["BB"]), 1)])
+
+blocks = {"EE":blocks_EE, "BB":blocks_BB}
+
 
 metropolis_blocks_gibbs_nc = blocks
 #metropolis_blocks_gibbs_nc = np.array([2, 3, 4, 5, 6, 7, 8, 9])
@@ -148,12 +155,8 @@ def generate_var_cl(cls_):
     return var_cl_full
 
 
-import matplotlib.pyplot as plt
-
-# fwhm_arcmin = 180
-# fwhm_radians = (np.pi/(180*60))*fwhm_arcmin
-beam_fwhm = 0.35
-fwhm_radians = (np.pi / 180) * 0.35
+beam_fwhm = 0.5
+fwhm_radians = (np.pi / 180) * beam_fwhm
 bl_gauss = hp.gauss_beam(fwhm=fwhm_radians, lmax=L_MAX_SCALARS)
 bl_map = generate_var_cl(bl_gauss)
 
@@ -165,7 +168,17 @@ bl_map = generate_var_cl(bl_gauss)
 # d_ = data["d_"]
 w = 4 * np.pi / Npix
 
-def compute_init_values(unbinned_vars):
+def compute_init_values_pol(unbinned_vars, pol):
+    vals = []
+    for i, l_start in enumerate(bins[pol][:-1]):
+        l_end = bins[pol][i+1]
+        length = l_end - l_start
+        vals.append(np.mean(unbinned_vars[l_start:l_end])/length)
+
+    return np.array(vals)
+
+
+def compute_init_values(unbinned_vars, pol = None):
     vals = []
     for i, l_start in enumerate(bins[:-1]):
         l_end = bins[i+1]
@@ -175,15 +188,17 @@ def compute_init_values(unbinned_vars):
     return np.array(vals)
 
 
-
 scale = [((l*(l+1))**2*2/(4*np.pi**2*(2*l+1))) for l in range(0, L_MAX_SCALARS+1)]
 if mask_path is None:
     unbinned_variances = (w*noise_covar_temp/bl_gauss**2)**2*scale
+    unbinned_variances_pol = (w*noise_covar_pol/bl_gauss**2)**2*scale
 else:
     mask = hp.ud_grade(hp.read_map(mask_path), NSIDE)
-    unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
+    unbinned_variances_pol = (w * noise_covar_pol / bl_gauss ** 2) ** 2 * scale* 1/np.mean(mask)
+    unbinned_variances = (w * noise_covar_temp / bl_gauss ** 2) ** 2 * scale * 1 / np.mean(mask)
 
-binned_variances = compute_init_values(unbinned_variances)
+#binned_variances = compute_init_values(unbinned_variances)
+binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol, "EE"), "BB":compute_init_values_pol(unbinned_variances_pol, "BB")}
 #binned_variances[600:-2] *= 4
 #binned_variances[-2:-1] *= 1
 #binned_variances[-1] *= 0.1
@@ -217,9 +232,41 @@ def get_proposal_variances_preliminary(path):
 
 
 
-preliminary_run =True
+def get_proposal_variances_preliminary_pol(path):
+    list_files = os.listdir(path)
+    chains = []
+    times = []
+    accept_rate = []
+
+    print("LIST")
+    
+    print(list_files)
+    for i, name in enumerate(list_files):
+        print("NAME")
+        print(name)
+        if name not in [".ipynb_checkpoints",  '.ipynb_checkpoints', "Untitled.ipynb", "preliminary_runs"]:
+            data = np.load(path + name, allow_pickle=True)
+            data = data.item()
+            chains.append(data["h_cls"])
+
+    all_paths = {"EE":[], "BB":[]}
+    for pol in ["EE", "BB"]:
+        for i, chain in enumerate(chains):
+            all_paths[pol].append(chain[pol][:, :])
+
+    all_paths["EE"] = np.array(all_paths["EE"])
+    all_paths["BB"] = np.array(all_paths["BB"])
+    variances = {"EE":np.var(all_paths["EE"][:, :, :], axis=(0, 1)), "BB":np.var(all_paths["BB"][:, :, :], axis=(0, 1))}
+    means = {"EE": np.mean(all_paths["EE"][:, :, :], axis=(0, 1)),
+                    "BB": np.mean(all_paths["BB"][:, :, :], axis=(0, 1))}
+
+    return variances, means
+
+
+
+preliminary_run = True
 if preliminary_run:
-    proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]
+    #proposal_variances_nc = binned_variances[2:L_MAX_SCALARS+1]*6
     #proposal_variances_nc[-3:] = proposal_variances_nc[-3:]*0.4
     #proposal_variances_nc[-8:-3] = proposal_variances_nc[-8:-3]*0.7
     #proposal_variances_nc[-35:-16] = proposal_variances_nc[-35:-16]*1.5
@@ -230,10 +277,11 @@ if preliminary_run:
     #starting_point[:2] = 0
 
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["TT"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["EE"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["BB"] = np.ones(len(unbinned_variances)) * 60
-    proposal_variances_nc_polarized["TE"] = np.ones(len(unbinned_variances)) * 60
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+
+    #proposal_variances_nc_polarized["EE"] = np.ones(L_MAX_SCALARS+1 - 2)*0.5
+    #proposal_variances_nc_polarized["BB"] = np.ones(L_MAX_SCALARS+1 - 2)*0.1
     #proposal_variances_asis = binned_variances[2:]
     #proposal_variances_pncp = binned_variances[2:]
 else:
@@ -251,7 +299,96 @@ else:
     proposal_variances_pncp[-1:] *= 0.7
     proposal_variances_pncp = proposal_variances_pncp[2:]
     """
-    asis_gibbs_path = scratch_path + "/data/non_isotropic_runs/asis_gibbs/preliminary_run/"
-    proposal_variances_nc, starting_point = get_proposal_variances_preliminary(asis_gibbs_path)
-    starting_point[:2] = 0
-    proposal_variances_nc = proposal_variances_nc[2:]
+
+#For wmap skymask
+    """
+    path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
+    empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
+
+    bl = blocks["BB"][:-1]
+    proposal_variances_nc_polarized = {}
+    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"]*0.01
+    proposal_variances_nc_polarized["BB"] = empirical_variances["BB"]*5
+    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-14]] *= 1.5
+    proposal_variances_nc_polarized["BB"][bl[-134]:bl[-133]] *= 0.001
+
+    proposal_variances_nc_polarized["EE"] = proposal_variances_nc_polarized["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = proposal_variances_nc_polarized["BB"][2:]
+    """
+
+    
+#for placnk 80% skymask:
+    """
+    path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
+    empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
+
+    bl = blocks["BB"][:-1]
+    proposal_variances_nc_polarized = {}
+    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"]
+    proposal_variances_nc_polarized["BB"] = empirical_variances["BB"]
+
+    proposal_variances_nc_polarized["BB"][bl[-3]:] *= 1.5
+    proposal_variances_nc_polarized["BB"][bl[-11]:bl[-4]] *= 2
+    proposal_variances_nc_polarized["BB"][bl[-133]:bl[-11]] *= 3.5
+    proposal_variances_nc_polarized["BB"][bl[-134]] *= 0.00001
+
+    proposal_variances_nc_polarized["BB"] *= 1.8
+    proposal_variances_nc_polarized["EE"] *= 0.0001
+
+
+
+    proposal_variances_nc_polarized["EE"] = proposal_variances_nc_polarized["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = proposal_variances_nc_polarized["BB"][2:]
+    
+    """
+    path_vars = scratch_path + "/data/simon/cut-sky/ASIS/preliminary_runs/"
+    empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
+    starting_point["EE"][:2] = 0
+    starting_point["BB"][:2] = 0
+
+    proposal_variances_nc_polarized = {}
+    proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
+    proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
+    
+    proposal_variances_nc_polarized["BB"][-1] *= 1.2
+    proposal_variances_nc_polarized["BB"][-2] *= 1.5
+    proposal_variances_nc_polarized["BB"][-4:-2] *= 2
+    proposal_variances_nc_polarized["BB"][-9:-4] *= 2.5
+    proposal_variances_nc_polarized["BB"][-11:-9] *= 2.3
+    proposal_variances_nc_polarized["BB"][-12] *= 3
+    proposal_variances_nc_polarized["BB"][-15:-12] *= 2.3
+    proposal_variances_nc_polarized["BB"][-17:-15] *= 3
+    proposal_variances_nc_polarized["BB"][-20:-17] *= 2.3
+    proposal_variances_nc_polarized["BB"][-21] *= 2
+    proposal_variances_nc_polarized["BB"][-22] *= 3
+    proposal_variances_nc_polarized["BB"][-24:-22] *= 2.5
+    proposal_variances_nc_polarized["BB"][-25] *= 3
+    proposal_variances_nc_polarized["BB"][-28:-25] *= 2.5
+    proposal_variances_nc_polarized["BB"][-29] *= 3
+    proposal_variances_nc_polarized["BB"][-33:-29] *= 2.5
+    proposal_variances_nc_polarized["BB"][-35:-33] *= 2.5
+    proposal_variances_nc_polarized["BB"][-36] *= 2.2
+    proposal_variances_nc_polarized["BB"][-37] *= 3
+    proposal_variances_nc_polarized["BB"][-41:-37] *= 2.6
+    proposal_variances_nc_polarized["BB"][-43:-41] *= 2.2
+    proposal_variances_nc_polarized["BB"][-46:-43] *= 3
+    proposal_variances_nc_polarized["BB"][-47] *= 2.5
+    proposal_variances_nc_polarized["BB"][-51:-47] *= 3
+    
+    
+    proposal_variances_nc_polarized["BB"][-1] *= 1.2
+    proposal_variances_nc_polarized["BB"][-4:-1] *= 1.5
+    proposal_variances_nc_polarized["BB"][-9:-4] *= 2.5
+    proposal_variances_nc_polarized["BB"][:-9] *= 2
+
+    proposal_variances_nc_polarized["BB"][-15:-1] *= 1.5
+    proposal_variances_nc_polarized["BB"][:-15] *= 2
+    
+    proposal_variances_nc_polarized["BB"][:] *= 1.5
+    
+    proposal_variances_nc_polarized["BB"][:-7] *= 1.5
+    

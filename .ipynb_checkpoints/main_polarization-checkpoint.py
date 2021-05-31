@@ -16,6 +16,7 @@ from scipy.stats import invwishart
 from ASIS import ASIS
 from default_gibbs import default_gibbs
 from CenteredGibbs import CenteredGibbs
+import sys
 
 
 def generate_cls(polarization = True):
@@ -77,17 +78,18 @@ if __name__ == "__main__":
     #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
 
 
-
-
-
-
     #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
     #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
     #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
 
-    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy", d, allow_pickle=True)
+    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True)
+    #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
+    
 
-    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap/skymap.npy"
+
+    
+    #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
     d = d.item()
     pix_map = d["pix_map"]
@@ -122,24 +124,25 @@ if __name__ == "__main__":
     d_sph_TT, d_sph_EE, d_sph_BB = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"], pix_map["U"]], lmax=config.L_MAX_SCALARS)
     pix_map = {"EE": utils.complex_to_real(d_sph_EE), "BB":utils.complex_to_real(d_sph_BB)}
     """
+
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100,
-                                   rj_step=True)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 5,
+                                   rj_step=False, gibbs_cr = True)
 
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
                                           all_sph=True)
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 2,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = True, all_sph=False)
+                                    rj_step = True, all_sph=False, gibbs_cr = False, n_gibbs = 20)
 
 
     print("PCG accuracy:")
@@ -191,8 +194,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    #h_cls_centered, h_accept_cr_centered, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
-    h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()
@@ -203,17 +206,20 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/asis_rjpo_short/run/asis_" + str(config.slurm_task_id) + ".npy"
+                "/data/simon/cut-sky/centered_aux_long/runs/centered_aux_long" + str(config.slurm_task_id) + ".npy"
 
-    d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":h_duration_centered,
+    d = {"h_cls":h_cls_centered, "h_accept_nc":None, "h_duration_cls_centered":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
-         "blocks_EE":config.blocks["EE"], "h_duration_cls_non_centered":h_duration_nc, "h_duration_iteration":h_it_duration,
+         "blocks_EE":config.blocks["EE"], "h_duration_cls_non_centered":None, "h_duration_iteration":None,
          "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time,
-         "pcg_accuracy": asis.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
-         "rj_step": asis.rj_step
+         "pcg_accuracy": centered.constrained_sampler.pcg_accuracy, "h_accept_cr":None, "total_time":total_time,
+         "rj_step": centered.rj_step, "gibbs_iterations":centered.constrained_sampler.n_gibbs,
+         "gibbs_cr":centered.constrained_sampler.gibbs_cr
          }
 
+    print(centered.constrained_sampler.pcg_accuracy)
+    print(centered.rj_step)
     np.save(save_path, d, allow_pickle=True)
 
     """

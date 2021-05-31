@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --qos=regular
+#SBATCH --qos=debug
 #SBATCH --nodes=1
 #SBATCH --constraint=haswell
-#SBATCH --time=1020
-#SBATCH --array=0-9
+#SBATCH --time=30
+#SBATCH --array=0-4
 
 srun python main_polarization.py

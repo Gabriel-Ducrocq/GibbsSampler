@@ -10,10 +10,11 @@ import time
 import config
 from linear_algebra import compute_inverse_matrices, compute_matrix_product
 from numba import njit, prange
+from splines import sample_splines
 import scipy
 import matplotlib.pyplot as plt
 import qcinv
-
+import copy
 import warnings
 
 warnings.simplefilter('always', UserWarning)
@@ -49,139 +50,40 @@ class CenteredClsSampler(ClsSampler):
         return sampled_dls
 
 
-alm_obj = hp.Alm()
-
 class PolarizedCenteredClsSampler(ClsSampler):
-    def sample_unbinned(self, alms):
-        alms_TT_complex = utils.real_to_complex(alms[:, 0])
-        alms_EE_complex = utils.real_to_complex(alms[:, 1])
-        alms_BB_complex = utils.real_to_complex(alms[:, 2])
-        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex], lmax=self.lmax)
 
-        sampled_power_spec = np.zeros((self.lmax+1, 3, 3))
-        for i in range(2, self.lmax+1):
-            deg_freed = 2*i-2
-            param_mat = np.zeros((2, 2))
-            param_mat[0, 0] = spec_TT[i]
-            param_mat[1, 0] = param_mat[0, 1] = spec_TE[i]
-            param_mat[1, 1] = spec_EE[i]
-            param_mat *= (2*i+1)*i*(i+1)/(2*np.pi)
-            sampled_TT_TE_EE = invwishart.rvs(deg_freed, param_mat)
+    def sample_one_pol(self, alms_complex, pol="EE"):
+        """
+        :param alms: alm skymap of the polarization
+        :return: Sample each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
+        """
+        observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax)
+        exponent = np.array([(2 * l + 1) / 2 for l in range(self.lmax + 1)])
+        binned_betas = []
+        binned_alphas = []
+        betas = np.array([(2 * l + 1) * l * (l + 1) * (observed_Cl / (4 * np.pi)) for l, observed_Cl in
+                          enumerate(observed_Cls)])
 
-            beta = (2*i+1)*i*(i+1)*spec_BB[i]/(4*np.pi)
-            sampled_BB = beta*invgamma.rvs(a=(2*i-1)/2)
-            sampled_power_spec[i, :2, :2] = sampled_TT_TE_EE
-            sampled_power_spec[i, 2, 2] = sampled_BB
+        for i, l in enumerate(self.bins[pol][:-1]):
+            somme_beta = np.sum(betas[l:self.bins[pol][i + 1]])
+            somme_exponent = np.sum(exponent[l:self.bins[pol][i + 1]])
+            alpha = somme_exponent - 1
+            binned_alphas.append(alpha)
+            binned_betas.append(somme_beta)
 
-        return sampled_power_spec
+        binned_alphas[0] = 1
+        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
+        sampled_dls[:2] = 0
+        return sampled_dls
 
-    def compute_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
-        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
-        if x <= cl_TE ** 2 / cl_EE:
-            return 0
-        else:
-            return invwishart.pdf(param_mat, df=2 * l - 2, scale=scale_mat)
+    def sample(self, alms):
+        alms_EE_complex = utils.real_to_complex(alms["EE"])
+        alms_BB_complex = utils.real_to_complex(alms["BB"])
 
-    def compute_log_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE):
-        param_mat = np.array([[x, cl_TE], [cl_TE, cl_EE]])
-        if x <= cl_TE ** 2 / cl_EE:
-            return -np.inf
-        else:
-            return invwishart.logpdf(param_mat, df=2 * l - 2, scale=scale_mat)
+        binned_dls_EE = self.sample_one_pol(alms_EE_complex, "EE")
+        binned_dls_BB = self.sample_one_pol(alms_BB_complex, "BB")
 
-    def compute_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
-        return maximum*self.compute_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
-
-    def compute_log_rescale_conditional_TT(self, x, l, scale_mat, cl_EE, cl_TE, maximum):
-        return np.log(maximum) + self.compute_log_conditional_TT(x*maximum, l, scale_mat, cl_EE, cl_TE)
-
-    def find_upper_bound_rescaled(self, l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
-        x0 = 1
-        x1 = 1.618*x0
-        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-        while log_ratio < 12.5:
-            x_new = x1 + 1.618*(x1 - x0)
-            x0 = x1
-            x1 = x_new
-            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-
-        return x1
-
-    def find_lower_bound_rescaled(self,l, scale_mat, cl_EE, cl_TE, maximum, max_log_val):
-        hard_lower_bound = (cl_TE**2/cl_EE)/maximum
-        x0 = 1
-        x1 = (x0 + hard_lower_bound)/2
-        log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-        while log_ratio < 12.5:
-            x_new = (x1 + hard_lower_bound)/2
-            x1 = x_new
-            log_ratio = max_log_val - self.compute_log_rescale_conditional_TT(x1, l, scale_mat, cl_EE, cl_TE, maximum)
-
-        return x1
-
-    def sample_bin(self, alms):
-        alms_TT_complex = utils.real_to_complex(alms[:, 0])
-        alms_EE_complex = utils.real_to_complex(alms[:, 1])
-        alms_BB_complex = utils.real_to_complex(alms[:, 2])
-        spec_TT, spec_EE, spec_BB, spec_TE, _, _ = hp.alm2cl([alms_TT_complex, alms_EE_complex, alms_BB_complex],
-                                                             lmax=self.lmax)
-
-        rescale = np.array([(2 * i + 1) for i in range(0, config.L_MAX_SCALARS + 1)])
-        scale_mat = np.zeros((config.L_MAX_SCALARS+1, 2, 2))
-        scale_mat[:, 0, 0] = spec_TT*rescale
-        scale_mat[:, 1, 1] = spec_EE*rescale
-        scale_mat[:, 1, 0] = scale_mat[:, 0, 1] = spec_TE*rescale
-        alpha = np.array([(2*i-1)/2 for i in range(2,config.L_MAX_SCALARS+1)])
-        sampled_power_spec = np.zeros((self.lmax + 1, 3, 3))
-
-        beta_BB = spec_BB*rescale/2
-        sample_BB = invgamma.rvs(a=alpha, scale=beta_BB[2:])
-        sampled_power_spec[2:, 2, 2] = sample_BB
-
-        for i in self.bins["EE"]:
-            beta_EE = scale_mat[i, 1, 1]
-            cl_EE = invgamma.rvs(a=(2 * i - 3) / 2, scale=beta_EE / 2)
-            sampled_power_spec[i, 1, 1] = cl_EE
-
-        for i in self.bins["TE"]:
-            determinant = np.linalg.det(scale_mat[i, :, :])
-            student_TE = student.rvs(df=2 * i - 2)
-            cl_TE = (np.sqrt(determinant) * sampled_power_spec[i, 1, 1] * student_TE / np.sqrt(2 * i - 2) + scale_mat[i, 0, 1] * sampled_power_spec[i, 1, 1]) / \
-                        scale_mat[i, 1, 1]
-            sampled_power_spec[i, 1, 0] = sampled_power_spec[i, 0, 1] = cl_TE
-
-        for i in self.bins["TT"]:
-            cl_EE = sampled_power_spec[i, 1, 1]
-            cl_TE = sampled_power_spec[i, 0, 1]
-            ratio = cl_TE ** 2 / cl_EE
-            maximum = (cl_EE ** 2 * scale_mat[i, 0, 0] + cl_TE ** 2 * scale_mat[i, 1, 1] + cl_TE ** 2 * (
-                            2 * i + 1) * cl_EE - 2 * cl_TE * cl_EE * scale_mat[i, 0, 1]) / ((2 * i + 1) * cl_EE ** 2)
-
-            max_log_value = self.compute_log_rescale_conditional_TT(1,i, scale_mat[i, :, :], cl_EE, cl_TE, maximum)
-            upper_bound = self.find_upper_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
-            lower_bound = self.find_lower_bound_rescaled(i, scale_mat[i, :, :], cl_EE, cl_TE, maximum, max_log_value)
-
-            xx = np.linspace(lower_bound, upper_bound, 2*6400)
-            y_cs = np.array([self.compute_rescale_conditional_TT(x, i, scale_mat[i, :, :], cl_EE, cl_TE, maximum) for x in xx])
-            cs = scipy.interpolate.CubicSpline(xx,y_cs)
-            u = np.random.uniform()
-            integs = np.array([cs.integrate(lower_bound, x) for x in xx])
-            integs /= integs[-1]
-            position = np.searchsorted(integs, u)
-            sample = (u - integs[position-1])*(xx[position] - xx[position-1])/(integs[position] - integs[position-1]) + xx[position-1]
-
-            cl_TT = sample*maximum
-
-            sampled_power_spec[i, 0, 0] = cl_TT
-
-        sampled_power_spec *= np.array([i*(i+1)/(2*np.pi) for i in range(config.L_MAX_SCALARS+1)])[:, None, None]
-        return sampled_power_spec
-
-    def sample(self, alm_map):
-        if False:
-            return self.sample_unbinned(alm_map)
-        else:
-            return self.sample_bin(alm_map)
+        return {"EE":binned_dls_EE, "BB":binned_dls_BB}
 
 
 
@@ -255,7 +157,7 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             else:
                 return s_old, 0
 
-    def sample_gibbs(self, var_cls, old_s):
+    def sample_gibbs_change_variable(self, var_cls, old_s):
         old_s = utils.real_to_complex(old_s)
         var_v = self.mu - self.inv_noise
         mean_v = var_v * hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
@@ -268,9 +170,48 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
         return s_new, 1
 
+    def sample_gibbs(self, var_cls, old_s):
+        for _ in range(1):
+            old_s = utils.real_to_complex(old_s)
+            var_u = 1/(self.mu - self.inv_noise)
+            mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
+            u = np.random.normal(size=len(mean_u)) * np.sqrt(var_u) + mean_u
+
+            inv_var_cls = np.zeros(len(var_cls))
+            inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
+            var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
+            mean_s = var_s * utils.complex_to_real(
+                hp.almxfl(hp.map2alm((u*(self.mu - self.inv_noise) + self.inv_noise * self.pix_map), lmax=self.lmax) * (1 / config.w), self.bl_gauss))
+
+            s_new = np.random.normal(size=len(mean_s)) * np.sqrt(var_s) + mean_s
+            old_s = s_new[:]
+
+        return s_new, 1
+
+    def sample_gibbs_pix(self, var_cls, old_s):
+        ##Ne ps oublier le changement de base de départ:
+        old_s = hp.alm2map(utils.real_to_complex(self.bl_map*old_s), lmax=self.lmax, nside=self.nside)
+        bl_times_var_cls = self.bl_map**2*var_cls
+        inv_bl_times_var_cls = np.zeros(len(bl_times_var_cls))
+        inv_bl_times_var_cls[bl_times_var_cls != 0] = 1/bl_times_var_cls[bl_times_var_cls != 0]
+        mu = np.max(inv_bl_times_var_cls) + 1e-5
+
+        variance_v = (mu - inv_bl_times_var_cls)
+        mean_v = utils.complex_to_real(hp.map2alm(old_s, lmax=self.lmax))*variance_v
+        v_new = mean_v + np.random.normal(size = len(mean_v))*np.sqrt(variance_v)
+
+        variance_u = 1/(mu*4*np.pi/self.Npix + self.inv_noise)
+        mean_u = variance_u*(hp.alm2map(utils.real_to_complex(v_new), nside=self.nside, lmax=self.lmax)*4*np.pi/self.Npix
+                 + self.inv_noise*self.pix_map)
+        new_u = np.random.normal(size=len(mean_u))*np.sqrt(variance_u) + mean_u
+        ##Ne pas oublier le changementde base de fin:
+        new_u = (1/self.bl_map)*utils.complex_to_real(hp.map2alm(new_u, lmax=self.lmax))
+        return new_u, 1
+
+
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
-            return self.sample_gibbs(var_cls, old_s)
+            return self.sample_gibbs_change_variable(var_cls, old_s)
         if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
@@ -336,7 +277,7 @@ def matrix_product(dls_, b):
 
     return result
 
-#@njit(parallel=False)
+
 def compute_inverse_and_cholesky(all_cls, pix_part_variance):
     inv_cls = np.zeros((len(all_cls), 3, 3))
     chol_cls = np.zeros((len(all_cls), 3, 3))
@@ -352,53 +293,493 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
-    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, isotropic=True):
-        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, isotropic=True)
+    def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False,
+                 gibbs_cr = False, n_gibbs = 1):
+        super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
-        self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-                                        self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
+        self.all_sph = all_sph
+        self.n_gibbs = n_gibbs
+        self.delta = self.noise_pol[0]*0.00000015
+
+        if mask_path is not None:
+            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
+            self.inv_noise_temp *= self.mask
+            self.inv_noise_pol *= self.mask
+            self.inv_noise = [self.inv_noise_pol]
+        else:
+            self.inv_noise = [self.inv_noise_pol*np.ones(self.Npix)]
+
+        self.mu = np.max(self.inv_noise) + 1e-14   #0.0000001
+        self.gibbs_cr = gibbs_cr
+        self.pcg_accuracy = 1.0e-5
+        self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
+        self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, self.pcg_accuracy, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
+        self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
+        self.alpha = 0.00000001
+
+        class cl(object):
+            pass
+
+        self.s_cls = cl
+        #self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
+        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
 
         self.bl_fwhm = bl_fwhm
+        _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
+                                            pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
 
-    def sample(self, all_dls):
-        start = time.time()
-        rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
-        all_cls = all_dls.copy()
-        for i in range(self.lmax+1):
-            all_cls[i, :, :] *= rescaling[i]
+        second_part_grad_E *= (self.Npix/(4*np.pi))
+        second_part_grad_B *= (self.Npix/(4*np.pi))
+
+        hp.almxfl(second_part_grad_E, self.bl_gauss, inplace = True)
+        hp.almxfl(second_part_grad_B, self.bl_gauss, inplace=True)
+
+        self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
+        self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
 
 
-        inv_cls, chol_cls = compute_inverse_and_cholesky(all_cls, self.pix_part_variance)
+
+    def sample_no_mask(self, all_dls):
+        var_cls_E = utils.generate_var_cl(all_dls["EE"])
+        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0]
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0]
+
+        sigma_E = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E )
+        sigma_B = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B )
+
+        if not self.all_sph:
+            _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
+                       lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
+
+            r_E = self.bl_map * utils.complex_to_real(r_E)
+            r_B = self.bl_map * utils.complex_to_real(r_B)
+
+        else:
+            r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi)) * self.pix_map["EE"]
+            r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"]
+
+            r_E = self.bl_map * r_E
+            r_B = self.bl_map * r_B
 
 
-        b_weiner_unpacked = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_map)
+        mean_E = sigma_E*r_E
+        mean_B = sigma_B*r_B
 
-        b_weiner = np.stack(b_weiner_unpacked, axis = 1)
-        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3))
+        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E)
+        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
 
-        weiner_map = matrix_product(inv_cls, b_weiner)
-        fluctuations = matrix_product(chol_cls, b_fluctuations)
-        map = weiner_map + fluctuations
-        time_to_solution = time.time() - start
-        err = 0
-        return map, time_to_solution, err
+        return {"EE": utils.remove_monopole_dipole_contributions(alms_E),
+                "BB": utils.remove_monopole_dipole_contributions(alms_B)}, 0
+
+    def sample_mask(self, all_dls):
+        cls_EE = all_dls["EE"]*self.dls_to_cls_array
+        cls_BB = all_dls["BB"]*self.dls_to_cls_array
+        self.s_cls.clee = cls_EE
+        self.s_cls.clbb = cls_BB
+        self.s_cls.lmax = self.lmax
+
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)]
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)]
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=None)
+
+
+        first_term_fluc = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
+                            np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol),
+                           np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
+
+        second_term_fluc = [np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm),
+                            np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)]
+
+        b_fluctuations = {"elm":utils.real_to_complex(first_term_fluc[1] + second_term_fluc[0]),
+                          "blm":utils.real_to_complex(first_term_fluc[2] + second_term_fluc[1])}
+
+
+        soltn = qcinv.opfilt_pp.eblm(np.zeros((2, int(qcinv.util_alm.lmax2nlm(self.lmax))), dtype=np.complex))
+        pix_map = [self.pix_map["Q"], self.pix_map["U"]]
+        _ = chain.sample(soltn, pix_map, b_fluctuations, pol=True)
+        solution = {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}
+
+        return solution, 0
+
+    def sample_mask_rj(self, all_dls, s_old):
+        true_sol, _ = self.sample_no_mask(all_dls)
+
+        cls_EE = all_dls["EE"]*self.dls_to_cls_array
+        cls_BB = all_dls["BB"]*self.dls_to_cls_array
+        self.s_cls.clee = cls_EE
+        self.s_cls.clbb = cls_BB
+        self.s_cls.lmax = self.lmax
+
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)]
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)]
+        chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_pp, self.chain_descr, self.s_cls, self.n_inv_filt,
+                                                debug_log_prefix=None)
+
+        fwd_op = chain.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
+
+        _, first_term_fluc_EE, first_term_fluc_BB = utils.adjoint_synthesis_hp([np.zeros(self.Npix),
+                            np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol),
+                           np.random.normal(loc=0, scale=1, size=self.Npix)
+                                                              * np.sqrt(self.inv_noise_pol)], bl_map=self.bl_map)
+
+        second_term_fluc_EE = np.sqrt(var_cls_EE_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)
+        second_term_fluc_BB = np.sqrt(var_cls_BB_inv)*np.random.normal(loc=0, scale=1, size=self.dimension_alm)
+
+
+        b_flucs = {"elm":utils.real_to_complex(first_term_fluc_EE + second_term_fluc_EE),
+                   "blm":utils.real_to_complex(first_term_fluc_BB + second_term_fluc_BB)}
+        filling_soltn = np.zeros((2, int((self.lmax+1)*(self.lmax+2)/2)), dtype=np.complex)
+        filling_soltn[0, :] = utils.real_to_complex(s_old["EE"])
+        filling_soltn[1, :] = utils.real_to_complex(s_old["BB"])
+        soltn = qcinv.opfilt_pp.eblm(-filling_soltn)
+
+        pix_map = [self.pix_map["Q"], self.pix_map["U"]]
+        b_system = chain.sample(soltn, pix_map, b_flucs, pol = True)
+
+        ### Compute Q times solution of system
+        soltn_bis = copy.deepcopy(soltn)
+
+        result = fwd_op(soltn_bis)
+        alm_E = utils.complex_to_real(result.elm)
+        alm_B = utils.complex_to_real(result.blm)
+
+
+
+        ## Once Qf(z) is computed, we compute the error:
+        eta_E, eta_B = utils.complex_to_real(b_system.elm), utils.complex_to_real(b_system.blm)
+        r_E = eta_E - alm_E
+        r_B = eta_B - alm_B
+        diff_E = s_old["EE"] - utils.complex_to_real(soltn.elm)
+        diff_B = s_old["BB"] - utils.complex_to_real(soltn.blm)
+
+
+        log_proba = -np.sum(r_E*diff_E + r_B*diff_B)
+        if np.log(np.random.uniform()) < log_proba:
+            return {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)}, 1
+
+        return s_old, 0
+
+    def sample_gibbs_change_variable(self, all_dls, old_s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        var_v_Q = self.mu - self.inv_noise_pol
+        var_v_U = self.mu - self.inv_noise_pol
+
+        for m in range(self.n_gibbs):
+            print("Gibbs CR iteration:", m)
+
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q) + mean_Q
+            v_U = np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U) + mean_U
+
+
+
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE) + mean_s_EE
+            s_new_BB = np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB) + mean_s_BB
+
+            old_s = {"EE":s_new_EE, "BB":s_new_BB}
+
+        return old_s, 1
+
+
+    def sample_gibbs_change_variable2(self, all_dls, old_s):
+        self.mu = np.max(self.inv_noise) + 1
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        var_v_Q = self.mu - self.inv_noise_pol
+        var_v_U = self.mu - self.inv_noise_pol
+
+        for m in range(self.n_gibbs):
+            print("Gibbs CR iteration:", m)
+
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q) + self.alpha * mean_Q
+            v_U = np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U) + self.alpha * mean_U
+
+
+
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.alpha**2 * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.alpha**2 * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        self.alpha*v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        self.alpha*v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE) + mean_s_EE
+            s_new_BB = np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB) + mean_s_BB
+
+            old_s = {"EE":s_new_EE, "BB":s_new_BB}
+
+        return old_s, 1
+
+    """
+    def compute_log_lik(self, s_Q, s_U):
+        Q_part = -(1/2)*np.sum((self.pix_map["Q"] -s_Q)**2*self.inv_noise_pol)
+        U_part = -(1/2)*np.sum((self.pix_map["U"] -s_U)**2*self.inv_noise_pol)
+
+        return Q_part + U_part
+
+    def compute_grad_log_lik(self, s_Q, s_U):
+        s_Q *= self.inv_noise_pol
+        s_U *= self.inv_noise_pol
+
+        _, first_term_E, first_term_B = hp.map2alm([np.zeros(len(s_Q)), s_Q, s_U], lmax=self.lmax, iter=0, pol=True)
+        first_term_E *= (self.Npix/(4*np.pi))
+        first_term_B *= (self.Npix/(4*np.pi))
+
+        hp.almxfl(first_term_E, self.bl_gauss, inplace=True)
+        hp.almxfl(first_term_B, self.bl_gauss, inplace=True)
+
+        first_term_E = utils.complex_to_real(first_term_E)
+        first_term_B = utils.complex_to_real(first_term_B)
+
+        return -first_term_E + self.second_part_grad_E, -first_term_B + self.second_part_grad_B
+
+    def compute_h(self, s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB):
+        grad_y_E, grad_y_B = self.compute_grad_log_lik(y_Q, y_U)
+
+        h_E = np.dot(s_old_E - (2/self.delta)*A_EE *(y_E + (self.delta/4)* grad_y_E),  grad_y_E/((2/self.delta)*A_EE+ 1))
+
+        h_B = np.dot(s_old_B - (2 / self.delta)* A_BB *( y_B + (self.delta / 4) * grad_y_B),
+                     grad_y_B / ((2/self.delta) * A_BB + 1))
+
+        return h_E + h_B
+
+    def compute_log_ratio(self, s_old_Q, s_old_U, s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB):
+        first_part = self.compute_log_lik(y_Q, y_U) - self.compute_log_lik(s_old_Q, s_old_U)
+        second_part = self.compute_h(s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB) - self.compute_h(y_E, y_E, s_old_Q,
+                                                                                              s_old_U, s_old_E, s_old_B,
+                                                                                                        A_EE, A_BB)
+        return first_part + second_part
+
+    def aux_grad(self, all_dls, old_s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        A_EE = (self.delta/2) * var_cls_EE/(var_cls_EE + self.delta/2)
+        A_BB = (self.delta/2) * var_cls_BB/(var_cls_BB + self.delta/2)
+        sigma_proposal_EE = (2/self.delta)*A_EE**2 + A_EE
+        sigma_proposal_BB = (2 / self.delta) * A_BB ** 2 + A_BB
+
+        s_complex_EE = utils.real_to_complex(old_s["EE"][:])
+        s_complex_BB = utils.real_to_complex(old_s["BB"][:])
+
+        hp.almxfl(s_complex_EE, self.bl_gauss, inplace=True)
+        hp.almxfl(s_complex_BB, self.bl_gauss, inplace=True)
+
+
+        _, s_Q, s_U = hp.alm2map([np.zeros(len(s_complex_EE), dtype=np.complex),s_complex_EE, s_complex_BB],
+                                 lmax=self.lmax, nside=self.nside, pol=True)
+
+        mean_E, mean_B = self.compute_grad_log_lik(s_Q, s_U)
+        mean_E *= self.delta/2
+        mean_B *= self.delta/2
+        mean_E += old_s["EE"]
+        mean_B += old_s["BB"]
+
+        mean_E *= (2/self.delta) * A_EE
+        mean_B *= (2/self.delta) * A_BB
+
+        y_E = np.random.normal(size=len(mean_E))*np.sqrt(sigma_proposal_EE) + mean_E
+        y_B = np.random.normal(size=len(mean_B))*np.sqrt(sigma_proposal_BB) + mean_B
+
+
+        y_E_complex = hp.almxfl(utils.real_to_complex(y_E), self.bl_gauss, inplace=False)
+        y_B_complex = hp.almxfl(utils.real_to_complex(y_B), self.bl_gauss, inplace=False)
+
+        _, y_Q, y_U = hp.alm2map([np.zeros(len(y_E_complex), dtype=np.complex), y_E_complex
+                                     , y_B_complex], lmax=self.lmax, nside=self.nside, pol=True)
+
+        log_r = self.compute_log_ratio(s_Q, s_U, old_s["EE"], old_s["BB"],y_Q, y_U, y_E, y_B, A_EE, A_BB)
+
+        if np.log(np.random.uniform()) < log_r:
+            return {"EE":y_E, "BB":y_B}, 1
+
+
+        return old_s, 0
+    """
+
+    def compute_log_lik(self, s_E, s_B):
+        s_E_complex = hp.almxfl(utils.real_to_complex(s_E), self.bl_gauss, inplace=False)
+        s_B_complex = hp.almxfl(utils.real_to_complex(s_B), self.bl_gauss, inplace=False)
+
+        _, s_Q, s_U = hp.alm2map([np.zeros(len(s_E_complex), dtype=np.complex), s_E_complex, s_B_complex], lmax=self.lmax
+                                 , nside=self.nside, pol=True)
+
+        Q_part = -(1/2)*np.sum((self.pix_map["Q"] -s_Q)**2*self.inv_noise_pol)
+        U_part = -(1/2)*np.sum((self.pix_map["U"] -s_U)**2*self.inv_noise_pol)
+
+        return Q_part + U_part
+
+
+    def compute_grad_log_lik(self, s_E, s_B):
+        s_E_complex = utils.real_to_complex(s_E)
+        s_B_complex = utils.real_to_complex(s_B)
+        s_E_complex = hp.almxfl(s_E_complex, self.bl_gauss, inplace=False)
+        s_B_complex = hp.almxfl(s_B_complex, self.bl_gauss, inplace=False)
+
+        _, s_Q, s_U = hp.alm2map([np.zeros(len(s_E_complex), dtype=np.complex), s_E_complex, s_B_complex],
+                                 lmax=self.lmax
+                                 , nside=self.nside, pol=True)
+
+
+        s_Q *= self.inv_noise_pol
+        s_U *= self.inv_noise_pol
+
+        _, first_term_E, first_term_B = hp.map2alm([np.zeros(len(s_Q)), s_Q, s_U], lmax=self.lmax, iter=0, pol=True)
+        first_term_E *= (self.Npix/(4*np.pi))
+        first_term_B *= (self.Npix/(4*np.pi))
+
+        hp.almxfl(first_term_E, self.bl_gauss, inplace=True)
+        hp.almxfl(first_term_B, self.bl_gauss, inplace=True)
+
+        first_term_E = utils.complex_to_real(first_term_E)
+        first_term_B = utils.complex_to_real(first_term_B)
+
+        return -first_term_E + self.second_part_grad_E, -first_term_B + self.second_part_grad_B
+
+
+    def compute_h(self, s_old_E, s_old_B, y_E, y_B, A_EE, A_BB):
+        grad_y_E, grad_y_B = self.compute_grad_log_lik(y_E, y_B)
+
+        h_E = np.sum((s_old_E - (2/self.delta)*A_EE *(y_E + (self.delta/4)* grad_y_E))* grad_y_E/((2/self.delta)*A_EE+ 1))
+
+        h_B = np.sum((s_old_B - (2 / self.delta)* A_BB *( y_B + (self.delta / 4) * grad_y_B))*
+                     grad_y_B / ((2/self.delta) * A_BB + 1))
+
+        return h_E + h_B
+
+    def compute_log_ratio(self, s_old_E, s_old_B, y_E, y_B, A_EE, A_BB):
+        first_part = self.compute_log_lik(y_E[:], y_B[:]) - self.compute_log_lik(s_old_E[:], s_old_B[:])
+        second_part = self.compute_h(s_old_E[:], s_old_B[:], y_E[:], y_B[:], A_EE[:], A_BB[:]) \
+                      - self.compute_h(y_E[:], y_B[:], s_old_E[:], s_old_B[:],A_EE[:], A_BB[:])
+        return first_part + second_part
+
+
+    def aux_grad(self, all_dls, old_s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        A_EE = (self.delta/2) * var_cls_EE/(var_cls_EE + self.delta/2)
+        A_BB = (self.delta/2) * var_cls_BB/(var_cls_BB + self.delta/2)
+        sigma_proposal_EE = (2/self.delta)*A_EE**2 + A_EE
+        sigma_proposal_BB = (2 / self.delta) * A_BB ** 2 + A_BB
+
+        mean_E, mean_B = self.compute_grad_log_lik(old_s["EE"], old_s["BB"])
+        mean_E *= self.delta/2
+        mean_B *= self.delta/2
+        mean_E += old_s["EE"]
+        mean_B += old_s["BB"]
+
+        mean_E *= (2/self.delta) * A_EE
+        mean_B *= (2/self.delta) * A_BB
+
+        y_E = np.random.normal(size=len(mean_E))*np.sqrt(sigma_proposal_EE) + mean_E
+        y_B = np.random.normal(size=len(mean_B))*np.sqrt(sigma_proposal_BB) + mean_B
+
+
+        log_r = self.compute_log_ratio(old_s["EE"], old_s["BB"], y_E, y_B, A_EE, A_BB)
+
+        if np.log(np.random.uniform()) < log_r:
+            return {"EE":y_E, "BB":y_B}, 1
+
+
+        return old_s, 0
+
+
+    def sample(self, all_dls, s_old = None):
+        if self.gibbs_cr == True and s_old is not None:
+            return self.sample_gibbs_change_variable2(all_dls, s_old)
+        if s_old is not None:
+            return self.sample_mask_rj(all_dls, s_old)
+        if self.mask_path is None:
+            return self.sample_no_mask(all_dls)
+        else:
+            return self.sample_mask(all_dls)
+
+
+
+
 
 
 
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 100000):
-        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
+                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False, gibbs_cr = False):
+        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter
+                         ,rj_step=rj_step, gibbs_cr = gibbs_cr)
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
                                                                       isotropic=True)
             self.cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp)
         else:
-            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, self.bins, self.bl_map, noise_temp)
-            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol, self.bl_map, lmax, Npix, beam, isotropic=True)
+            self.cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_temp, mask_path=mask_path)
+            self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
+                                                                               self.bl_map, lmax, Npix, beam,
+                                                                               mask_path=mask_path, all_sph=all_sph,
+                                                                               gibbs_cr =gibbs_cr)

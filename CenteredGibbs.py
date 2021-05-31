@@ -294,7 +294,7 @@ def compute_inverse_and_cholesky(all_cls, pix_part_variance):
 
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False,
-                 gibbs_cr = False, n_gibbs = 65):
+                 gibbs_cr = False, n_gibbs = 1):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
@@ -314,10 +314,11 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.mu = np.max(self.inv_noise) + 1e-14   #0.0000001
         self.gibbs_cr = gibbs_cr
-        self.pcg_accuracy = 1.0e-6
+        self.pcg_accuracy = 1.0e-5
         self.n_inv_filt = qcinv.opfilt_pp.alm_filter_ninv(self.inv_noise, self.bl_gauss, marge_maps = [])
         self.chain_descr = [[0, ["diag_cl"], lmax, self.nside, 4000, self.pcg_accuracy, qcinv.cd_solve.tr_cg, qcinv.cd_solve.cache_mem()]]
         self.dls_to_cls_array = np.array([2 * np.pi / (l * (l + 1)) if l != 0 else 0 for l in range(lmax + 1)])
+        self.alpha = 0.00000001
 
         class cl(object):
             pass
@@ -527,6 +528,54 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return old_s, 1
 
 
+    def sample_gibbs_change_variable2(self, all_dls, old_s):
+        self.mu = np.max(self.inv_noise) + 1
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        var_v_Q = self.mu - self.inv_noise_pol
+        var_v_U = self.mu - self.inv_noise_pol
+
+        for m in range(self.n_gibbs):
+            print("Gibbs CR iteration:", m)
+
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q) + self.alpha * mean_Q
+            v_U = np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U) + self.alpha * mean_U
+
+
+
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.alpha**2 * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.alpha**2 * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        self.alpha*v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        self.alpha*v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE) + mean_s_EE
+            s_new_BB = np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB) + mean_s_BB
+
+            old_s = {"EE":s_new_EE, "BB":s_new_BB}
+
+        return old_s, 1
+
     """
     def compute_log_lik(self, s_Q, s_U):
         Q_part = -(1/2)*np.sum((self.pix_map["Q"] -s_Q)**2*self.inv_noise_pol)
@@ -704,7 +753,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None:
-            return self.sample_gibbs_change_variable(all_dls, s_old)
+            return self.sample_gibbs_change_variable2(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:
