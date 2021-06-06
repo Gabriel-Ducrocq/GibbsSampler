@@ -129,7 +129,7 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 3,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                    rj_step=False, gibbs_cr = True)
 
     ### ALL SPH ACTIVATED
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/simon/cut-sky/debug/centered_aux_preliminary_true/centered_aux_long" + str(config.slurm_task_id) + ".npy"
+                "/data/simon/cut-sky/debug/centered_aux_preliminary_true/test" + str(config.slurm_task_id) + ".npy"
 
     d = {"h_cls":h_cls_centered, "h_accept_nc":None, "h_duration_cls_centered":h_duration_cls_sampling,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],

@@ -103,7 +103,7 @@ class GibbsSampler():
             if self.rj_step is False and self.gibbs_cr is False:
                 skymap, _ = self.constrained_sampler.sample(dls_unbinned.copy())
             else:
-                skymap, accept = self.constrained_sampler.sample(dls_unbinned, skymap)
+                skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy(), skymap)
                 h_accept_cr.append(accept)
 
             end_time = time.clock()
