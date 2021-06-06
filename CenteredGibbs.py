@@ -753,7 +753,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None:
-            return self.sample_gibbs_change_variable2(all_dls, s_old)
+            return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:
