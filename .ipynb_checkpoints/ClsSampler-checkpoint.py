@@ -43,6 +43,7 @@ class MHClsSampler(ClsSampler):
 
     def propose_dl(self, dls_old):
         """
+
         :param dls_old: old dls sample or if polarization mode on, coefficients of the lower triang chol matrix
         :param l_start: starting index of the block
         :param l_end: ending index (not included) of the block

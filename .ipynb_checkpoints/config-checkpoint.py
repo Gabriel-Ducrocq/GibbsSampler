@@ -49,8 +49,8 @@ dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
-#mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
+#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
 #mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
@@ -77,8 +77,8 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 noise_covar_pol_planck = 0.2**2
-noise_covar_pol = 0.2**2
-#noise_covar_pol = 0.2765256170806511**2
+#noise_covar_pol = 0.2**2
+noise_covar_pol = 0.2765256170806511**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 

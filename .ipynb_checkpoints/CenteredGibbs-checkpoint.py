@@ -208,7 +208,6 @@ class CenteredConstrainedRealization(ConstrainedRealization):
         new_u = (1/self.bl_map)*utils.complex_to_real(hp.map2alm(new_u, lmax=self.lmax))
         return new_u, 1
 
-
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
         if use_gibbs:
             return self.sample_gibbs_change_variable(var_cls, old_s)
@@ -749,11 +748,98 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
         return old_s, 0
+    
+    
+    def overrelaxation(self, all_dls, old_s):
+        #alpha = -0.98
+        alpha = -0.995
+        #alpha = -0.9999
+        #alpha = -0.9999999
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+
+        var_v_Q = self.mu - self.inv_noise_pol
+        var_v_U = self.mu - self.inv_noise_pol
+
+        for m in range(self.n_gibbs):
+            print("Gibbs CR iteration:", m)
+
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q) + mean_Q
+            v_U = np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U) + mean_U
+
+
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = mean_s_EE + alpha * (old_s["EE"] - mean_s_EE) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE)
+            s_new_BB = mean_s_BB + alpha * (old_s["BB"] - mean_s_BB) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB)
+
+            old_s = {"EE": s_new_EE, "BB": s_new_BB}
+
+            ##Again
+            old_s_EE = utils.real_to_complex(old_s["EE"])
+            old_s_BB = utils.real_to_complex(old_s["BB"])
+
+
+            _, map_Q, map_U = hp.alm2map([np.zeros(len(old_s_EE)) + 0j*np.zeros(len(old_s_EE)),hp.almxfl(old_s_EE, self.bl_gauss, inplace=False),
+                        hp.almxfl(old_s_BB, self.bl_gauss, inplace=False)], nside=self.nside, lmax=self.lmax, pol=True)
+
+            mean_Q = var_v_Q*map_Q
+            mean_U = var_v_U*map_U
+
+            v_Q = mean_Q + alpha*(v_Q - mean_Q) + np.sqrt(1- alpha**2) * np.random.normal(size=len(mean_Q)) * np.sqrt(var_v_Q)
+            v_U = mean_U + alpha * (v_U - mean_U) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_U)) * np.sqrt(var_v_U)
+
+            ###again S.
+            inv_var_cls_EE = np.zeros(len(var_cls_EE))
+            inv_var_cls_EE[np.where(var_cls_EE != 0)] = 1 / var_cls_EE[np.where(var_cls_EE != 0)]
+            inv_var_cls_BB = np.zeros(len(var_cls_BB))
+            inv_var_cls_BB[np.where(var_cls_BB != 0)] = 1 / var_cls_BB[np.where(var_cls_BB != 0)]
+
+            var_s_EE = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_EE)
+            var_s_BB = 1 / ((self.mu / config.w) * self.bl_map ** 2 + inv_var_cls_BB)
+
+            _, alm_EE, alm_BB = hp.map2alm([np.zeros(len(v_Q)),
+                        v_Q + self.inv_noise_pol * self.pix_map["Q"],
+                        v_U + self.inv_noise_pol * self.pix_map["U"]], lmax=self.lmax, pol=True, iter = 0)
+
+            mean_s_EE = var_s_EE * utils.complex_to_real(hp.almxfl(alm_EE/config.w, self.bl_gauss, inplace=False))
+            mean_s_BB = var_s_BB * utils.complex_to_real(hp.almxfl(alm_BB/config.w, self.bl_gauss, inplace=False))
+
+            s_new_EE = mean_s_EE + alpha * (old_s["EE"] - mean_s_EE) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_s_EE)) * np.sqrt(var_s_EE)
+            s_new_BB = mean_s_BB + alpha * (old_s["BB"] - mean_s_BB) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB)
+
+            old_s = {"EE":s_new_EE, "BB":s_new_BB}
+
+        return old_s, 1
 
 
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None:
-            return self.sample_gibbs_change_variable2(all_dls, s_old)
+            s_old, _ =self.overrelaxation(all_dls, s_old)
+            return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:
