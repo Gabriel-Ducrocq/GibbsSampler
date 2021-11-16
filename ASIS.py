@@ -164,7 +164,12 @@ class ASIS(GibbsSampler):
 
             all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                        "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-
+            
+            ##ADDED HERE
+            var_cls = {"EE": utils.generate_var_cl(all_dls["EE"]),
+                             "BB": utils.generate_var_cl(all_dls["BB"])}
+            skymap = {"EE": np.sqrt(var_cls["EE"])*skymap["EE"], "BB": np.sqrt(var_cls["BB"])*skymap["BB"]}
+            
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
             end_iteration = time.clock()

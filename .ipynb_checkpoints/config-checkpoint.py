@@ -49,8 +49,8 @@ dimension_h = (L_MAX_SCALARS + 1) ** 2
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
-mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
+mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+#mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
 #mask_path = None
 
 mask_inversion = np.ones((L_MAX_SCALARS + 1) ** 2) == 1
@@ -77,8 +77,8 @@ noise_covar_one_pix = noise_covariance_in_freq(NSIDE)
 noise_covar_temp = 40**2
 noise_covar = noise_covar_temp
 noise_covar_pol_planck = 0.2**2
-#noise_covar_pol = 0.2**2
-noise_covar_pol = 0.2765256170806511**2
+noise_covar_pol = 0.2**2
+#noise_covar_pol = 0.2765256170806511**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 
@@ -91,8 +91,8 @@ print("L_CUT")
 #bins = np.concatenate([range(600), bins])
 
 #bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
-#bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, #513])])
-bins_BB = np.concatenate([range(0, 320), np.array([320, 322,324, 326, 328 ,333, 338 ,363, 388, 413, 463, 513])])
+bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
+#bins_BB_simon = np.concatenate([range(0, 320), np.array([320, 322,324, 326, 328 ,333, 338 ,363, 388, 413, 463, 513])])
 bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #bins = np.array([279, 300, 350, 410, 470, 513])
 #bins = np.concatenate([range(279), bins])
@@ -107,8 +107,8 @@ bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
 #blocks_BB = list(range(2, len(bins["BB"])))
 
 blocks_EE = [2, len(bins["EE"])]
-#blocks_BB_planck = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
-blocks_BB = np.concatenate([[2, 280], np.arange(281, len(bins["BB"]), 1)])
+blocks_BB = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
+#blocks_BB_simon = np.concatenate([[2, 280], np.arange(281, len(bins["BB"]), 1)])
 
 blocks = {"EE":blocks_EE, "BB":blocks_BB}
 
@@ -320,8 +320,7 @@ else:
     """
 
     
-#for placnk 80% skymask:
-    """
+#for planck 80% skymask:
     path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
     empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
     starting_point["EE"][:2] = 0
@@ -329,7 +328,7 @@ else:
 
     bl = blocks["BB"][:-1]
     proposal_variances_nc_polarized = {}
-    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"]
+    proposal_variances_nc_polarized["EE"] = empirical_variances["EE"]*3
     proposal_variances_nc_polarized["BB"] = empirical_variances["BB"]
 
     proposal_variances_nc_polarized["BB"][bl[-3]:] *= 1.5
@@ -345,6 +344,8 @@ else:
     proposal_variances_nc_polarized["EE"] = proposal_variances_nc_polarized["EE"][2:]
     proposal_variances_nc_polarized["BB"] = proposal_variances_nc_polarized["BB"][2:]
     
+    
+    ### For Simon:
     """
     path_vars = scratch_path + "/data/simon/cut-sky/ASIS/preliminary_runs/"
     empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)
@@ -392,4 +393,4 @@ else:
     proposal_variances_nc_polarized["BB"][:] *= 1.5
     
     proposal_variances_nc_polarized["BB"][:-7] *= 1.5
-    
+    """

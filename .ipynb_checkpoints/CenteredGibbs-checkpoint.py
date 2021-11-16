@@ -575,92 +575,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         return old_s, 1
 
-    """
-    def compute_log_lik(self, s_Q, s_U):
-        Q_part = -(1/2)*np.sum((self.pix_map["Q"] -s_Q)**2*self.inv_noise_pol)
-        U_part = -(1/2)*np.sum((self.pix_map["U"] -s_U)**2*self.inv_noise_pol)
-
-        return Q_part + U_part
-
-    def compute_grad_log_lik(self, s_Q, s_U):
-        s_Q *= self.inv_noise_pol
-        s_U *= self.inv_noise_pol
-
-        _, first_term_E, first_term_B = hp.map2alm([np.zeros(len(s_Q)), s_Q, s_U], lmax=self.lmax, iter=0, pol=True)
-        first_term_E *= (self.Npix/(4*np.pi))
-        first_term_B *= (self.Npix/(4*np.pi))
-
-        hp.almxfl(first_term_E, self.bl_gauss, inplace=True)
-        hp.almxfl(first_term_B, self.bl_gauss, inplace=True)
-
-        first_term_E = utils.complex_to_real(first_term_E)
-        first_term_B = utils.complex_to_real(first_term_B)
-
-        return -first_term_E + self.second_part_grad_E, -first_term_B + self.second_part_grad_B
-
-    def compute_h(self, s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB):
-        grad_y_E, grad_y_B = self.compute_grad_log_lik(y_Q, y_U)
-
-        h_E = np.dot(s_old_E - (2/self.delta)*A_EE *(y_E + (self.delta/4)* grad_y_E),  grad_y_E/((2/self.delta)*A_EE+ 1))
-
-        h_B = np.dot(s_old_B - (2 / self.delta)* A_BB *( y_B + (self.delta / 4) * grad_y_B),
-                     grad_y_B / ((2/self.delta) * A_BB + 1))
-
-        return h_E + h_B
-
-    def compute_log_ratio(self, s_old_Q, s_old_U, s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB):
-        first_part = self.compute_log_lik(y_Q, y_U) - self.compute_log_lik(s_old_Q, s_old_U)
-        second_part = self.compute_h(s_old_E, s_old_B, y_Q, y_U, y_E, y_B, A_EE, A_BB) - self.compute_h(y_E, y_E, s_old_Q,
-                                                                                              s_old_U, s_old_E, s_old_B,
-                                                                                                        A_EE, A_BB)
-        return first_part + second_part
-
-    def aux_grad(self, all_dls, old_s):
-        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
-        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
-
-        A_EE = (self.delta/2) * var_cls_EE/(var_cls_EE + self.delta/2)
-        A_BB = (self.delta/2) * var_cls_BB/(var_cls_BB + self.delta/2)
-        sigma_proposal_EE = (2/self.delta)*A_EE**2 + A_EE
-        sigma_proposal_BB = (2 / self.delta) * A_BB ** 2 + A_BB
-
-        s_complex_EE = utils.real_to_complex(old_s["EE"][:])
-        s_complex_BB = utils.real_to_complex(old_s["BB"][:])
-
-        hp.almxfl(s_complex_EE, self.bl_gauss, inplace=True)
-        hp.almxfl(s_complex_BB, self.bl_gauss, inplace=True)
-
-
-        _, s_Q, s_U = hp.alm2map([np.zeros(len(s_complex_EE), dtype=np.complex),s_complex_EE, s_complex_BB],
-                                 lmax=self.lmax, nside=self.nside, pol=True)
-
-        mean_E, mean_B = self.compute_grad_log_lik(s_Q, s_U)
-        mean_E *= self.delta/2
-        mean_B *= self.delta/2
-        mean_E += old_s["EE"]
-        mean_B += old_s["BB"]
-
-        mean_E *= (2/self.delta) * A_EE
-        mean_B *= (2/self.delta) * A_BB
-
-        y_E = np.random.normal(size=len(mean_E))*np.sqrt(sigma_proposal_EE) + mean_E
-        y_B = np.random.normal(size=len(mean_B))*np.sqrt(sigma_proposal_BB) + mean_B
-
-
-        y_E_complex = hp.almxfl(utils.real_to_complex(y_E), self.bl_gauss, inplace=False)
-        y_B_complex = hp.almxfl(utils.real_to_complex(y_B), self.bl_gauss, inplace=False)
-
-        _, y_Q, y_U = hp.alm2map([np.zeros(len(y_E_complex), dtype=np.complex), y_E_complex
-                                     , y_B_complex], lmax=self.lmax, nside=self.nside, pol=True)
-
-        log_r = self.compute_log_ratio(s_Q, s_U, old_s["EE"], old_s["BB"],y_Q, y_U, y_E, y_B, A_EE, A_BB)
-
-        if np.log(np.random.uniform()) < log_r:
-            return {"EE":y_E, "BB":y_B}, 1
-
-
-        return old_s, 0
-    """
 
     def compute_log_lik(self, s_E, s_B):
         s_E_complex = hp.almxfl(utils.real_to_complex(s_E), self.bl_gauss, inplace=False)
@@ -798,6 +712,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
             old_s = {"EE": s_new_EE, "BB": s_new_BB}
 
+            
+            ###Deactivate this part for a moment
+            """
             ##Again
             old_s_EE = utils.real_to_complex(old_s["EE"])
             old_s_BB = utils.real_to_complex(old_s["BB"])
@@ -832,14 +749,16 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             s_new_BB = mean_s_BB + alpha * (old_s["BB"] - mean_s_BB) + np.sqrt(1-alpha**2) * np.random.normal(size=len(mean_s_BB)) * np.sqrt(var_s_BB)
 
             old_s = {"EE":s_new_EE, "BB":s_new_BB}
-
+            """
+            
         return old_s, 1
 
 
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None:
-            s_old, _ =self.overrelaxation(all_dls, s_old)
-            return self.sample_gibbs_change_variable(all_dls, s_old)
+            return self.overrelaxation(all_dls, s_old)
+            #s_old, _ =self.overrelaxation(all_dls, s_old)
+            #return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:

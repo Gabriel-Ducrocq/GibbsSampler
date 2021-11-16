@@ -88,8 +88,8 @@ if __name__ == "__main__":
 
 
     
-    #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
-    data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True)
     d = d.item()
     pix_map = d["pix_map"]
@@ -140,9 +140,9 @@ if __name__ == "__main__":
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 1)
+                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 20)
 
 
     print("PCG accuracy:")
@@ -194,8 +194,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
-    #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
+    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()
@@ -206,16 +206,16 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/simon/cut-sky/centered_overrelaxation_first/runs/asis_aux_" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs_20_late/runs/asis_20_late" + str(config.slurm_task_id) + ".npy"
 
-    d = {"h_cls":h_cls_centered, "h_accept_nc":None, "h_duration_cls_centered":h_duration_cls_sampling,
+    d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
-         "blocks_EE":config.blocks["EE"], "h_duration_cls_non_centered":None, "h_duration_iteration":None,
+         "blocks_EE":config.blocks["EE"], "h_duration_cls_non_centered":h_duration_nc, "h_duration_iteration":h_it_duration,
          "blocks_BB":config.blocks["BB"], "proposal_variances_EE":config.proposal_variances_nc_polarized["EE"],
          "proposal_variances_BB":config.proposal_variances_nc_polarized["BB"], "total_cpu_time":total_cpu_time,
-         "pcg_accuracy": centered_gibbs.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
-         "rj_step": centered_gibbs.rj_step, "gibbs_iterations":centered_gibbs.constrained_sampler.n_gibbs,
-         "gibbs_cr":centered_gibbs.constrained_sampler.gibbs_cr
+         "pcg_accuracy": asis.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
+         "rj_step": asis.rj_step, "gibbs_iterations":asis.constrained_sampler.n_gibbs,
+         "gibbs_cr":asis.constrained_sampler.gibbs_cr
          }
 
     print(centered_gibbs.constrained_sampler.pcg_accuracy)
