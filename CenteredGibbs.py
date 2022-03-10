@@ -22,15 +22,15 @@ warnings.simplefilter('always', UserWarning)
 
 
 class CenteredClsSampler(ClsSampler):
-
+    ## Sampler of the power spectrum for the centered Gibbs sampler and temperature only.
 
     def sample(self, alms):
         """
-        :param alms: alm skymap
+        :param alms: array of floats, alm skymap in m major.
         :return: Sample each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
         """
-        alms_complex = utils.real_to_complex(alms)
-        observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax)
+        alms_complex = utils.real_to_complex(alms) ## Change alms from real to complex
+        observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax) ## Get the empirical power spectrum.
         exponent = np.array([(2 * l + 1) / 2 for l in range(self.lmax +1)])
         binned_betas = []
         binned_alphas = []
@@ -38,6 +38,7 @@ class CenteredClsSampler(ClsSampler):
                           enumerate(observed_Cls)])
 
         for i, l in enumerate(self.bins[:-1]):
+            ## For each bin \ell, computed the alpha, beta and exponent terms of the inverse gamma distribution
             somme_beta = np.sum(betas[l:self.bins[i + 1]])
             somme_exponent = np.sum(exponent[l:self.bins[i + 1]])
             alpha = somme_exponent - 1
@@ -45,17 +46,20 @@ class CenteredClsSampler(ClsSampler):
             binned_betas.append(somme_beta)
 
         binned_alphas[0] = 1
-        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
-        sampled_dls[:2] = 0
+        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas) ##Actual sampling
+        sampled_dls[:2] = 0  ## We do NOT infer the monopole and dipole and they are assumed to be 0.
         return sampled_dls
 
 
 class PolarizedCenteredClsSampler(ClsSampler):
+    ## Same as above but for "EE" and "BB" only. We sample first "EE" Pow spec and then "BB"
 
     def sample_one_pol(self, alms_complex, pol="EE"):
         """
-        :param alms: alm skymap of the polarization
-        :return: Sample each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
+        Sample either "EE" or "BB" polarrization
+        :param alms: array of floats, alm skymap in m major, for the polarization "pol"
+        :param pol: what polarization power spectrum to be sampled.
+        :return: array of floats, size number of bins. Each the - potentially binned - Dls from an inverse gamma. NOT THE CLs !
         """
         observed_Cls = hp.alm2cl(alms_complex, lmax=self.lmax)
         exponent = np.array([(2 * l + 1) / 2 for l in range(self.lmax + 1)])
@@ -65,6 +69,7 @@ class PolarizedCenteredClsSampler(ClsSampler):
                           enumerate(observed_Cls)])
 
         for i, l in enumerate(self.bins[pol][:-1]):
+            ##For each bin \ell, compute the alpha, beta and exponent of the inverse gamma distribution
             somme_beta = np.sum(betas[l:self.bins[pol][i + 1]])
             somme_exponent = np.sum(exponent[l:self.bins[pol][i + 1]])
             alpha = somme_exponent - 1
@@ -72,16 +77,21 @@ class PolarizedCenteredClsSampler(ClsSampler):
             binned_betas.append(somme_beta)
 
         binned_alphas[0] = 1
-        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas)
-        sampled_dls[:2] = 0
+        sampled_dls = binned_betas * invgamma.rvs(a=binned_alphas) # Acutal sampling.
+        sampled_dls[:2] = 0 # We do NOT infer the monopole and dipole and they are assumed to be 0.
         return sampled_dls
 
     def sample(self, alms):
-        alms_EE_complex = utils.real_to_complex(alms["EE"])
-        alms_BB_complex = utils.real_to_complex(alms["BB"])
+        """
 
-        binned_dls_EE = self.sample_one_pol(alms_EE_complex, "EE")
-        binned_dls_BB = self.sample_one_pol(alms_BB_complex, "BB")
+        :param alms: array of float, size (L_max + 1)**2, representing the real and imaginary parts of the alm coeffs
+        :return: dict of arrays of floats, size number of bins, of the polarization pow spec.
+        """
+        alms_EE_complex = utils.real_to_complex(alms["EE"]) #Turn from real to complex
+        alms_BB_complex = utils.real_to_complex(alms["BB"]) #Idem
+
+        binned_dls_EE = self.sample_one_pol(alms_EE_complex, "EE") #Sampling EE pow spec
+        binned_dls_BB = self.sample_one_pol(alms_BB_complex, "BB") #Sampling BB pow spec
 
         return {"EE":binned_dls_EE, "BB":binned_dls_BB}
 
@@ -94,57 +104,81 @@ class PolarizedCenteredClsSampler(ClsSampler):
 
 
 class CenteredConstrainedRealization(ConstrainedRealization):
+    ##Class performing Constrained Realization step for TT only dataset.
+    ##Note that we ALWAYS assume a noise covariance matrix proportional to the identity matrix. On top of this, we may or
+    ##may not apply a skymask.
 
-    def sample_no_mask(self, cls_, var_cls):
+    def sample_no_mask(self, var_cls):
+        """
+
+        :param cls_: array of floats, size (L_max + 1), of the C_\ell
+        :param var_cls: array of floatts, size (L_max + 1)**2, of the variances of the real and imaginary parts of alms coeffs.
+                Tese variances are C_\ell/2 execpt for m != 0 and C_\ell for m = 0.
+        :return: array of floats, size (L_max+1)**2, alms of the sampled skymap, with real and imaginary parts.
+        """
         inv_var_cls = np.zeros(len(var_cls))
-        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
-        b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
+        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls) ##Inverting the variance of the alms, except
+        ##where this variance is 0, i.e for \ell = 0 and \ell = 1.
+        b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map) #Computing the mean part of the solution of the system.
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
-                                                              * np.sqrt(self.inv_noise))
+                                                              * np.sqrt(self.inv_noise)) # Computing the variance part of the solution of the system.
 
-        start = time.time()
-        ###To change !!!!
-        ###Sigma = 1/(inv_var_cls + self.inv_noise * (self.Npix / (4 * np.pi)) * self.bl_map ** 2)
-        Sigma = 1 / (inv_var_cls + self.inv_noise[0] * (self.Npix / (4 * np.pi)) * self.bl_map ** 2)
+        Sigma = 1 / (inv_var_cls + self.inv_noise[0] * (self.Npix / (4 * np.pi)) * self.bl_map ** 2) # Matrix Sigma = Q^-1 of the system.
+        #The three next step actually solves the system, which is diagonal since we assume that the noise covariance matrix is prop to
+        # thee Identity matrix and no sky mask.
         weiner = Sigma * b_weiner
         flucs = Sigma * b_fluctuations
         map = weiner + flucs
-        err = 0
-        #map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
-        time_to_solution = time.time() - start
+
+        #returns the sampled map and 1, indicating we always accept the output of this algorithm..
         return map, 1
 
 
     def sample_mask(self, cls_, var_cls, s_old, metropolis_step=False):
-        self.s_cls.cltt = cls_
+        """
+
+        :param cls_: array of floats, size (L_max + 1), of the C_\ell
+        :param var_cls: array of floatts, size (L_max + 1)**2, of the variances of the real and imaginary parts of alms coeffs.
+                Tese variances are C_\ell/2 execpt for m != 0 and C_\ell for m = 0.
+        :param s_old: array of floats, size (L_max + 1)**2, real and imaginary parts of the alms of the map of the previous iteration.
+        :param metropolis_step: boolean. True if we use a RJPO step, False if we just use a regular PCG sampler.
+        :return: array of floats, size (L_max+1)**2, alms of the sampled skymap, with real and imaginary parts.
+        """
+        self.s_cls.cltt = cls_ #Creating the object s_cls that we have to give to qcinv code.
         self.s_cls.lmax = self.lmax
         cl_inv = np.zeros(len(cls_))
-        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)]
+        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)]#Inversion of the C_\ell, except where it is zero.
 
         inv_var_cls = np.zeros(len(var_cls))
-        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
+        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)#Inversion of the variance, i.e computing
+        #C^-1.
 
         chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, self.chain_descr, self.s_cls, self.n_inv_filt,
-                                                debug_log_prefix=None)
+                                                debug_log_prefix=None)#Definition of a qcinv object.
 
-        #b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
-                                                              * np.sqrt(self.inv_noise))
+                                                              * np.sqrt(self.inv_noise))#Computing the flucttuations part of the b of the system
 
-        ####THINK ABOUT CHECKING THE STARTING POINT
+
         if metropolis_step:
+            #If using a RJPO algorithm, change the starting point.
             soltn_complex = -utils.real_to_complex(s_old)[:]
         else:
+            #Otherwise, keep it to zero.
             soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
 
-        fluctuations_complex = utils.real_to_complex(b_fluctuations)
-        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
-        soltn = utils.complex_to_real(soltn_complex)
+
+        fluctuations_complex = utils.real_to_complex(b_fluctuations)#Turn the fluctuations to complex for qcinv resolution.
+        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)#Actual solving, with solution in soltn_complex and  b_system is
+        #the b of the system: weiner (computed by qcinv) + fluctuations part (that we computed above)/
+        soltn = utils.complex_to_real(soltn_complex) #Turn to real.
         if not metropolis_step:
+            #If regular PCG resolution, just output the sampled skymap and 1 indicating we always accept
             return soltn, 1
         else:
+            #If using a RJPO step, compute the MH-ratio and accept with proba min(MH-ratio, 1)
             approx_sol_complex = hp.almxfl(hp.map2alm(hp.alm2map(hp.almxfl(soltn_complex, self.bl_gauss), nside=self.nside)*self.inv_noise, lmax=self.lmax)
                                    *self.Npix/(4*np.pi), self.bl_gauss) + hp.almxfl(soltn_complex, cl_inv, inplace=False)
             r = b_system - approx_sol_complex
@@ -153,147 +187,78 @@ class CenteredConstrainedRealization(ConstrainedRealization):
             print("log Proba")
             print(log_proba)
             if np.log(np.random.uniform()) < log_proba:
+                #If we accept the solution, we output it and return 1
                 return soltn, 1
             else:
+                #Otheerwise we output the previous map and return 0
                 return s_old, 0
 
     def sample_gibbs_change_variable(self, var_cls, old_s):
+        """
+        This function samples the skymap using the auxiliary variable scheme.
+
+        :param var_cls: array of floatts, size (L_max + 1)**2, of the variances of the real and imaginary parts of alms coeffs.
+                Tese variances are C_\ell/2 execpt for m != 0 and C_\ell for m = 0.
+        :param old_s: array of floats, size (L_max + 1)**2, real and imaginary parts of the alms of the map of the previous iteration.
+        :return: array of floats, size (L_max+1)**2, alms of the sampled skymap, with real and imaginary parts.
+        """
         old_s = utils.real_to_complex(old_s)
-        var_v = self.mu - self.inv_noise
+        var_v = self.mu - self.inv_noise #Computes gamma
         mean_v = var_v * hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
-        v = np.random.normal(size=len(mean_v))*np.sqrt(var_v) + mean_v
+        v = np.random.normal(size=len(mean_v))*np.sqrt(var_v) + mean_v #Sample the auxiliary variable v
 
         inv_var_cls = np.zeros(len(var_cls))
         inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
         var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
         mean_s = var_s*utils.complex_to_real(hp.almxfl(hp.map2alm((v + self.inv_noise*self.pix_map), lmax=self.lmax)*(1/config.w), self.bl_gauss))
-        s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s
+        s_new = np.random.normal(size=len(mean_s))*np.sqrt(var_s) + mean_s #Sample the skymap s in spherical harmonics.
         return s_new, 1
 
-    def sample_gibbs(self, var_cls, old_s):
-        for _ in range(1):
-            old_s = utils.real_to_complex(old_s)
-            var_u = 1/(self.mu - self.inv_noise)
-            mean_u = hp.alm2map(hp.almxfl(old_s, self.bl_gauss), nside=self.nside, lmax=self.lmax)
-            u = np.random.normal(size=len(mean_u)) * np.sqrt(var_u) + mean_u
-
-            inv_var_cls = np.zeros(len(var_cls))
-            inv_var_cls[np.where(var_cls != 0)] = 1/var_cls[np.where(var_cls != 0)]
-            var_s = 1/((self.mu/config.w)*self.bl_map**2 + inv_var_cls)
-            mean_s = var_s * utils.complex_to_real(
-                hp.almxfl(hp.map2alm((u*(self.mu - self.inv_noise) + self.inv_noise * self.pix_map), lmax=self.lmax) * (1 / config.w), self.bl_gauss))
-
-            s_new = np.random.normal(size=len(mean_s)) * np.sqrt(var_s) + mean_s
-            old_s = s_new[:]
-
-        return s_new, 1
-
-    def sample_gibbs_pix(self, var_cls, old_s):
-        ##Ne ps oublier le changement de base de départ:
-        old_s = hp.alm2map(utils.real_to_complex(self.bl_map*old_s), lmax=self.lmax, nside=self.nside)
-        bl_times_var_cls = self.bl_map**2*var_cls
-        inv_bl_times_var_cls = np.zeros(len(bl_times_var_cls))
-        inv_bl_times_var_cls[bl_times_var_cls != 0] = 1/bl_times_var_cls[bl_times_var_cls != 0]
-        mu = np.max(inv_bl_times_var_cls) + 1e-5
-
-        variance_v = (mu - inv_bl_times_var_cls)
-        mean_v = utils.complex_to_real(hp.map2alm(old_s, lmax=self.lmax))*variance_v
-        v_new = mean_v + np.random.normal(size = len(mean_v))*np.sqrt(variance_v)
-
-        variance_u = 1/(mu*4*np.pi/self.Npix + self.inv_noise)
-        mean_u = variance_u*(hp.alm2map(utils.real_to_complex(v_new), nside=self.nside, lmax=self.lmax)*4*np.pi/self.Npix
-                 + self.inv_noise*self.pix_map)
-        new_u = np.random.normal(size=len(mean_u))*np.sqrt(variance_u) + mean_u
-        ##Ne pas oublier le changementde base de fin:
-        new_u = (1/self.bl_map)*utils.complex_to_real(hp.map2alm(new_u, lmax=self.lmax))
-        return new_u, 1
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False, use_gibbs = False):
+        """
+        Choose what sampler to use in order to make the CR step. Note that if both RJPO and auxiliary variable steps are enabled,
+        tthe sampler will use the auxiliary variable step only.
+
+        :param cls_: array of floats, size (L_max + 1), of the C_\ell
+        :param var_cls: array of floatts, size (L_max + 1)**2, of the variances of the real and imaginary parts of alms coeffs.
+        :param old_s: array of floats, size (L_max + 1)**2, real and imaginary parts of the alms of the map of the previous iteration.
+        :param metropolis_step: boolean. If True, use RJPO
+        :param use_gibbs: boolean. If True, use auxiliary variable step.
+        :return: sampled alms and 0 or 1 depending if the move has been accepted.
+        """
         if use_gibbs:
             return self.sample_gibbs_change_variable(var_cls, old_s)
         if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
-            return self.sample_no_mask(cls_, var_cls)
+            return self.sample_no_mask(var_cls)
 
 
 
 complex_dim = int((config.L_MAX_SCALARS+1)*(config.L_MAX_SCALARS+2)/2)
 
 
-"""
-@njit(parallel=True)
-def matrix_product(dls_, b):
-    alms_shape = np.zeros((complex_dim, 3, 3))
-    result = np.zeros(((config.L_MAX_SCALARS+1)**2, 3))
-
-    for l in prange(config.L_MAX_SCALARS + 1):
-        for m in range(l + 1):
-            idx = m * (2 * config.L_MAX_SCALARS + 1 - m) // 2 + l
-            if l == 0:
-                alms_shape[idx, :, :] = dls_[l, :, :]
-            else:
-                alms_shape[idx, :, :] = dls_[l, :, :] #* 2 * np.pi / (l * (l + 1))
-
-    for i in prange(config.L_MAX_SCALARS + 1):
-        result[i, 0] = alms_shape[i, 0, 0] * b[i, 0] + alms_shape[i, 0, 1] * b[i, 1]
-        result[i, 1] = alms_shape[i, 1, 0] * b[i, 0] + alms_shape[i, 1, 1] * b[i, 1]
-        result[i, 2] = alms_shape[i, 2, 2] * b[i, 2]
-
-    for i in prange(config.L_MAX_SCALARS+1, complex_dim):
-        result[2*i - (config.L_MAX_SCALARS+1), 0] = alms_shape[i, 0, 0]*b[2*i - (config.L_MAX_SCALARS+1), 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1), 1]
-        result[2*i - (config.L_MAX_SCALARS+1), 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1), 0] + alms_shape[i, 1, 1]*b[2*i - (config.L_MAX_SCALARS+1), 1]
-        result[2*i - (config.L_MAX_SCALARS+1), 2] = alms_shape[i, 2, 2]*b[2*i - (config.L_MAX_SCALARS+1), 2]
-
-        result[2*i - (config.L_MAX_SCALARS+1) + 1, 0] = alms_shape[i, 0, 0]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 0] + alms_shape[i, 0, 1]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 1]
-        result[2*i - (config.L_MAX_SCALARS+1) + 1, 1] = alms_shape[i, 1, 0]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 0] + alms_shape[i, 1, 1]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 1]
-        result[2*i - (config.L_MAX_SCALARS+1) + 1, 2] = alms_shape[i, 2, 2]*b[2*i - (config.L_MAX_SCALARS+1) + 1, 2]
-
-    return result
-"""
-
-@njit(parallel=False)
-def matrix_product(dls_, b):
-    alms_shape = np.zeros((complex_dim, 3, 3))
-    result = np.zeros(((config.L_MAX_SCALARS+1)**2, 3))
-
-    for l in prange(config.L_MAX_SCALARS + 1):
-        for m in range(l + 1):
-            idx = m * (2 * config.L_MAX_SCALARS + 1 - m) // 2 + l
-            if l == 0:
-                alms_shape[idx, :, :] = dls_[l, :, :]
-            else:
-                alms_shape[idx, :, :] = dls_[l, :, :]
-
-    for i in prange(config.L_MAX_SCALARS + 1):
-        result[i, :] = np.dot(alms_shape[i, :, :], b[i, :])
-
-    for i in prange(config.L_MAX_SCALARS + 1, complex_dim):
-        result[2*i - (config.L_MAX_SCALARS+1), :] = np.dot(alms_shape[i, :, :], b[2*i - (config.L_MAX_SCALARS+1), :])
-        result[2*i - (config.L_MAX_SCALARS+1) +1, :] = np.dot(alms_shape[i, :, :],
-                                                               b[2 * i - (config.L_MAX_SCALARS + 1) + 1, :])
-
-
-    return result
-
-
-def compute_inverse_and_cholesky(all_cls, pix_part_variance):
-    inv_cls = np.zeros((len(all_cls), 3, 3))
-    chol_cls = np.zeros((len(all_cls), 3, 3))
-
-    for i in prange(2, len(all_cls)):
-        inv_cls[i, :2, :2] = scipy.linalg.inv(all_cls[i, :2, :2])
-        inv_cls[i, 2, 2] = 1/all_cls[i, 2, 2]
-        inv_cls[i, :, :] += np.diag(pix_part_variance[i, :])
-        inv_cls[i, :, :] = np.linalg.inv(inv_cls[i, :, :])
-        chol_cls[i, :, :] = np.linalg.cholesky(inv_cls[i, :, :])
-
-    return inv_cls,chol_cls
-
-
 class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
+    ##Class performing Constrained Realization step for "EE" and "BB" only dataset.
+    ##Note that we ALWAYS assume a noise covariance matrix proportional to the identity matrix. On top of this, we may or
+    ##may not apply a skymask.
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph=False,
                  gibbs_cr = False, n_gibbs = 1):
+        """
+
+        :param pix_map: array of floats, size Npix, observed skymap d.
+        :param noise_temp: array of floats, size Npix, noise level for each pixel
+        :param noise_pol: array of floats, size Npix, noise level for each pixel. Same for Q and U maps
+        :param bl_map: array of floats, size (L_max + 1)**2, diagonal of the B matrix in the paper.
+        :param lmax: integer, L_max
+        :param Npix: integer, number of pixels
+        :param bl_fwhm: gloatt, fwhm of the beam in degree.
+        :param mask_path: string, path of the sky mask.
+        :param all_sph:
+        :param gibbs_cr:
+        :param n_gibbs:
+        """
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix, mask_path=mask_path)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
@@ -323,10 +288,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             pass
 
         self.s_cls = cl
-        #self.pix_part_variance =(self.Npix/(4*np.pi))*np.stack([self.inv_noise_temp*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2,
-        #                                self.inv_noise_pol*np.ones((config.L_MAX_SCALARS+1)**2)*self.bl_map**2], axis = 1)
-
         self.bl_fwhm = bl_fwhm
         _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
                                             pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
