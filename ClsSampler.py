@@ -6,8 +6,18 @@ import time
 
 
 class ClsSampler():
-
     def __init__(self, pix_map, lmax, nside, bins, bl_map, noise, mask_path = None):
+        """
+        This class is the base class every conditional sampler of the power spectrum will inherit.
+        :param pix_map: array size Npix, observed skymap called d in the paper.
+        :param lmax: int, maximum \ell on which we perform inference
+        :param nside: NSIDE used to generate the grid on the sphere
+        :param bins: array of integers, each element is the starting index and ending index of a power spectrum bin.
+        :param bl_map: array of floats, the b_\ells expension over all the spherical harmonics coefficients. This is the diagonal
+                of the B matrix in the paper.
+        :param noise: float, noise level, assumes the noise covariance matrix is proportional to the diagonal.
+        :param mask_path: string, path to the skymask.
+        """
         self.lmax = lmax
         self.bins = bins
         self.nside = nside
@@ -16,10 +26,18 @@ class ClsSampler():
         self.noise = noise
         self.inv_noise = 1/noise
         if mask_path is not None:
-            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
-            self.inv_noise *= self.mask
+            self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside) #read the mask and downgrades it to the right resolution.
+            self.inv_noise *= self.mask # multiply the diagonal of the inverse noise covariance matrix by the mask.
+                                        #Typically the mask is zero on some pixels and the N^-1 matrix is singular
+                                        # Having 0 entries on the N^-1 matrix for some pixels assumes infinite noise on these pixels.
+                                        # See the papers of Jewell and H-K Eriksen.
 
     def sample(self, alm_map):
+        """
+
+        :param alm_map: array of float, skymap expressed in spherical harmonics domain, m major.
+        :return: None
+        """
         return None
 
 

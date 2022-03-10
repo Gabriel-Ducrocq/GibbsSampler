@@ -23,7 +23,7 @@ class GibbsSampler():
         :param bins: array of integers, each element is the starting index and ending index of a power spectrum bin.
         :param n_iter: integer, number of iterations of Gibbs sampler to perform.
         :param gibbs_cr: whether we use the classical PCG resolution for the constrained realization step, or the augmented
-                variable scheme described in the paper.
+                variable scheme described in he paper.
         :param rj_step: boolean,  whether we use the PCG resolution for the CR step or the RJPO algorithm.
         """
         self.noise = noise
