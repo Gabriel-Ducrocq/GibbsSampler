@@ -90,19 +90,6 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
 
 
 
-def compute_sigma_and_chol(all_chol_cls, pix_part_variance):
-    sigma = np.zeros((len(all_chol_cls), 3, 3))
-    sigma_chol = np.zeros((len(all_chol_cls), 3, 3))
-    for l in prange(2, len(all_chol_cls)):
-        block_sigma = np.linalg.inv(np.dot(np.dot(all_chol_cls[l, :, :].T, np.diag(pix_part_variance[l, :])), all_chol_cls[l, :, :])
-                                       + np.diag([1, 1, 1]))
-
-        sigma[l, :, :] = block_sigma
-        sigma_chol[l, :, :] = np.linalg.cholesky(block_sigma)
-
-    return sigma, sigma_chol
-
-
 class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph = False):
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix)
@@ -175,38 +162,6 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
             return self.sample_mask(all_dls)
 
 
-"""
-    def sample(self, all_chol_dls):
-        start = time.time()
-        rescaling = [0 if l == 0 else 2*np.pi/(l*(l+1)) for l in range(self.lmax+1)]
-        all_chol_cls = all_chol_dls
-        for i in range(self.lmax+1):
-            all_chol_cls[i, :, :] *= np.sqrt(rescaling[i])
-
-        variance, chol_variance = compute_sigma_and_chol(all_chol_cls, self.pix_part_variance)
-
-
-        b_weiner_unpacked_temp = utils.adjoint_synthesis_hp([self.inv_noise_temp * self.pix_map[0],
-                    self.inv_noise_pol * self.pix_map[1], self.inv_noise_pol * self.pix_map[2]], self.bl_fwhm)
-
-        b_weiner_unpacked_temp = np.stack(b_weiner_unpacked_temp, axis=1)
-        b_weiner = utils.matrix_product(all_chol_cls, b_weiner_unpacked_temp)
-        b_fluctuations = np.random.normal(size=((config.L_MAX_SCALARS+1)**2, 3))
-
-        weiner_map = utils.matrix_product(variance, b_weiner)
-        fluctuations = utils.matrix_product(chol_variance, b_fluctuations)
-        map = weiner_map + fluctuations
-        time_to_solution = time.time() - start
-        err = 0
-        #print("Time to solution")
-        #print(time_to_solution)
-        return map, time_to_solution, err
-"""
-
-
-
-
-
 class NonCenteredClsSampler(MHClsSampler):
     def compute_log_proposal(self, dl_old, dl_new):
     ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
@@ -252,58 +207,33 @@ class NonCenteredClsSampler(MHClsSampler):
 
         return binned_dls_old, var_cls_old, accept
 
-    """
-    def compute_log_proposal(self, dl_old, dl_new):
-    ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
-        clip_low = -dl_old[2:] / np.sqrt(self.proposal_variances)
-        return np.sum(truncnorm.logpdf(dl_new[2:], a=clip_low, b=np.inf, loc=dl_old[2:],
-                                   scale=np.sqrt(self.proposal_variances)))
-    """
-
-    """
-    def sample(self, s_nonCentered, binned_dls_old, var_cls_old):
-        :param binned_dls_old: binned power spectrum, including monopole and dipole
-        :param var_cls_old: variance associated to this power spectrum, including monopole and dipole
-        :param alm_map_non_centered: non centered skymap expressed in harmonic domain
-        :return: a new sampled power spectrum, using M-H algorithm
-
-        Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
-        and dipole
-        accept = []
-        old_lik = self.compute_log_likelihood(var_cls_old, s_nonCentered)
-        for i, l_start in enumerate(self.metropolis_blocks[:-1]):
-            l_end = self.metropolis_blocks[i + 1]
-
-            for _ in range(self.n_iter):
-                binned_dls_new_block = self.propose_dl(binned_dls_old, l_start, l_end)
-                binned_dls_new = binned_dls_old.copy()
-                binned_dls_new[l_start:l_end] = binned_dls_new_block
-                dls_new = utils.unfold_bins(binned_dls_new, config.bins)
-                var_cls_new = utils.generate_var_cl(dls_new)
-
-                log_r, new_lik = self.compute_log_MH_ratio(binned_dls_old, binned_dls_new, var_cls_new,
-                                                           s_nonCentered, old_lik)
-
-                if np.log(np.random.uniform()) < log_r:
-                    binned_dls_old = binned_dls_new
-                    var_cls_old = var_cls_new
-                    old_lik = new_lik
-                    accept.append(1)
-                else:
-                    accept.append(0)
-
-        return binned_dls_old, var_cls_old, accept
-        """
-
-
-
 
 
 class PolarizationNonCenteredClsSampler(MHClsSampler):
+    ## Class which makes a Metropolis-within-Gibbs step for sampling the power specturm on the non centered parametrization.
+    ## For "EE" and "BB" only.
+
     def __init__(self, pix_map, lmax, nside, bins, bl_map, noise_I, noise_Q, metropolis_blocks, proposal_variances, n_iter = 1, mask_path=None, polarization=True,
                  all_sph = False):
+        """
+
+        :param pix_map: array of floats, of size Npix. The observed skymap called d in the paper.
+        :param lmax: integer, L_max
+        :param nside: integer, nside used to generate the grid over the sphere.
+        :param bins: array of integers, each integer denotes the start and end of a bin.
+        :param bl_map:
+        :param noise_I:
+        :param noise_Q:
+        :param metropolis_blocks:
+        :param proposal_variances:
+        :param n_iter:
+        :param mask_path:
+        :param polarization:
+        :param all_sph:
+        """
         super().__init__(pix_map, lmax, nside, bins, bl_map, noise_I, metropolis_blocks, proposal_variances, n_iter = n_iter,
                        polarization=polarization)
+
         self.nside=nside
         self.noise_temp = noise_I
         self.noise_pol = noise_Q
