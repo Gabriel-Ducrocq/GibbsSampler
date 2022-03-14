@@ -221,15 +221,16 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         :param lmax: integer, L_max
         :param nside: integer, nside used to generate the grid over the sphere.
         :param bins: array of integers, each integer denotes the start and end of a bin.
-        :param bl_map:
-        :param noise_I:
-        :param noise_Q:
-        :param metropolis_blocks:
-        :param proposal_variances:
-        :param n_iter:
-        :param mask_path:
-        :param polarization:
-        :param all_sph:
+        :param bl_map: array of floats, diagonal of the matrix of beam B, see paper.
+        :param noise_I: array of float, noise levels for each pixel for the intensity component. Ignore this argument for polarization exp
+        :param noise_Q: array of float, noise levels for each pixel for the polarization components.
+        :param metropolis_blocks: array of integers, each integer is the start and end of a block, see paper.
+        :param proposal_variances: array of floats, variance of the proposal for each binned \ell.
+        :param n_iter: integer, number of iterations of the Metropolis-within-Gibbs sampler.
+        :param mask_path: string, path to a mask.
+        :param polarization: bool, whether we deal with polarization or not.
+        :param all_sph: bool, True if we have no skymask and the noise covariance matrix is proportional to identity. In
+                this case the problem can be written entirely in spherical harmonic domain, avoiding unnnecessary computations.
         """
         super().__init__(pix_map, lmax, nside, bins, bl_map, noise_I, metropolis_blocks, proposal_variances, n_iter = n_iter,
                        polarization=polarization)
@@ -243,24 +244,20 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         self.all_sph = all_sph
         self.mask_path = mask_path
         if mask_path is not None:
+            #If we did provide a mask, load it and downgrade it.
             self.mask = hp.ud_grade(hp.read_map(mask_path), self.nside)
             self.inv_noise_pol *= self.mask
 
-        print("Proposal variances:")
-        print(self.proposal_variances)
 
     def propose_dl(self, dls_old):
         """
+        Note that the D_\ell arrays have the monopole and dipole as the two first elements. But we do NOT sample them,
+        so we set them at 0.
 
-        :param dls_old: old dls sample or if polarization mode on, coefficients of the lower triang chol matrix
-        :param l_start: starting index of the block
-        :param l_end: ending index (not included) of the block
-        :return: propose dls
-
-        Note that every index is shifted by -2: the first l_start is 2 - since we are not samplint l=0,1 - and the
-        proposal variance also starts at l = 2. But then we need to take the first element of this array, hence setting
-        l_start - 2:l_end - 2
+        :param dls_old: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells which is the current state.
+        :return: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells  which is a proposed state.
         """
+        ## We se truncated normal distributions because the pow spec cannot be inferior to 0.
         clip_low_EE = -dls_old["EE"][2:] / np.sqrt(self.proposal_variances["EE"])
         dls_EE = np.concatenate([np.zeros(2), truncnorm.rvs(a=clip_low_EE, b=np.inf, loc=dls_old["EE"][2:],
                              scale=np.sqrt(self.proposal_variances["EE"]))])
@@ -269,11 +266,18 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
         dls_BB = np.concatenate([np.zeros(2), truncnorm.rvs(a=clip_low_BB, b=np.inf, loc=dls_old["BB"][2:],
                              scale=np.sqrt(self.proposal_variances["BB"]))])
 
-        return {"EE":dls_EE, "BB":dls_BB}
+        return {"EE":dls_EE, "BB":dls_BB} # proposed move, including dipole and monopole which are 0.
 
 
 
     def compute_log_proposal(self, dl_old, dl_new):
+        """
+        evaluates the log proposal into the proposed and current point.
+
+        :param dl_old: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells which is the current state.
+        :param dl_new: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells  which is a proposed state.
+        :return: dict {"EE":float, "BB":float}, the log evaluation of the proposal.
+        """
         ## We don't take into account the monopole and dipole in the computation because we don't change it anyway (we keep them to 0)
         clip_low_EE = -dl_old["EE"][2:] / np.sqrt(self.proposal_variances["EE"])
         proba_EE = np.concatenate([np.zeros(2), truncnorm.logpdf(dl_new["EE"][2:], a=clip_low_EE, b=np.inf, loc=dl_old["EE"][2:],
@@ -287,9 +291,19 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
 
     def compute_log_likelihood(self, dls, s_nonCentered):
+        """
+        evaluate the log likelihood in the D_\ell when the noise covariance matrix is not proportional to the diagonal
+        or if we are masking part of the sky.
+
+        :param dls: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells
+        :param s_nonCentered: dict {"EE":array, "BB":array}, where arrays are the alms of the skymap, in real convention.
+        :return: float, the log likelihood evaluated in D_\ell
+        """
         all_dls = {"EE":utils.unfold_bins(dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(dls["BB"], self.bins["BB"])}
-        var_cls_E = utils.generate_var_cl(all_dls["EE"])
-        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Compute the diagonal matrix C
+        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same
+
+        #All of the next step compute the quantity -(1/2)*(s C^(1/2) B A^T N^-1 A B C^(1/2) s)
         alm_E_centered = utils.real_to_complex(self.bl_map*np.sqrt(var_cls_E)*s_nonCentered["EE"])
         alm_B_centered = utils.real_to_complex(self.bl_map*np.sqrt(var_cls_B)*s_nonCentered["BB"])
 
@@ -301,9 +315,19 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
             ((self.pix_map["U"] - map_U)** 2)*self.inv_noise_pol))
 
     def compute_log_likelihood_all_sph(self,dls, s_nonCentered):
+        """
+        evaluate the log likelihood in the D_\ell when the noise covariance matrix is proportional to the diagonal
+        and we are observing the full sky.
+
+        :param dls: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells
+        :param s_nonCentered: dict {"EE":array, "BB":array}, where arrays are the alms of the skymap, in real convention.
+        :return: float, the log likelihood evaluated in D_\ell
+        """
         all_dls = {"EE":utils.unfold_bins(dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(dls["BB"], self.bins["BB"])}
-        var_cls_E = utils.generate_var_cl(all_dls["EE"])
-        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+        var_cls_E = utils.generate_var_cl(all_dls["EE"])#Computes the diagonal matrix C
+        var_cls_B = utils.generate_var_cl(all_dls["BB"])# same
+
+        #All the next steps compute the quantity -(1/2)*(s C^(1/2) B A^T N^-1 A B C^(1/2) s) where this matrix is diagonal.
         alm_E_centered = self.bl_map*np.sqrt(var_cls_E)*s_nonCentered["EE"]
         alm_B_centered = self.bl_map*np.sqrt(var_cls_B)*s_nonCentered["BB"]
 
@@ -314,46 +338,63 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 
 
     def compute_log_MH_ratio(self, log_r_ratio, dls_new, s_nonCentered, old_lik):
+        """
+
+        :param log_r_ratio: float, log ratio of the proposal
+        :param dls_new: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells  which is a proposed state.
+        :param s_nonCentered: dict {"EE":array, "BB":array}, where arrays are the alms of the skymap, in real convention.
+        :param old_lik: log likelihood evaluated at the current point dls_old. So we do not have to compute it a second time.
+        :return: float, the log Metropolis ratio, and float, the log likelihood evaluated at the proposed state dls_new, so if
+                it is accepted later, we will not have to recompute it again.
+        """
         if not self.all_sph:
+            ## If we can write the problem entirely in Sph basis, then we avoid some computations
             new_lik = self.compute_log_likelihood(dls_new, s_nonCentered)
         else:
+            ## Otherwise, use the normal log likelihood computation.
             new_lik = self.compute_log_likelihood_all_sph(dls_new, s_nonCentered)
 
-        part1 = new_lik - old_lik
-        part2 = log_r_ratio
+        part1 = new_lik - old_lik # Computed the log lik ratio
+        part2 = log_r_ratio # The second part is the log proposal ratio.
         return part1 + part2, new_lik
 
     def sample(self, s_nonCentered, binned_dls_old):
         """
-        :param binned_dls_old: binned power spectrum, including monopole and dipole
-        :param var_cls_old: variance associated to this power spectrum, including monopole and dipole
-        :param alm_map_non_centered: non centered skymap expressed in harmonic domain
-        :return: a new sampled power spectrum, using M-H algorithm
 
-        Not that here l_start and l_end are not shifted by -2 because binned_cls_old contains ALL ell, including monopole
-        and dipole
+        :param s_nonCentered: dict {"EE":array, "BB":array}, where arrays are the alms of the current skymap, in real convention.
+        :param binned_dls_old: dict {"EE":array, "BB":array}, where array are float arrays of the binned D_\ells which is the current state.
+        :return: dict {"EE":array, "BB":array}, where arrays are float, the new (or old) D_\ell and 1 (or 0) if accepted (or not).
         """
         accept = {"EE": [], "BB":[]}
-        binned_dls_propose = self.propose_dl(binned_dls_old)
-        log_prop_num = self.compute_log_proposal(binned_dls_propose, binned_dls_old)
-        log_prop_denom = self.compute_log_proposal(binned_dls_old, binned_dls_propose)
+        binned_dls_propose = self.propose_dl(binned_dls_old) # propose a new state.
+        log_prop_num = self.compute_log_proposal(binned_dls_propose, binned_dls_old) # Evaluate the log proposal
+        log_prop_denom = self.compute_log_proposal(binned_dls_old, binned_dls_propose) # Same
+        # Compute the ratio of log proposal for the MH step. We can do it once and for all, since the proposal between D_\ell are independent.
         log_r_proposal_all = {"EE": log_prop_num["EE"] - log_prop_denom["EE"], "BB":log_prop_num["BB"] - log_prop_denom["BB"]}
         if not self.all_sph:
+            # If we can write the model in sph basis entirerly, then we save some computations.
             old_lik = self.compute_log_likelihood(binned_dls_old, s_nonCentered)
         else:
+            # Otherwise, we do not
             old_lik = self.compute_log_likelihood_all_sph(binned_dls_old, s_nonCentered)
 
         for pol in ["EE", "BB"]:
+            #For each polarization components:
             for i, l_start in enumerate(self.metropolis_blocks[pol][:-1]):
+                #For each Metropolis block, find the \ell of start, l_start, then \ell of end of the block, l_end.
                 l_end = self.metropolis_blocks[pol][i + 1]
 
                 for _ in range(self.n_iter):
+                    ### For the a specific number of iterations of MH algorithm.
                     ###Be careful, the monopole and dipole are not included in the log_r_prior
                     binned_dls_new = deepcopy(binned_dls_old)
-                    binned_dls_new[pol][l_start:l_end] = binned_dls_propose[pol][l_start:l_end].copy()
-                    log_r_all = np.sum(log_r_proposal_all[pol][l_start:l_end])
-                    log_r, new_lik = self.compute_log_MH_ratio(log_r_all, binned_dls_new, s_nonCentered, old_lik)
+                    binned_dls_new[pol][l_start:l_end] = binned_dls_propose[pol][l_start:l_end].copy() # We propose a new state.
+                    log_r_all = np.sum(log_r_proposal_all[pol][l_start:l_end]) # We sum the log ratio of proposal over the \ell being part of the current block
+                    log_r, new_lik = self.compute_log_MH_ratio(log_r_all, binned_dls_new, s_nonCentered, old_lik) # Computes the log MH ratio
                     if np.log(np.random.uniform()) < log_r:
+                        #If acceptance, then we will output the proposed state and we keep the log likelihood evaluated in
+                        #this new state. Since we had to compute it after proposing it, we keep it in memory so we won't have
+                        # to compute it again. This halves the computational cost of this algorithm.
                         binned_dls_old = deepcopy(binned_dls_new)
                         old_lik = new_lik
                         accept[pol].append(1)
@@ -368,40 +409,71 @@ class PolarizationNonCenteredClsSampler(MHClsSampler):
 class NonCenteredGibbs(GibbsSampler):
     def __init__(self, pix_map, noise_I, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, all_sph = False):
+        """
+
+        :param pix_map: array of floats, size Npix, observed skymap d.
+        :param noise_I: array of floats, size Npix, noise level for each pixel
+        :param noise_Q: array of floats, size Npix, noise level for each pixel. Same for Q and U maps
+        :param beam: float, definition of the beam in degree.
+        :param nside: integer, nside used to generate the grid over the sphere.
+        :param lmax: integer, L_max
+        :param Npix: integer, number of pixels
+        :param proposal_variances: dict {"EE": array, "BB":array}, arrays of float, variances of the proposal distributions. NOT of size L_max, but of size number of blocks.
+        :param metropolis_blocks: dict {"EE":array, "BB":array}, integers, starting and ending indexes of the blocks.
+        :param polarization: boolean, whether we are dealing with "TT" only or "EE" and "BB" only.
+        :param bins: dict {"EE":array, "BB":array}, integers, starting and ending indexes of the bins.
+        :param n_iter: integer, number of iterations of the Gibbs sampler to do.
+        :param n_iter_metropolis: integer, number of iterations of the Metropolis-within-Gibbs sampler to do.
+        :param mask_path: string, path to a sky mask. If None, no sky mask is used.
+        :param all_sph: boolean, if True, write the entire model in spherical harmonics basis. If False do as usual.
+        """
         super().__init__(pix_map, noise_I, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter)
         if not polarization:
+            #Defines CR sampler for "TT" only:
             self.constrained_sampler = NonCenteredConstrainedRealization(pix_map, noise_I, self.bl_map, beam, lmax, Npix, isotropic=True,
                                                                          mask_path = mask_path)
+            ##Defines the M-w-G sampler for "TT" only.
             self.cls_sampler = NonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, metropolis_blocks,
                                                      proposal_variances, n_iter = n_iter_metropolis, mask_path=mask_path)
         else:
+            # Defines CR sampler for "EE" and "BB" only:
             self.constrained_sampler = PolarizedNonCenteredConstrainedRealization(pix_map, noise_I, noise_Q,
                                                                                   self.bl_map, lmax, Npix, beam,
                                                                                   mask_path=mask_path, all_sph=all_sph)
+            ##Defines the M-w-G sampler for "EE" and "BB" only.
             self.cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise_I, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis,
                                                                  mask_path=mask_path, all_sph=all_sph)
 
     def run_temperature(self, dl_init):
+        """
+        Run the Gibbs sampler for the temperature only.
+
+        :param dl_init: array of float, initial D_\ell
+        :return: array of size (n_iter, L_max +1) being the trajectory of the Gibbs sampler. Array of int of size (n_iter)
+                being the history of acceptances of the M-w-G algo. Array of floats, size (n_iter, blocks), history of execution times.
+        """
         h_time_seconds = []
         total_accept = []
 
         binned_dls = dl_init
-        dls = utils.unfold_bins(dl_init, config.bins)
-        cls = self.dls_to_cls(dls)
+        dls = utils.unfold_bins(dl_init, config.bins) # Unfold the binned D_\ell, that transforming the array of size number of bins to
+        # an array of size L_max +1 .
+        cls = self.dls_to_cls(dls) #convert to C_\ell
 
         h_dl = []
-        var_cls = utils.generate_var_cl(dls)
+        var_cls = utils.generate_var_cl(dls) # Generate the diagonal matrix C, see paper.
         for i in range(self.n_iter):
             if i % 100== 0:
                 print("Non centered gibbs")
                 print(i)
 
             start_time = time.process_time()
-            s_nonCentered, accept = self.constrained_sampler.sample(cls, var_cls, None, False)
+            s_nonCentered, accept = self.constrained_sampler.sample(cls, var_cls, None, False) ## Make a CR step.
+            #The next step used a M-w-G samper and outputs the binned sample D_/ell as well as its corresponding diagonal matrix C, see paper.
             binned_dls, var_cls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls, var_cls)
-            dls = utils.unfold_bins(binned_dls, self.bins)
-            cls = self.dls_to_cls(dls)
+            dls = utils.unfold_bins(binned_dls, self.bins) # unfold binned D_\ell
+            cls = self.dls_to_cls(dls) # compute the corresponding C_\ell
             total_accept.append(accept)
 
             end_time = time.process_time()
@@ -415,14 +487,20 @@ class NonCenteredGibbs(GibbsSampler):
         return np.array(h_dl), total_accept, np.array(h_time_seconds)
 
     def run_polarization(self, dls_init):
+        """
+        Non centered Gibbs for "EE" and "BB" only.
+
+        :param dls_init: dict {"EE":array, "BB":array}, arrays of float, initial D_\ell
+        :return: array of size (n_iter, L_max +1) being the trajectory of the Gibbs sampler. Array of int of size (n_iter, n_blocks)
+                being the history of acceptances of the M-w-G algo for each block. Array of floats, history of execution times.
+                Array of floats, history of the execution times of the M-w-G sampler.
+        """
         h_duration_cr = []
         h_duration_cls_sampling = []
         total_accept = {"EE":[], "BB":[]}
         h_dls = {"EE":[], "BB":[]}
-        h_time_seconds = []
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"], self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-        #skymap, accept = self.constrained_sampler.sample(dls_unbinned.copy())
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
@@ -430,26 +508,16 @@ class NonCenteredGibbs(GibbsSampler):
                 print("Non centered gibbs")
                 print(i)
 
-            #start_time = time.clock()
-            s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned)
-            #end_time = time.clock()
-            #duration = end_time - start_time
-            #h_duration_cr.append(duration)
+            s_nonCentered, _ = self.constrained_sampler.sample(dls_unbinned) # Do a CR step
 
-            #start_time = time.clock()
-            binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls)
-            #end_time = time.clock()
-            #duration =end_time - start_time
-            #h_duration_cls_sampling.append(duration)
-            dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"])
-            dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])
+            binned_dls, accept = self.cls_sampler.sample(s_nonCentered, binned_dls) # Sample the power spectrum with M-w-G
+            dls_unbinned["EE"] = utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]) # Unbin the D_\ell
+            dls_unbinned["BB"] = utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"]) # same
             total_accept["EE"].append(accept["EE"])
             total_accept["BB"].append(accept["BB"])
 
-            end_time = time.process_time()
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
-            #h_time_seconds.append(end_time - start_time)
 
         total_accept = {"EE": np.array(total_accept["EE"]), "BB": np.array(total_accept["BB"])}
         print("Non Centered gibbs acceptance rate EE:")
@@ -463,6 +531,11 @@ class NonCenteredGibbs(GibbsSampler):
         return h_dls, total_accept, np.array(h_duration_cr), np.array(h_duration_cls_sampling)
 
     def run(self, dls_init):
+        """
+
+        :param dls_init: dict {"EE":array, "BB":array}, arrays of float, initial D_\ell
+        :return: whatever the called methods return.
+        """
         if not self.polarization:
             return self.run_temperature(dls_init)
         else:

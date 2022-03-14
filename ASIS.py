@@ -44,7 +44,6 @@ class ASIS(GibbsSampler):
         h_accept = []
         h_dls = []
         h_time_seconds = []
-        h_time_cpu = []
         binned_dls = dls_init
         dls = utils.unfold_bins(binned_dls, self.bins)
         cls = self.dls_to_cls(dls)
@@ -86,17 +85,12 @@ class ASIS(GibbsSampler):
             cls = self.dls_to_cls(dls)
             skymap = np.sqrt(var_cls_full)*s_nonCentered
             end_iteration = time.time()
-            #end_clock = time.clock()
-            #time_cpu = end_clock - start_clock
             time_iteration = end_iteration - start_iteration
             h_time_seconds.append(time_iteration)
-            #h_time_cpu.append(time_cpu)
             h_accept.append(accept)
 
             h_dls.append(binned_dls)
-            
-            #save_path = config.scratch_path + \
-            #    "/data/non_isotropic_runs/asis/run/asis_" + str(config.slurm_task_id) + ".npy"
+
             save_path = "test_nside_512.npy"
 
             d = {"h_cls":np.array(h_dls), "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":np.array(h_accept),
@@ -164,8 +158,7 @@ class ASIS(GibbsSampler):
 
             all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                        "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
-            
-            ##ADDED HERE
+
             var_cls = {"EE": utils.generate_var_cl(all_dls["EE"]),
                              "BB": utils.generate_var_cl(all_dls["BB"])}
             skymap = {"EE": np.sqrt(var_cls["EE"])*skymap["EE"], "BB": np.sqrt(var_cls["BB"])*skymap["BB"]}
