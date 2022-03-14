@@ -18,28 +18,63 @@ class ASIS(GibbsSampler):
     def __init__(self, pix_map, noise, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False,
                  rj_step=False, all_sph=False, n_gibbs = 20):
+        """
+        Class for Interweaving
+
+        :param pix_map: array of floats, size Npix, observed skymap d.
+        :param noise: array of floats, size Npix, noise level for each pixel
+        :param noise_Q: array of floats, size Npix, noise level for each pixel. Same for Q and U maps
+        :param beam: float, definition of the beam in degree.
+        :param nside: integer, nside used to generate the grid over the sphere.
+        :param lmax: integer, L_max.
+        :param Npix: integer, number of pixels
+        :param proposal_variances: dict {"EE": array, "BB":array}, arrays of float, variances of the proposal distributions. NOT of size L_max, but of size number of blocks.
+        :param metropolis_blocks: dict {"EE":array, "BB":array}, integers, starting and ending indexes of the blocks.
+        :param polarization: boolean, whether we are dealing with "TT" only or "EE" and "BB" only.
+        :param bins: dict {"EE":array, "BB":array}, integers, starting and ending indexes of the bins.
+        :param n_iter: integer, number of iterations of the Gibbs sampler to do.
+        :param n_iter_metropolis: integer, number of iterations of the Metropolis-within-Gibbs sampler to do.
+        :param mask_path: string, path to a sky mask. If None, no sky mask is used.
+        :param gibbs_cr: boolean. If True, use the auxiliary varialbe scheme instead of PCG solver.
+        :param rj_step: boolean. If True, use a RPJO step.
+        :param all_sph: boolean, if True, write the entire model in spherical harmonics basis. If False do as usual.
+        :param n_gibbs: integer, number of auxiliary variable steps.
+        """
         super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins,
                          n_iter = n_iter, gibbs_cr=gibbs_cr, rj_step=rj_step)
 
         if not polarization:
+            #Creation of the CR sampler for "TT" only:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise, self.bl_map, beam, lmax, Npix,
                                                                       mask_path=mask_path)
+            #Creation of the Non centered Cls sampler for "TT" only:
             self.non_centered_cls_sampler = NonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise, metropolis_blocks,
                                                      proposal_variances, n_iter = n_iter_metropolis, mask_path=mask_path)
+            #Creation of the centered Cls sampler for "TT" only:
             self.centered_cls_sampler = CenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
         else:
+            #Creation of the non centered Cls sampler for "EE" and "BB" only
             self.non_centered_cls_sampler = PolarizationNonCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise, noise_Q
                                                                  , metropolis_blocks, proposal_variances, n_iter = n_iter_metropolis,
                                                                               mask_path = mask_path, all_sph=all_sph)
-
+            #Creation of the centered Cls sampler for "EE" and "BB" only.
             self.centered_cls_sampler = PolarizedCenteredClsSampler(pix_map, lmax, nside, self.bins, self.bl_map, noise)
+            #Creation of the CR sampler for "EE" and "BB" only.
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam,
-                                                                               mask_path= mask_path, all_sph=all_sph,
+                                                                               mask_path= mask_path,
                                                                                gibbs_cr = gibbs_cr, n_gibbs = n_gibbs)
 
 
 
     def run_temperature(self, dls_init):
+        """
+        Run temperature only Interweaving
+
+        :param dls_init: dls_init: dict {"EE":array, "BB":array}, arrays of float, initial D_\ell
+        :return: array of size (n_iter, L_max +1) being the trajectory of the Gibbs sampler. Array of int of size (n_iter, n_blocks)
+                being the history of acceptances of the M-w-G algo for each block. Array of floats, history of CR execution times.
+                Array of floats, history of the execution times of the Interweaving iteration.
+        """
         h_accept_cr = []
         h_accept = []
         h_dls = []
@@ -105,6 +140,15 @@ class ASIS(GibbsSampler):
 
 
     def run_polarization(self, dls_init):
+        """
+
+        :param dls_init: dls_init: dls_init: dict {"EE":array, "BB":array}, arrays of float, initial D_\ell
+        :return: array of size (n_iter, L_max +1) being the trajectory of the Gibbs sampler. Array of int of size (n_iter,)
+                acceptances of the CR step, array floats size (n_iter,), history of the durations of each iteration.
+                Array, size (n_iter,), history of the durations of the CR step. Array, size (n_iter,) durations of the centered Cls sampling
+                Array, size (n_iter,) history of the durations of the Cls non centered Cls sampling step.
+
+        """
         h_duration_cr = []
         h_duration_cls_nc_sampling = []
         h_duration_cls_sampling = []
@@ -116,6 +160,7 @@ class ASIS(GibbsSampler):
         all_dls = {"EE": utils.unfold_bins(binned_dls["EE"], self.bins["EE"]),
                    "BB": utils.unfold_bins(binned_dls["BB"], self.bins["BB"])}
         if self.rj_step == True or self.gibbs_cr == True:
+            ##If we use a RJPO or auxiliary variable algo, we need an initial skymap. We draw it with a PCG resolution.
             skymap, _ = self.constrained_sampler.sample(all_dls)
 
         for i in range(self.n_iter):
@@ -125,8 +170,10 @@ class ASIS(GibbsSampler):
             start_iteration = time.clock()
             start_time = time.clock()
             if self.rj_step is False and self.gibbs_cr is False:
+                # If not RJPO nor auxiliary, use PCG resolution for CR step.
                 skymap, _ = self.constrained_sampler.sample(all_dls)
             else:
+                #Otherwise, use RJPO or auxiliary variable step for CR step.
                 skymap, acc = self.constrained_sampler.sample(all_dls, skymap)
                 accept_cr.append(acc)
 
