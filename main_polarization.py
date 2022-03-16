@@ -164,30 +164,6 @@ if __name__ == "__main__":
 
         starting_point["EE"] = np.array(starting_point["EE"])
         starting_point["BB"] = np.array(starting_point["BB"])
-
-        #cls_init_E = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-        #cls_init_B = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-
-        #cls_init_E_binned = np.concatenate([np.zeros(2), cls_init_E])
-        #cls_init_E_binned = utils.generate_init_values(cls_init_E, pol="EE")
-        #cls_init_E_binned = utils.compute_init_values(cls_init_E, pol="EE")
-
-        #cls_init_B_binned = np.concatenate([np.zeros(2), cls_init_B])
-        #cls_init_B_binned = utils.generate_init_values(cls_init_B, pol="BB")
-        #cls_init_B_binned = utils.compute_init_values(cls_init_B, pol="BB")
-
-        #scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-
-        #cls_init_E_binned = np.ones(len(cls_init_E_binned)) * 3000
-        #cls_init_B_binned = np.ones(len(cls_init_B_binned)) * 3000
-        #cls_init_binned_E = np.random.normal(loc=cls_init_E_binned, scale=np.sqrt(10))
-        #cls_init_binned_B = np.random.normal(loc=cls_init_B_binned, scale=np.sqrt(10))
-        #cls_init_E_binned[:2] = 0
-        #cls_init_B_binned[:2] = 0
-        #starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
-        #rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-        #starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
-        #starting_point = config.starting_point
     else:
         starting_point = config.starting_point
 
