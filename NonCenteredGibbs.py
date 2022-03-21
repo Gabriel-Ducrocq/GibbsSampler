@@ -1,81 +1,91 @@
 from GibbsSampler import GibbsSampler
 from ConstrainedRealization import ConstrainedRealization
-from ClsSampler import ClsSampler, MHClsSampler
-import utils
+from ClsSampler import MHClsSampler
 import healpy as hp
 import numpy as np
-from scipy.stats import invgamma
 import time
 import config
 import utils
 from scipy.stats import truncnorm
-from numba import prange
 from CenteredGibbs import PolarizedCenteredConstrainedRealization
 import qcinv
 from oldNonCenteredGibbs import *
-from scipy.stats import norm
 from copy import deepcopy
 
 
 
 
 class NonCenteredConstrainedRealization(ConstrainedRealization):
+    """
+     The non centered CR step class for temperature only.
+    """
 
     def sample_no_mask(self, cls_, var_cls):
-        b_weiner = np.sqrt(var_cls) * self.bl_map * utils.adjoint_synthesis_hp(self.pix_map * self.inv_noise)
+        """
+        make the CR step when no mask is applied. In this case the system is diagonal and we can computee its solution directly.
+
+        :param cls_: array of floats, size (L_max +1,), power spectrum. Useless
+        :param var_cls: array of floats, size (L_max+1,)**2. This is the diagonal of the C matrix, see paper.
+        :return: array of floats, size Npix. The sampled skymap.
+        """
+        b_weiner = np.sqrt(var_cls) * self.bl_map * utils.adjoint_synthesis_hp(self.pix_map * self.inv_noise) # Compute the mean part of b
         b_fluctuations = np.random.normal(size=len(var_cls)) + \
                          np.sqrt(var_cls) * self.bl_map * \
-                         utils.adjoint_synthesis_hp(np.random.normal(size=self.Npix) * np.sqrt(self.inv_noise))
+                         utils.adjoint_synthesis_hp(np.random.normal(size=self.Npix) * np.sqrt(self.inv_noise)) # compute the fluctuation part of b
 
-        Sigma = 1/(1 + (var_cls / self.noise[0]) * (self.Npix / (4 * np.pi)) * self.bl_map ** 2)
-        weiner = Sigma* b_weiner
-        flucs = Sigma * b_fluctuations
-        map = weiner + flucs
-        map[[0, 1, self.lmax + 1, self.lmax + 2]] = 0.0
-
+        Sigma = 1/(1 + (var_cls / self.noise[0]) * (self.Npix / (4 * np.pi)) * self.bl_map ** 2) #Compute Q^-1 = \Sigma
+        weiner = Sigma* b_weiner #Performs Q^-1*b
+        flucs = Sigma * b_fluctuations # same
+        map = weiner + flucs # add the two parts of the solution
         return map, 1
 
     def sample_mask(self, cls_, var_cls, s_old, metropolis_step=False):
-        self.s_cls.cltt = cls_
-        self.s_cls.lmax = self.lmax
+        """
+        This performs CR step when a mask is appied, using either regular PCG or RJPO
+        :param cls_: array of floats, size (L_max +1, ) of the power spectrum C_\ell
+        :param var_cls: array of floats, size (L_max +1)**2, the diagonal of the signal matrix C. see paper.
+        :param s_old: array of float, size (L_max+1)**2, current skymap, in spherical harmonics in real convention.
+        :param metropolis_step: boolean, if True, we use a RJPO algorithm. Otherwise just use the classic PCG with diagonal preconditionner.
+        :return: array of floats, size (L_max +1)**2, sampled sky mask in sph harmonics, expressed in real convention.
+        """
+        self.s_cls.cltt = cls_ # set a s_cls object containing the power spectrum and L_max to be used by qcinv.
+        self.s_cls.lmax = self.lmax #same
         cl_inv = np.zeros(len(cls_))
-        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)]
+        cl_inv[np.where(cls_ !=0)] = 1/cls_[np.where(cls_ != 0)] #Invert the C_\ell.
 
         inv_var_cls = np.zeros(len(var_cls))
-        np.reciprocal(var_cls, where=config.mask_inversion, out=inv_var_cls)
+        inv_var_cls[var_cls != 0] = 1/var_cls[var_cls!=0] # Compute C^-1
 
         chain = qcinv.multigrid.multigrid_chain(qcinv.opfilt_tt, self.chain_descr, self.s_cls, self.n_inv_filt,
-                                                debug_log_prefix=('log_'))
+                                                debug_log_prefix=('log_')) # Defining stuffs for qcinv.
 
-        #b_weiner = self.bl_map * utils.adjoint_synthesis_hp(self.inv_noise * self.pix_map)
         b_fluctuations = np.random.normal(loc=0, scale=1, size=self.dimension_alm) * np.sqrt(inv_var_cls) + \
                          self.bl_map * utils.adjoint_synthesis_hp(np.random.normal(loc=0, scale=1, size=self.Npix)
-                                                              * np.sqrt(self.inv_noise))
+                                                              * np.sqrt(self.inv_noise)) # Defining the flucuation part of the b part of the system.
 
-        ####THINK ABOUT CHECKING THE STARTING POINT
         if metropolis_step:
+            #If we use a PCG, then set the starting point at the current skymap.
             soltn_complex = -utils.real_to_complex(s_old)[:]
         else:
+            #Otherwise set the starting point to 0.
             soltn_complex = np.zeros(int(qcinv.util_alm.lmax2nlm(self.lmax)), dtype=np.complex)
 
-        fluctuations_complex = utils.real_to_complex(b_fluctuations)
-        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex)
+        fluctuations_complex = utils.real_to_complex(b_fluctuations) #Set the fluctuation art into complex convention.
+        b_system = chain.sample(soltn_complex, self.pix_map, fluctuations_complex) # Actual resolution of the system.
         #### Since at the end of the solver the output is multiplied by C^-1, it's enough to remultiply it by C^(1/2) to
         ### To produce a non centered map !
         hp.almxfl(soltn_complex, cls_, inplace=True)
         hp.almxfl(soltn_complex, np.sqrt(cl_inv), inplace=True)
         soltn = utils.remove_monopole_dipole_contributions(utils.complex_to_real(soltn_complex))
         if not metropolis_step:
+            # If not RJPO, return the solution.
             return soltn, 1
         else:
+            #Otherwise, compute the MH ratio and accept with that proba.
             r = b_system - hp.map2alm(self.inv_noise*hp.alm2map(soltn_complex, nside=self.nside, lmax=self.lmax), lmax=self.lmax)\
                                       + hp.almxfl(soltn_complex,cl_inv, inplace=False)*(self.Npix/(4*np.pi))
             r = utils.complex_to_real(r)
             log_proba = min(0, -np.dot(r,(s_old - soltn)))
-            log_proba2 = min(0, np.dot(r,(s_old - soltn)))
-            print("log Probas")
-            print(log_proba)
-            print(log_proba2)
 
             if np.log(np.random.uniform()) < log_proba:
                 return soltn, 1
@@ -83,6 +93,9 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
                 return s_old, 0
 
     def sample(self, cls_, var_cls, old_s, metropolis_step=False):
+        """
+        Make a CR step for TT only.
+        """
         if self.mask_path is not None:
             return self.sample_mask(cls_, var_cls, old_s, metropolis_step)
         else:
@@ -92,6 +105,19 @@ class NonCenteredConstrainedRealization(ConstrainedRealization):
 
 class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None, all_sph = False):
+        """
+        Class for making a non centered CR step for "EE" and "BB" only.
+
+        :param pix_map: array of floats, size Npix. Observed sky mask.
+        :param noise_temp: array of floats, size Npix. Noise level per pixel for intensity.
+        :param noise_pol:array of floats, size Npix. Noise level per pixel for Q and U.
+        :param bl_map: array of floats, size (L_max +1)**2, diagonal of the diagonal matrix B, see paper.
+        :param lmax: integer, L_max
+        :param Npix: integer, number of pixels.
+        :param bl_fwhm: float, definition of the fwhm of the gaussian beam, in degree
+        :param mask_path: string, path of the mask.
+        :param all_sph: boolean, whether the model is diagonal and we can write everything in sph.
+        """
         super().__init__(pix_map, noise_temp, bl_map, bl_fwhm, lmax, Npix)
         self.noise_temp = noise_temp
         self.noise_pol = noise_pol
@@ -101,30 +127,39 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
         self.all_sph = all_sph
 
         self.bl_fwhm = bl_fwhm
+        #The next line defines the CR sampler in centered parametrization.
         self.pol_centered_constraint_realizer = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
                                                                             bl_map, lmax, Npix, bl_fwhm, mask_path=mask_path)
 
 
     def sample_no_mask(self, all_dls):
-        var_cls_E = utils.generate_var_cl(all_dls["EE"])
-        var_cls_B = utils.generate_var_cl(all_dls["BB"])
+        """
+        Sampler when no mask is applied.
+
+        :param all_dls: dict {"EE":array, "BB":array} where arrays of floats are size number of bins. D_\ell variables.
+        :return: dict {"EE":array, "BB":array} where arrays of floats are of size (L_max+1,)**2
+        """
+        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Compute the diagonal of the C matrix. See paper.
+        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # Same
 
         inv_var_cls_E = np.zeros(len(var_cls_E))
-        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0]
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Invert the variance, computes C^-1
 
         inv_var_cls_B = np.zeros(len(var_cls_B))
-        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0]
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # Same here
 
-        sigma_E = 1/(1 + self.inv_noise_pol[0]*self.bl_map**2*var_cls_E*self.Npix/(4*np.pi))
-        sigma_B = 1/(1 + self.inv_noise_pol[0] * self.bl_map ** 2 * var_cls_B * self.Npix / (4 * np.pi))
+        sigma_E = 1/(1 + self.inv_noise_pol[0]*self.bl_map**2*var_cls_E*self.Npix/(4*np.pi)) # Computes Q^-1
+        sigma_B = 1/(1 + self.inv_noise_pol[0] * self.bl_map ** 2 * var_cls_B * self.Npix / (4 * np.pi)) # same.
 
         if not self.all_sph:
+            # If the noise covariance matrix is not prop to diagonal, we have to go to the pixel domain.
             _, r_E, r_B = hp.map2alm([np.zeros(self.Npix),self.pix_map["Q"]*self.inv_noise_pol, self.pix_map["U"]*self.inv_noise_pol],
                            lmax=self.lmax, pol=True)*self.Npix/(4*np.pi)
 
             r_E = np.sqrt(var_cls_E) * self.bl_map * utils.complex_to_real(r_E)
             r_B = np.sqrt(var_cls_B) * self.bl_map * utils.complex_to_real(r_B)
         else:
+            # Otherwise, we can write everything in sph harmonic domain.
             r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi))* self.pix_map["EE"]
             r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"]
 
@@ -132,27 +167,33 @@ class PolarizedNonCenteredConstrainedRealization(ConstrainedRealization):
             r_B = np.sqrt(var_cls_B) * self.bl_map * r_B
 
 
-        mean_E = sigma_E*r_E
-        mean_B = sigma_B*r_B
+        mean_E = sigma_E*r_E # Compute the mean of the Gaussian distribution.
+        mean_B = sigma_B*r_B # Compute the mean of the Gaussian distribution.
 
 
-        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E)
-        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B)
+        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E) # Actual sampling
+        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B) # same.
 
         return {"EE":alms_E, "BB":alms_B}, 0
 
     def sample_mask(self, all_dls):
-        var_cls_EE = utils.generate_var_cl(all_dls["EE"])
-        var_cls_BB = utils.generate_var_cl(all_dls["BB"])
+        """
+        Sampling when a sky mask is applied.
+
+        :param all_dls: dict {"EE":array, "BB":array} where the arrays contain floats, are of size L_max +1 and contain the D_\ell
+        :return: dict {"EE":array, "BB":array} where arrays of floats are of size (L_max+1,)**2, and an integer always 1 since we always accept.
+        """
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"]) # Computes the variance, the diagonal of the C matrix.
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"]) # Same
         inv_var_cls_EE = np.zeros(len(var_cls_EE))
         inv_var_cls_BB = np.zeros(len(var_cls_BB))
-        inv_var_cls_EE[var_cls_EE != 0] = 1/var_cls_EE[var_cls_EE != 0]
-        inv_var_cls_BB[var_cls_BB != 0] = 1 / var_cls_BB[var_cls_BB != 0]
+        inv_var_cls_EE[var_cls_EE != 0] = 1/var_cls_EE[var_cls_EE != 0] # Computes the inverse of C.
+        inv_var_cls_BB[var_cls_BB != 0] = 1 / var_cls_BB[var_cls_BB != 0] # Same.
 
-        alms, _ = self.pol_centered_constraint_realizer.sample_mask(all_dls)
-        alms["EE"] *=np.sqrt(inv_var_cls_EE)
-        alms["BB"] *=np.sqrt(inv_var_cls_BB)
-        return alms, 0
+        alms, _ = self.pol_centered_constraint_realizer.sample_mask(all_dls) # Make a centered CR step.
+        alms["EE"] *=np.sqrt(inv_var_cls_EE) #Change parametrization to have a non centered skymap.
+        alms["BB"] *=np.sqrt(inv_var_cls_BB) # same.
+        return alms, 1
 
 
     def sample(self, all_dls):

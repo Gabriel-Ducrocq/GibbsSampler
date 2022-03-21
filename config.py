@@ -87,6 +87,12 @@ bl_map = generate_var_cl(bl_gauss) # Diagonal of the diagonal beam matrix B, see
 
 
 def compute_init_values_pol(unbinned_vars, pol):
+    """
+
+    :param unbinned_vars: array of size (L_max +1,) of the variances on the D_\ell
+    :param pol: string "EE" or "BB", the power spectrum to bin
+    :return: array of size (number of bins,)
+    """
     vals = []
     for i, l_start in enumerate(bins[pol][:-1]):
         l_end = bins[pol][i+1]
@@ -96,7 +102,7 @@ def compute_init_values_pol(unbinned_vars, pol):
     return np.array(vals)
 
 
-def compute_init_values(unbinned_vars, pol = None):
+def compute_init_values(unbinned_vars):
     vals = []
     for i, l_start in enumerate(bins[:-1]):
         l_end = bins[i+1]
@@ -125,14 +131,14 @@ binned_variances_pol = {"EE":compute_init_values_pol(unbinned_variances_pol, "EE
 
 def get_proposal_variances_preliminary(path):
     """
+    computing an approximation of the posterior variances and mean of D_\ell for "TT" only.
 
-    :param path:
-    :return:
+    :param path: string, path to the data of a preliminary run.
+    :return: arrays of floats, of size (number of bins,). The first one is the estimated variances of the posterior for each D_\ell and the
+            second one is the estimated mean of the posterior for each D_\ell.
     """
     list_files = os.listdir(path)
     chains = []
-    times = []
-    accept_rate = []
 
     for i, name in enumerate(list_files):
         if name not in [".ipynb_checkpoints", "Untitled.ipynb", "preliminary_runs"]:
@@ -149,13 +155,16 @@ def get_proposal_variances_preliminary(path):
 
 
 def get_proposal_variances_preliminary_pol(path):
+    """
+    computing an approximation of the posterior variances and mean of D_\ell for "EE" and "BB" only. Same function
+    as above but for polarization.
+
+    """
     list_files = os.listdir(path)
     chains = []
 
     print(list_files)
     for i, name in enumerate(list_files):
-        print("NAME")
-        print(name)
         if name not in [".ipynb_checkpoints",  '.ipynb_checkpoints', "Untitled.ipynb", "preliminary_runs"]:
             data = np.load(path + name, allow_pickle=True)
             data = data.item()
@@ -176,13 +185,17 @@ def get_proposal_variances_preliminary_pol(path):
 
 
 
-preliminary_run = False
+preliminary_run = False # If the run is preliminary tuning run or not
 if preliminary_run:
+    #If it is, we juste use some variances we set.
     proposal_variances_nc_polarized = {}
     proposal_variances_nc_polarized["EE"] = binned_variances_pol["EE"][2:]
     proposal_variances_nc_polarized["BB"] = binned_variances_pol["BB"][2:]
 
 else:
+    #If a preliminary run has already been done, we download the results, estimate the mean and variance of the
+    # posterior. This will serve as proposal variances for the non cnetered move. We rescale it by an arbitrary factor to achieve acceptance rates
+    # near 25%.
 #for planck 80% skymask:
     path_vars = scratch_path + "/data/polarization_runs/cut_sky/asis/preliminary_run/"
     empirical_variances, starting_point = get_proposal_variances_preliminary_pol(path_vars)

@@ -84,15 +84,14 @@ class ASIS(GibbsSampler):
         cls = self.dls_to_cls(dls)
         var_cls_full = utils.generate_var_cl(dls)
         h_dls.append(binned_dls)
-        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)
+        skymap, accept = self.constrained_sampler.sample(cls[:], var_cls_full.copy(), None, metropolis_step=False)# Make a first constrained realization before starting the iterations
         for i in range(self.n_iter):
             if i % 1 == 0:
                 print("Interweaving, iteration:", i)
 
             start_iteration = time.time()
-            #start_clock = time.clock()
             start_time_cr = time.time()
-            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=self.gibbs_cr)
+            skymap, accept_cr = self.constrained_sampler.sample(cls[:], var_cls_full[:], skymap, use_gibbs=self.gibbs_cr) # Do CR step.
             end_time_cr = time.time()
             total_time_cr = end_time_cr - start_time_cr
             print("Time CR:")
@@ -100,38 +99,31 @@ class ASIS(GibbsSampler):
             h_accept_cr.append(accept_cr)
 
             start_time_centered_cls = time.time()
-            binned_dls_temp = self.centered_cls_sampler.sample(skymap[:])
+            binned_dls_temp = self.centered_cls_sampler.sample(skymap[:]) # Make centered power spectrum sampling move.
             end_time_centered_cls = time.time()
             total_time_centered_cls = end_time_centered_cls - start_time_centered_cls
             print("Time centered cls:", total_time_centered_cls)
-            dls_temp_unfolded = utils.unfold_bins(binned_dls_temp, self.bins)
-            var_cls_temp = utils.generate_var_cl(dls_temp_unfolded)
+            dls_temp_unfolded = utils.unfold_bins(binned_dls_temp, self.bins) # Unfold the power spectrum.
+            var_cls_temp = utils.generate_var_cl(dls_temp_unfolded) # Generate the associated variance.
 
             inv_var_cls_temp = np.zeros(len(var_cls_temp))
-            np.reciprocal(var_cls_temp, out=inv_var_cls_temp, where=config.mask_inversion)
-            s_nonCentered = np.sqrt(inv_var_cls_temp) * skymap
+            np.reciprocal(var_cls_temp, out=inv_var_cls_temp, where=config.mask_inversion) # Invert the variance
+            s_nonCentered = np.sqrt(inv_var_cls_temp) * skymap # Turn the centered skymap to the non centered skymap
 
             start_time_noncentered_cls = time.time()
-            binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered[:], binned_dls_temp[:], var_cls_temp[:])
+            binned_dls, var_cls_full, accept = self.non_centered_cls_sampler.sample(s_nonCentered[:], binned_dls_temp[:], var_cls_temp[:]) # Make a non centered power spectrum sampling step.
             end_time_noncentered_cls = time.time()
             print("Time non centered cls:")
             print(end_time_noncentered_cls - start_time_noncentered_cls)
             dls = utils.unfold_bins(binned_dls, self.bins)
             cls = self.dls_to_cls(dls)
-            skymap = np.sqrt(var_cls_full)*s_nonCentered
+            skymap = np.sqrt(var_cls_full)*s_nonCentered # Re-center the skymap with the newly sampled power spectrum.
             end_iteration = time.time()
             time_iteration = end_iteration - start_iteration
             h_time_seconds.append(time_iteration)
             h_accept.append(accept)
 
             h_dls.append(binned_dls)
-
-            save_path = "test_nside_512.npy"
-
-            d = {"h_cls":np.array(h_dls), "bins":config.bins, "metropolis_blocks":config.blocks, "h_accept":np.array(h_accept),
-             "h_times_iteration":np.array(h_time_seconds),"h_cpu_time":None}
-
-            np.save(save_path, d, allow_pickle=True)
 
         h_accept = np.array(h_accept)
         print("Acceptance rate ASIS:", np.mean(h_accept, axis = 0))
@@ -144,7 +136,7 @@ class ASIS(GibbsSampler):
 
         :param dls_init: dls_init: dls_init: dict {"EE":array, "BB":array}, arrays of float, initial D_\ell
         :return: array of size (n_iter, L_max +1) being the trajectory of the Gibbs sampler. Array of int of size (n_iter,)
-                acceptances of the CR step, array floats size (n_iter,), history of the durations of each iteration.
+                acceptances of the CR step, array of int, size (n_iter,), history of the acceptances for the CR step. array floats size (n_iter,), history of the durations of each iteration.
                 Array, size (n_iter,), history of the durations of the CR step. Array, size (n_iter,) durations of the centered Cls sampling
                 Array, size (n_iter,) history of the durations of the Cls non centered Cls sampling step.
 
@@ -182,7 +174,7 @@ class ASIS(GibbsSampler):
             h_duration_cr.append(duration)
 
             start_time = time.clock()
-            binned_dls_temp = self.centered_cls_sampler.sample(skymap)
+            binned_dls_temp = self.centered_cls_sampler.sample(skymap) # Make a centered power spectrum sampling move.
             end_time = time.clock()
             duration =end_time - start_time
             h_duration_cls_sampling.append(duration)
@@ -192,11 +184,11 @@ class ASIS(GibbsSampler):
 
             inv_var_EE = np.zeros(len(var_cls["EE"]))
             inv_var_BB = np.zeros(len(var_cls["BB"]))
-            inv_var_EE[var_cls["EE"] != 0] = 1/var_cls["EE"][var_cls["EE"] != 0]
-            inv_var_BB[var_cls["BB"] != 0] = 1 / var_cls["BB"][var_cls["BB"] != 0]
-            s_nonCentered = {"EE": np.sqrt(inv_var_EE)*skymap["EE"], "BB": np.sqrt(inv_var_BB)*skymap["BB"]}
+            inv_var_EE[var_cls["EE"] != 0] = 1/var_cls["EE"][var_cls["EE"] != 0]#Invert the variance
+            inv_var_BB[var_cls["BB"] != 0] = 1 / var_cls["BB"][var_cls["BB"] != 0] # Same here
+            s_nonCentered = {"EE": np.sqrt(inv_var_EE)*skymap["EE"], "BB": np.sqrt(inv_var_BB)*skymap["BB"]} # Compute the non centered sky map.
             start_time = time.clock()
-            binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp)
+            binned_dls, acception = self.non_centered_cls_sampler.sample(s_nonCentered, binned_dls_temp) # Power spectrum sampling in the non centered parametrization.
             end_time = time.clock()
             duration =end_time - start_time
             h_duration_cls_nc_sampling.append(duration)
@@ -208,7 +200,7 @@ class ASIS(GibbsSampler):
 
             var_cls = {"EE": utils.generate_var_cl(all_dls["EE"]),
                              "BB": utils.generate_var_cl(all_dls["BB"])}
-            skymap = {"EE": np.sqrt(var_cls["EE"])*skymap["EE"], "BB": np.sqrt(var_cls["BB"])*skymap["BB"]}
+            skymap = {"EE": np.sqrt(var_cls["EE"])*skymap["EE"], "BB": np.sqrt(var_cls["BB"])*skymap["BB"]} # compute the centered skymap from the non centered pow spec.
             
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
