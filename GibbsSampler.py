@@ -1,10 +1,8 @@
 import config
 import utils
 import numpy as np
-from scipy.stats import invgamma, truncnorm
 import healpy as hp
 import time
-from default_gibbs import sample_cls
 
 
 class GibbsSampler():

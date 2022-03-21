@@ -8,9 +8,6 @@ from scipy.stats import invgamma, invwishart
 from scipy.stats import t as student
 import time
 import config
-from linear_algebra import compute_inverse_matrices, compute_matrix_product
-from numba import njit, prange
-from splines import sample_splines
 import scipy
 import matplotlib.pyplot as plt
 import qcinv

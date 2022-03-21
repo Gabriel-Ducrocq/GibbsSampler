@@ -2,21 +2,11 @@ import utils
 import config
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats
-import scipy.integrate
-import json
-import scipy
 import time
-import pickle
 import healpy as hp
-from CenteredGibbs import CenteredGibbs
 from NonCenteredGibbs import NonCenteredGibbs
-from PNCP import PNCPGibbs
-from scipy.stats import invwishart
 from ASIS import ASIS
-from default_gibbs import default_gibbs
 from CenteredGibbs import CenteredGibbs
-import sys
 
 
 def generate_cls(polarization = True):
@@ -26,7 +16,7 @@ def generate_cls(polarization = True):
     :return: arrays of floats, being cosmo_params, cls_tt, cls_ee, cls_bb and cls_te of polarization is True.
             Otherwise, cosmo_params, cls_tt.
     """
-    theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
+    theta_ = config.COSMO_PARAMS_MEAN_PRIOR #+ np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
     return theta_, cls_
 
@@ -79,20 +69,19 @@ if __name__ == "__main__":
          "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
          "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS} #Save the map and its parameters.
 
-    np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True) #Actual saving.
+    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
-    
+    np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
 
 
     
-    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy" # Load the skymap.
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy" # Load the skymap.
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
     pix_map = d["pix_map"] # Getting the map.
 
     #All the next line plot the SNR for "EE" and "BB".
-
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -175,6 +164,6 @@ if __name__ == "__main__":
          "gibbs_cr":asis.constrained_sampler.gibbs_cr
          } # All the information we save about the run.
 
-    np.save(save_path, d, allow_pickle=True) # Actual saving.
+    #np.save(save_path, d, allow_pickle=True) # Actual saving.
 
 

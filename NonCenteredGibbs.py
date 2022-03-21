@@ -9,7 +9,6 @@ import utils
 from scipy.stats import truncnorm
 from CenteredGibbs import PolarizedCenteredConstrainedRealization
 import qcinv
-from oldNonCenteredGibbs import *
 from copy import deepcopy
 
 
