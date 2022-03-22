@@ -4,7 +4,7 @@ import healpy as hp
 
 
 scratch_path = os.environ['SCRATCH'] #Scratch path to save and load data on NERSC
-slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"] #Slurm ID for using multiple machines on NERSC.
+#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"] #Slurm ID for using multiple machines on NERSC.
 
 
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"] # Parameters names
@@ -23,9 +23,9 @@ L_MAX_SCALARS=int(2*NSIDE) # L_max
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
 #mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
-mask_path = None
+#mask_path = None
 
 
 def noise_covariance_in_freq(nside):

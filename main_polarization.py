@@ -80,6 +80,8 @@ if __name__ == "__main__":
     d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
     pix_map = d["pix_map"] # Getting the map.
+    print("SKY MAP")
+    print(pix_map)
 
     #All the next line plot the SNR for "EE" and "BB".
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
@@ -100,8 +102,8 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
-                                   rj_step=False, gibbs_cr = True) # Create  centered Gibbs sampler with auxiliary variable step.
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 4,
+                                   rj_step=False, gibbs_cr = True, overrelaxation=True) # Create  centered Gibbs sampler with auxiliary variable step.
 
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -111,14 +113,15 @@ if __name__ == "__main__":
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 4,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 20) # Create a ASIS sampler with auxiliary step.
+                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 20, overrelaxation=True) # Create a ASIS sampler with auxiliary step.
 
 
     if config.preliminary_run:
         # If it is a preliminary run, we create a starting point D_\ell.
-        _, _, cls_EE, cls_BB, cls_TE = generate_cls()
+        _, cls_ = generate_cls()
+        _, cls_EE, cls_BB, _ = cls_
         scale = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)]) # factors l(l+1)/2\pi to go from C_\ell to D_\ell.
         dls_EE = scale*cls_EE
         dls_BB = scale*cls_BB
@@ -140,8 +143,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
-    h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()

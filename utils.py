@@ -2,6 +2,7 @@ import numpy as np
 import config
 import healpy as hp
 from classy import Class
+from variance_expension import generate_var_cl_cython
 
 cosmo = Class()
 

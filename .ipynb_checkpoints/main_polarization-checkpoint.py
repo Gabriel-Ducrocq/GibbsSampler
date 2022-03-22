@@ -2,53 +2,51 @@ import utils
 import config
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats
-import scipy.integrate
-import json
-import scipy
 import time
-import pickle
 import healpy as hp
-from CenteredGibbs import CenteredGibbs
 from NonCenteredGibbs import NonCenteredGibbs
-from PNCP import PNCPGibbs
-from scipy.stats import invwishart
 from ASIS import ASIS
-from default_gibbs import default_gibbs
 from CenteredGibbs import CenteredGibbs
-import sys
 
 
 def generate_cls(polarization = True):
-    theta_ = config.COSMO_PARAMS_MEAN_PRIOR + np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
+    """
+    Function to generate cosmological parameters and the corresponding power spectrum.
+    :param polarization: boolean. if True, we deal with "EE" and "BB" only. If False, with "TT" only.
+    :return: arrays of floats, being cosmo_params, cls_tt, cls_ee, cls_bb and cls_te of polarization is True.
+            Otherwise, cosmo_params, cls_tt.
+    """
+    theta_ = config.COSMO_PARAMS_MEAN_PRIOR #+ np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
     cls_ = utils.generate_cls(theta_, polarization)
     return theta_, cls_
 
 def generate_dataset(cls_, polarization=True, mask_path = None):
-    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.fwhm_radians, new=True)
+    """
+    Create observed sky map when we deal with "EE" and "BB" only.
+
+    :param cls_: array of floats, power spectrum C_\ell. Size (3, L_max +1) if polarization, (L_max + 1,) otherwise.
+    :param polarization: boolean. whether we are dealing with polarization or not.
+    :param mask_path: string, path of the mas. If None, no mask is applied.
+    :return: array of floats, size 6 of the parramters. Arrays of floats, size (L_max+1, ) if only "TT" or size (3, L_max + 1) if polarization.
+            array of size (3, Npix) if polarization, otherwise size (Npix,). True skymap in pixel domain.
+            array of size (3, Npix) if polarization, otherwise size (Npix,). True skymap in pixel domain.
+    """
+    map_true = hp.synfast(cls_, nside=config.NSIDE, lmax=config.L_MAX_SCALARS, fwhm=config.fwhm_radians, new=True) # Sample a sky map in pixel domain.
     d = map_true
     if polarization:
-        d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp))
-        d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
-        d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol))
+        d[0] += np.random.normal(scale=np.sqrt(config.var_noise_temp)) # add noise
+        d[1] += np.random.normal(scale=np.sqrt(config.var_noise_pol)) # same
+        d[2] += np.random.normal(scale=np.sqrt(config.var_noise_pol)) # same
         if mask_path is None:
-            #hp.mollview(d[1])
-            #plt.show()
-            #hp.mollview(d[2])
-            #plt.show()
+            # If no mask is applied, output the Q and U maps.
             return map_true,  {"Q":d[1], "U":d[2]}
         else:
+            #Otherwise apply the mask.
             mask = hp.ud_grade(hp.read_map(mask_path, 0), config.NSIDE)
-            hp.mollview(mask)
-            plt.show()
-            hp.mollview(mask*d[1])
-            plt.show()
-            hp.mollview(mask*d[2])
-            plt.show()
-            print("Mask taken into account")
             return map_true, {"Q": d[1]*mask, "U": d[2]*mask}
 
     else:
+        #Same but with "TT" and intensity only.
         d += np.random.normal(scale=np.sqrt(config.var_noise_temp))
         if mask_path is None:
             return theta_, cls_, map_true,  d
@@ -57,49 +55,35 @@ def generate_dataset(cls_, polarization=True, mask_path = None):
             return theta_, cls_, map_true, d*mask
 
 
-def compute_marginal_TT(x_EE, x_TE, x_TT, l, scale_mat, cl_EE, cl_TE):
-    param_mat = np.array([[x_TT, x_TE], [x_TE, x_EE]])
-    if x_TT <= x_TE**2/x_EE:
-        return 0
-    else:
-        return invwishart.pdf(param_mat, df=2*l-2, scale=scale_mat)
-
-
-
-
 if __name__ == "__main__":
     np.random.seed()
 
-    ####Be careful of the cls_TT and cls_TE
-    #theta_, cls_ = generate_cls()
-    #cls_ = np.array([cls for cls in cls_])
-    #cls_[0] = np.zeros(len(cls_[0]))
-    #cls_[3] = np.zeros(len(cls_[0]))
-    #s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path)
+    theta_, cls_ = generate_cls() # Sample cosmological parameters and power spectrum.
+    cls_ = np.array([cls for cls in cls_])
+    cls_[0] = np.zeros(len(cls_[0])) # Set the TT pow spec to 0
+    cls_[3] = np.zeros(len(cls_[0])) # Same for TE
+    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
 
 
-    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}
+    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS} #Save the map and its parameters.
 
-    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True)
+    #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
-    
+    np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
 
 
     
-    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy" # Load the skymap.
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
-    d = np.load(data_path, allow_pickle=True)
+    d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
-    pix_map = d["pix_map"]
-    """
-    snr = cls_[0] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
-    plt.plot(snr)
-    plt.axhline(y=1)
-    plt.title("TT")
-    plt.show()
+    pix_map = d["pix_map"] # Getting the map.
+    print("SKY MAP")
+    print(pix_map)
 
+    #All the next line plot the SNR for "EE" and "BB".
     snr = cls_[1] * (config.bl_gauss ** 2) / (config.noise_covar_pol * 4 * np.pi / config.Npix)
     plt.plot(snr)
     plt.axhline(y=1)
@@ -112,46 +96,33 @@ if __name__ == "__main__":
     plt.title("BB")
     plt.show()
 
-    snr = cls_[3] * (config.bl_gauss ** 2) / (config.noise_covar_temp * 4 * np.pi / config.Npix)
-    plt.plot(snr)
-    plt.axhline(y=1)
-    plt.title("TE")
-    plt.show()
 
-    print("Variances pol FIRST")
-    print(config.proposal_variances_nc_polarized)
-
-    d_sph_TT, d_sph_EE, d_sph_BB = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"], pix_map["U"]], lmax=config.L_MAX_SCALARS)
-    pix_map = {"EE": utils.complex_to_real(d_sph_EE), "BB":utils.complex_to_real(d_sph_BB)}
-    """
-
+    # Set the noise maps.
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100000,
-                                   rj_step=False, gibbs_cr = True)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 4,
+                                   rj_step=False, gibbs_cr = True, overrelaxation=True) # Create  centered Gibbs sampler with auxiliary variable step.
 
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                          all_sph=True)
+                                          all_sph=True) # Create a non centered Gibbs sampler with no mask and isotropic noise covariance matrix;
 
 
     asis = ASIS(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 4,
                                           proposal_variances=config.proposal_variances_nc_polarized, metropolis_blocks=config.blocks,
-                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 20)
+                                    rj_step = False, all_sph=False, gibbs_cr = True, n_gibbs = 20, overrelaxation=True) # Create a ASIS sampler with auxiliary step.
 
 
-    print("PCG accuracy:")
-    print(centered_gibbs.constrained_sampler.pcg_accuracy)
-    l_interest =3
-    np.random.seed()
     if config.preliminary_run:
-        _, cls_EE, cls_BB, _ = utils.generate_cls(config.COSMO_PARAMS_PLANCK, pol=True)
-        scale = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)])
+        # If it is a preliminary run, we create a starting point D_\ell.
+        _, cls_ = generate_cls()
+        _, cls_EE, cls_BB, _ = cls_
+        scale = np.array([l * (l + 1) / (2 * np.pi) for l in range(config.L_MAX_SCALARS + 1)]) # factors l(l+1)/2\pi to go from C_\ell to D_\ell.
         dls_EE = scale*cls_EE
         dls_BB = scale*cls_BB
         all_dls = {"EE":dls_EE, "BB":dls_BB}
@@ -159,43 +130,21 @@ if __name__ == "__main__":
         starting_point = {"EE":[], "BB":[]}
         for pol in ["EE", "BB"]:
             for i, l_start in enumerate(config.bins[pol][:-1]):
+                # We bin the power spectrum.
                 l_end = config.bins[pol][i+1]
                 starting_point[pol].append(np.mean(all_dls[pol][l_start:l_end]))
 
         starting_point["EE"] = np.array(starting_point["EE"])
         starting_point["BB"] = np.array(starting_point["BB"])
-
-        #cls_init_E = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-        #cls_init_B = np.array([1e3 / (l ** 2) for l in range(2, config.L_MAX_SCALARS + 1)])
-
-        #cls_init_E_binned = np.concatenate([np.zeros(2), cls_init_E])
-        #cls_init_E_binned = utils.generate_init_values(cls_init_E, pol="EE")
-        #cls_init_E_binned = utils.compute_init_values(cls_init_E, pol="EE")
-
-        #cls_init_B_binned = np.concatenate([np.zeros(2), cls_init_B])
-        #cls_init_B_binned = utils.generate_init_values(cls_init_B, pol="BB")
-        #cls_init_B_binned = utils.compute_init_values(cls_init_B, pol="BB")
-
-        #scale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-
-        #cls_init_E_binned = np.ones(len(cls_init_E_binned)) * 3000
-        #cls_init_B_binned = np.ones(len(cls_init_B_binned)) * 3000
-        #cls_init_binned_E = np.random.normal(loc=cls_init_E_binned, scale=np.sqrt(10))
-        #cls_init_binned_B = np.random.normal(loc=cls_init_B_binned, scale=np.sqrt(10))
-        #cls_init_E_binned[:2] = 0
-        #cls_init_B_binned[:2] = 0
-        #starting_point = {"EE":cls_init_E_binned, "BB":cls_init_B_binned}
-        #rescale = np.array([l*(l+1)/(2*np.pi) for l in range(config.L_MAX_SCALARS+1)])
-        #starting_point = {"EE": cls_[1]*rescale, "BB": cls_[2]*rescale}
-        #starting_point = config.starting_point
     else:
+        # If it is not a preliminary run, we compute the starting point using the preliminary chains.
         starting_point = config.starting_point
 
 
     start = time.time()
     start_cpu = time.clock()
-    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
-    h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point)
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
     end_cpu = time.clock()
@@ -206,7 +155,7 @@ if __name__ == "__main__":
     print("Total Cpu time:",total_cpu_time)
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs_20_late/runs/asis_20_late" + str(config.slurm_task_id) + ".npy"
+                "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs_20_late/runs/asis_20_late" + str(config.slurm_task_id) + ".npy" # Save path
 
     d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
@@ -216,28 +165,8 @@ if __name__ == "__main__":
          "pcg_accuracy": asis.constrained_sampler.pcg_accuracy, "h_accept_cr":h_accept_cr, "total_time":total_time,
          "rj_step": asis.rj_step, "gibbs_iterations":asis.constrained_sampler.n_gibbs,
          "gibbs_cr":asis.constrained_sampler.gibbs_cr
-         }
+         } # All the information we save about the run.
 
-    print(centered_gibbs.constrained_sampler.pcg_accuracy)
-    print(centered_gibbs.rj_step)
-    np.save(save_path, d, allow_pickle=True)
+    #np.save(save_path, d, allow_pickle=True) # Actual saving.
 
-    """
-    for _, pol in enumerate(["EE", "BB"]):
-        #for l in range(2, config.L_MAX_SCALARS+1):
-        for l in range(2, len(config.bins[pol][:-1])):
-            y, xs, norm = utils.trace_likelihood_pol_binned(h_cls_noncentered[pol], pix_map, l,
-                                                            maximum=np.max(h_cls_noncentered[pol][:, l]), pol=pol, all_sph=True)
-            plt.plot(h_cls_noncentered[pol][:, l])
-            plt.show()
-
-            plt.hist(h_cls_noncentered[pol][100:, l], density=True, alpha=0.5, label="Gibbs NC", bins=300)
-            #plt.hist(h_cls_centered[pol][100:, l], density=True, alpha=0.5, label="Gibbs Centered", bins=400)
-            #plt.hist(h_cls_asis[pol][100:, l], density=True, alpha=0.5, label="ASIS", bins=400)
-            print("Norm:", norm)
-            plt.plot(xs, y/norm)
-            plt.title(pol + " with l="+str(l))
-            plt.legend(loc="upper right")
-            plt.show()
-    """
 

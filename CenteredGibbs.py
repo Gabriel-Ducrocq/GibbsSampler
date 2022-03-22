@@ -510,7 +510,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     
-    def overrelaxation(self, all_dls, old_s):
+    def overrelaxation_sampler(self, all_dls, old_s):
         """
         This method does the auxiliary variable step using overrelaxation.
 
@@ -606,9 +606,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def sample(self, all_dls, s_old = None):
-        if self.gibbs_cr == True and s_old is not None:
-            return self.overrelaxation(all_dls, s_old)
-            #return self.sample_gibbs_change_variable(all_dls, s_old)
+        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == True:
+            return self.overrelaxation_sampler(all_dls, s_old)
+        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False:
+            return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None:
@@ -625,9 +626,11 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
-                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False, gibbs_cr = False):
-        super().__init__(pix_map, noise_temp, beam, nside, lmax, Npix, polarization = polarization, bins=bins, n_iter = n_iter
+                 polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False, gibbs_cr = False,
+                overrelaxation=False):
+        super().__init__(pix_map, noise_temp, beam, nside, lmax, polarization = polarization, bins=bins, n_iter = n_iter
                          ,rj_step=rj_step, gibbs_cr = gibbs_cr)
+        
         if not polarization:
             self.constrained_sampler = CenteredConstrainedRealization(pix_map, noise_temp, self.bl_map, beam, lmax, Npix, mask_path,
                                                                       isotropic=True)
@@ -637,4 +640,4 @@ class CenteredGibbs(GibbsSampler):
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
                                                                                self.bl_map, lmax, Npix, beam,
                                                                                mask_path=mask_path,
-                                                                               gibbs_cr =gibbs_cr)
+                                                                               gibbs_cr =gibbs_cr, overrelaxation=overrelaxation)

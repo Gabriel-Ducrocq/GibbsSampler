@@ -17,7 +17,7 @@ class ASIS(GibbsSampler):
 
     def __init__(self, pix_map, noise, noise_Q, beam, nside, lmax, Npix, proposal_variances, metropolis_blocks = None,
                  polarization = False, bins = None, n_iter = 10000, n_iter_metropolis=1, mask_path=None, gibbs_cr = False,
-                 rj_step=False, all_sph=False, n_gibbs = 20):
+                 rj_step=False, all_sph=False, n_gibbs = 20, overrelaxation= False):
         """
         Class for Interweaving
 
@@ -40,7 +40,7 @@ class ASIS(GibbsSampler):
         :param all_sph: boolean, if True, write the entire model in spherical harmonics basis. If False do as usual.
         :param n_gibbs: integer, number of auxiliary variable steps.
         """
-        super().__init__(pix_map, noise, beam, nside, lmax, Npix, polarization = polarization, bins=bins,
+        super().__init__(pix_map, noise, beam, nside, lmax, polarization = polarization, bins=bins,
                          n_iter = n_iter, gibbs_cr=gibbs_cr, rj_step=rj_step)
 
         if not polarization:
@@ -62,7 +62,7 @@ class ASIS(GibbsSampler):
             #Creation of the CR sampler for "EE" and "BB" only.
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise, noise_Q, self.bl_map, lmax, Npix, beam,
                                                                                mask_path= mask_path,
-                                                                               gibbs_cr = gibbs_cr, n_gibbs = n_gibbs)
+                                                                               gibbs_cr = gibbs_cr, n_gibbs = n_gibbs, overrelaxation=overrelaxation)
 
 
 
