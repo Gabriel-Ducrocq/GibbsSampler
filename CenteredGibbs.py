@@ -349,7 +349,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
     def ULA_no_mask(self, all_dls, s_old):
         #Right tau = 0.0000001
-        tau = 0.0000001
+        tau = 0.9
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
 
@@ -375,12 +375,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         grad_E = -(1/sigma_E)*(s_old["EE"]- mean_E)
         grad_B = -(1/sigma_B)*(s_old["BB"]- mean_B)
 
-        #Tamed ULA
-        denom = 1 + tau * np.sqrt(np.sum(grad_E**2) + np.sum(grad_B**2))
-        #denom = 1
 
-        s_new_EE = s_old["EE"] + tau*grad_E/denom + np.sqrt(2*tau) * np.random.normal(size=len(mean_E))
-        s_new_BB = s_old["BB"] + tau*grad_B/denom + np.sqrt(2 * tau) * np.random.normal(size=len(mean_B))
+        s_new_EE = s_old["EE"] + tau*sigma_E*grad_E + np.sqrt(2*tau*sigma_E) * np.random.normal(size=len(mean_E))
+        s_new_BB = s_old["BB"] + tau*sigma_B*grad_B + np.sqrt(2*tau*sigma_B) * np.random.normal(size=len(mean_B))
 
         return {"EE":s_new_EE, "BB":s_new_BB}, 1
 

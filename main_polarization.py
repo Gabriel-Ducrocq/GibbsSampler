@@ -81,7 +81,6 @@ def generate_dataset(cls_, polarization=True, mask_path = None):
 
 if __name__ == "__main__":
     np.random.seed()
-    """
 
     theta_, cls_ = generate_cls() # Sample cosmological parameters and power spectrum.
     cls_ = np.array([cls for cls in cls_])
@@ -94,10 +93,9 @@ if __name__ == "__main__":
          "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
          "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS} #Save the map and its parameters.
 
-    np.save("skymap.npy", d, allow_pickle=True) #Actual saving.
+    np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
     #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
-
 
     """
     data_path = "skymap.npy" # Load the skymap.
@@ -127,11 +125,11 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix) * config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                    rj_step=False, gibbs_cr = True, overrelaxation=True) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                    rj_step=False, gibbs_cr = True, overrelaxation=True, ula=True)
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -203,7 +201,7 @@ if __name__ == "__main__":
 
     #save_path = config.scratch_path + \
     #            "/data/polarization_runs/cut_sky/planck_mask_runs/asis_gibbs_20_late/runs/asis_20_late" + str(config.slurm_task_id) + ".npy" # Save path
-    """
+
     d = {"h_cls":h_cls_asis, "h_accept_nc":h_accept_asis, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
          "blocks_EE":config.blocks["EE"], "h_duration_cls_non_centered":h_duration_nc, "h_duration_iteration":h_it_duration,
@@ -213,7 +211,7 @@ if __name__ == "__main__":
          "rj_step": asis.rj_step, "gibbs_iterations":asis.constrained_sampler.n_gibbs,
          "gibbs_cr":asis.constrained_sampler.gibbs_cr
          } # All the information we save about the run.
-    """
+
     #np.save(save_path, d, allow_pickle=True) # Actual saving.
 
-
+    """
