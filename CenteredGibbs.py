@@ -349,7 +349,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
     def ULA_no_mask(self, all_dls, s_old):
         #Right tau = 0.0000001
-        tau = 0.9
+        tau = 0.2
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
 
