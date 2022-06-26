@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
-                                   rj_step=False, gibbs_cr = True, overrelaxation=True) # Create  centered Gibbs sampler with auxiliary variable step.
+                                   rj_step=False, gibbs_cr = False, overrelaxation=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     #plt.show()
 
     save_path = config.scratch_path + \
-                "data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ULA" + str(config.slurm_task_id) + ".npy" # Save path
+                "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ULA" + str(config.slurm_task_id) + ".npy" # Save path
 
     d = {"h_cls":h_cls_centered, "h_accept_nc":h_accept_cr, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
