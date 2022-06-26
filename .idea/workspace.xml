@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/testULA.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -53,8 +51,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="205">
-              <caret line="351" column="17" selection-start-line="351" selection-start-column="17" selection-end-line="351" selection-end-column="17" />
+            <state relative-caret-position="171">
+              <caret line="351" column="18" selection-start-line="351" selection-start-column="18" selection-end-line="351" selection-end-column="18" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -77,8 +75,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main_polarization.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="463">
-              <caret line="161" column="43" selection-start-line="161" selection-start-column="43" selection-end-line="161" selection-end-column="43" />
+            <state relative-caret-position="2220">
+              <caret line="148" lean-forward="true" selection-start-line="148" selection-end-line="148" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -618,6 +616,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/main_polarization.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2220">
+          <caret line="148" lean-forward="true" selection-start-line="148" selection-end-line="148" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/testULA.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="171">
@@ -628,20 +636,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main_polarization.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="463">
-          <caret line="161" column="43" selection-start-line="161" selection-start-column="43" selection-end-line="161" selection-end-column="43" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
-          <caret line="351" column="17" selection-start-line="351" selection-start-column="17" selection-end-line="351" selection-end-column="17" />
+        <state relative-caret-position="171">
+          <caret line="351" column="18" selection-start-line="351" selection-start-column="18" selection-end-line="351" selection-end-column="18" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>
