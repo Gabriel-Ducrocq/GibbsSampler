@@ -7,40 +7,20 @@ import healpy as hp
 from NonCenteredGibbs import NonCenteredGibbs
 from ASIS import ASIS
 from CenteredGibbs import CenteredGibbs
-import camb
-
-#def generate_cls(polarization = True):
-#    """
-#    Function to generate cosmological parameters and the corresponding power spectrum.
-#    :param polarization: boolean. if True, we deal with "EE" and "BB" only. If False, with "TT" only.
-#    :return: arrays of floats, being cosmo_params, cls_tt, cls_ee, cls_bb and cls_te of polarization is True.
-#            Otherwise, cosmo_params, cls_tt.
-#    """
-#    theta_ = config.COSMO_PARAMS_MEAN_PRIOR #+ np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
-#    cls_ = utils.generate_cls(theta_, polarization)
-#    return theta_, cls_
 
 
+def generate_cls(polarization = True):
+    """
+    Function to generate cosmological parameters and the corresponding power spectrum.
+    :param polarization: boolean. if True, we deal with "EE" and "BB" only. If False, with "TT" only.
+    :return: arrays of floats, being cosmo_params, cls_tt, cls_ee, cls_bb and cls_te of polarization is True.
+            Otherwise, cosmo_params, cls_tt.
+    """
+    theta_ = config.COSMO_PARAMS_MEAN_PRIOR #+ np.random.normal(scale = config.COSMO_PARAMS_SIGMA_PRIOR)
+    cls_ = utils.generate_cls(theta_, polarization)
+    return theta_, cls_
 
 
-def generate_cls():
-    theta = np.array([0.9665, 0.02242, 0.11933, 68.2, 3.047e-9, 0.0561])
-    ns, omega_b, omega_cdm, H0, As, tau_reio = theta
-    pars = camb.CAMBparams()
-    pars.set_cosmology(H0=H0, ombh2=omega_b, omch2=omega_cdm, tau=tau_reio)
-    pars.InitPower.set_params(As=As, ns=ns)
-    pars.set_for_lmax(config.L_MAX_SCALARS)
-
-    print("Computation time CAMB:")
-    start = time.time()
-    results = camb.get_results(pars)
-    pow_spec = results.get_cmb_power_spectra(pars, CMB_unit='muK', raw_cl=True)
-    end = time.time()
-    print(end-start)
-    print(pow_spec["total"].shape)
-    #pow_spec = pow_spec["total"][: L_MAX_SCALARS+1, 0]
-    return theta, [pow_spec["total"][: config.L_MAX_SCALARS+1, 0], pow_spec["total"][: config.L_MAX_SCALARS+1, 1],
-                   pow_spec["total"][: config.L_MAX_SCALARS+1, 2], pow_spec["total"][: config.L_MAX_SCALARS+1, 3]]
 
 def generate_dataset(cls_, polarization=True, mask_path = None):
     """

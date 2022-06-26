@@ -51,7 +51,7 @@ def real_to_complex(alms):
     This converts the alms expressed in real convention to alms expressed in imaginary alms.
 
     :param alms: array of floats, size ((L_max + 1)**2,) of alms coefficient expressed in real convention. The first
-            L_max + 1 terms are the m = 0 real coefficients. The following terms are, in m major, the couples (sqrt(2)Realpart(alm), sqrt(2)Imagpart(alm))
+            L_max + 1 terms ar the m = 0 real coefficients. The following terms are, in m major, the couples (sqrt(2)Realpart(alm), sqrt(2)Imagpart(alm))
     :return: array of floats, size (L_max +1)*(L_max+2)/2, of alms coefficients in complex convention, m major.
     """
     m_0 = alms[:config.L_MAX_SCALARS+1] + np.zeros(config.L_MAX_SCALARS+1)*1j
