@@ -241,7 +241,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     ##Note that we ALWAYS assume a noise covariance matrix proportional to the identity matrix. On top of this, we may or
     ##may not apply a skymask.
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None,
-                 gibbs_cr = False, n_gibbs = 1, alpha = -0.995, overrelaxation = False):
+                 gibbs_cr = False, n_gibbs = 1, alpha = -0.995, overrelaxation = False, ula=False):
         """
 
         :param pix_map: array of floats, size Npix, observed skymap d.
@@ -261,6 +261,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.inv_noise_temp = 1/self.noise_temp
         self.inv_noise_pol = 1/self.noise_pol
         self.n_gibbs = n_gibbs
+        self.ula = ula
 
         if mask_path is not None:
             #If we provide the path to a mask, we load it, downgrade it to the right resolution and then apply it the
@@ -290,17 +291,20 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.s_cls = cl
         self.bl_fwhm = bl_fwhm
-        _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
-                                            pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
 
-        second_part_grad_E *= (self.Npix/(4*np.pi))
-        second_part_grad_B *= (self.Npix/(4*np.pi))
+        if self.mask_path is not None:
+            _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
+                                                pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
 
-        hp.almxfl(second_part_grad_E, self.bl_gauss, inplace = True)
-        hp.almxfl(second_part_grad_B, self.bl_gauss, inplace=True)
+            second_part_grad_E *= (self.Npix/(4*np.pi))
+            second_part_grad_B *= (self.Npix/(4*np.pi))
 
-        self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
-        self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
+            hp.almxfl(second_part_grad_E, self.bl_gauss, inplace = True)
+            hp.almxfl(second_part_grad_B, self.bl_gauss, inplace=True)
+
+            self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
+            self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
+
 
 
 
@@ -311,6 +315,41 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         :param all_dls: dict {"EE":array, "BB":array}, with arrays representing the binned power spectra
         :return: dict {"EE":array, "BB":array}, a new alms skymap, with real and imaginary parts.
         """
+        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
+        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
+
+        print(all_dls["EE"].shape)
+        print(all_dls["BB"].shape)
+
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
+
+        sigma_E = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
+        sigma_B = 1/ ( (self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
+
+
+        r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi)) * self.pix_map["EE"] # Computing the "weiner" term of the system
+        r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"] # same here
+
+        r_E = self.bl_map * r_E # same
+        r_B = self.bl_map * r_B # same
+
+
+        mean_E = sigma_E*r_E #computing the mean of the normal distribution
+        mean_B = sigma_B*r_B # same here
+
+        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E) #Actuall sampling: adding the fluctuations part
+        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B) # Actual sampling: adding the fluctuations part
+
+        return {"EE": alms_E, "BB": alms_B}, 1 #Returning the sampled sky map and 1 because we always accept
+
+
+    def ULA_no_mask(self, all_dls, s_old):
+        #Right tau = 0.0000001
+        tau = 0.0000001
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
 
@@ -330,13 +369,20 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         r_B = self.bl_map * r_B # same
 
 
-        mean_E = sigma_E*r_E #computing the mean of the normal distribution
-        mean_B = sigma_B*r_B # same here
+        mean_E = sigma_E * r_E #computing the mean of the normal distribution
+        mean_B = sigma_B * r_B  # same here
 
-        alms_E = mean_E + np.random.normal(size=len(var_cls_E)) * np.sqrt(sigma_E) #Actuall sampling: adding the fluctuations part
-        alms_B = mean_B + np.random.normal(size=len(var_cls_B)) * np.sqrt(sigma_B) # Actual sampling: adding the fluctuations part
+        grad_E = -(1/sigma_E)*(s_old["EE"]- mean_E)
+        grad_B = -(1/sigma_B)*(s_old["BB"]- mean_B)
 
-        return {"EE": alms_E, "BB": alms_B}, 1 #Returning the sampled sky map and 1 because we always accept
+        #Tamed ULA
+        denom = 1 + tau * np.sqrt(np.sum(grad_E**2) + np.sum(grad_B**2))
+        #denom = 1
+
+        s_new_EE = s_old["EE"] + tau*grad_E/denom + np.sqrt(2*tau) * np.random.normal(size=len(mean_E))
+        s_new_BB = s_old["BB"] + tau*grad_B/denom + np.sqrt(2 * tau) * np.random.normal(size=len(mean_B))
+
+        return {"EE":s_new_EE, "BB":s_new_BB}, 1
 
     def sample_mask(self, all_dls):
         """
@@ -382,6 +428,47 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         solution = {"EE":utils.complex_to_real(soltn.elm), "BB":utils.complex_to_real(soltn.blm)} # Going from complex to real for my code.
 
         return solution, 1 #returning solution and 1, to say we always accept.
+
+
+    def sample_ula(self, all_dls, s_old):
+        tau = 0.0000001
+        cls_EE = all_dls["EE"]*self.dls_to_cls_array # Convert D_\ell to C_\ell
+        cls_BB = all_dls["BB"]*self.dls_to_cls_array # Same
+
+
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"]) #generate the C diagonal matrix
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"]) #same
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)] # invert the C diagonal matrix
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)] # same
+
+        first_term_EE = - var_cls_EE_inv*s_old["EE"]
+        first_term_BB = - var_cls_BB_inv*s_old["BB"]
+
+        I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s_old["EE"]))) ,
+                              hp.almxfl(utils.real_to_complex(s_old["EE"]), self.bl_gauss),
+                    hp.almxfl(utils.real_to_complex(s_old["BB"]), self.bl_gauss)],
+                             pol=True, nside=self.nside, lmax=self.lmax, iter=0)
+
+        Q *= self.inv_noise_pol
+        U *= self.inv_noise_pol
+
+        T, E, B = hp.map2alm([I, Q, U], lmax=self.lmax, pol=True, iter = 0)
+        second_term_E = -hp.almxfl(E/config.w, self.bl_gauss, inplace =False)
+        second_term_B = -hp.almxfl(B/config.w, self.bl_gauss, inplace=False)
+
+        grad_E = first_term_EE + second_term_E + self.second_part_grad_E
+        grad_B = first_term_BB + second_term_B + self.second_part_grad_B
+
+
+        new_EE = s_old["EE"] + tau*grad_E + np.sqrt(2*tau)*np.random.normal(size=len(grad_E))
+        new_BB = s_old["BB"] + tau*grad_B + np.sqrt(2*tau) * np.random.normal(size=len(grad_B))
+
+        return {"EE":new_EE, "BB":new_BB}
+
+
+
 
     def sample_mask_rj(self, all_dls, s_old):
         """
@@ -606,12 +693,14 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def sample(self, all_dls, s_old = None):
-        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == True:
+        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == True and self.mask_path is not None:
             return self.overrelaxation_sampler(all_dls, s_old)
-        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False:
+        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None:
             return self.sample_gibbs_change_variable(all_dls, s_old)
-        if s_old is not None:
+        if s_old is not None and self.mask_path is not None:
             return self.sample_mask_rj(all_dls, s_old)
+        if self.mask_path is None and s_old is not None and self.ula:
+            return self.ULA_no_mask(all_dls, s_old)
         if self.mask_path is None:
             return self.sample_no_mask(all_dls)
         else:
@@ -623,11 +712,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
 
+
 class CenteredGibbs(GibbsSampler):
 
     def __init__(self, pix_map, noise_temp, noise_pol, beam, nside, lmax, Npix, mask_path = None,
                  polarization = False, bins=None, n_iter = 100000, rj_step = False, all_sph=False, gibbs_cr = False,
-                overrelaxation=False):
+                overrelaxation=False, ula=False):
         super().__init__(pix_map, noise_temp, beam, nside, lmax, polarization = polarization, bins=bins, n_iter = n_iter
                          ,rj_step=rj_step, gibbs_cr = gibbs_cr)
         
@@ -640,4 +730,4 @@ class CenteredGibbs(GibbsSampler):
             self.constrained_sampler = PolarizedCenteredConstrainedRealization(pix_map, noise_temp, noise_pol,
                                                                                self.bl_map, lmax, Npix, beam,
                                                                                mask_path=mask_path,
-                                                                               gibbs_cr =gibbs_cr, overrelaxation=overrelaxation)
+                                                                               gibbs_cr =gibbs_cr, overrelaxation=overrelaxation, ula=ula)

@@ -2,7 +2,7 @@ import numpy as np
 import config
 import healpy as hp
 from classy import Class
-from variance_expension import generate_var_cl_cython
+#from variance_expension import generate_var_cl_cython
 
 cosmo = Class()
 
@@ -111,6 +111,31 @@ def adjoint_synthesis_hp(map, bl_map=None):
         return alms
 
 
+def generate_var_cl_cython(cls_):
+    pi = np.pi
+    L_max = len(cls_) - 1
+    size_real = (L_max + 1)**2
+    size_complex = int((L_max+1)*(L_max+2)/2)
+    alms_shape = np.zeros(size_complex)
+    variance = np.zeros(size_real)
+    for l in range(L_max+1):
+        for m in range(l+1):
+            idx = m * (2 * L_max + 1 - m) // 2 + l
+            if l == 0:
+                alms_shape[idx] = cls_[l]
+            else:
+                alms_shape[idx] = cls_[l]*2*pi/(l*(l+1))
+
+    for i in range(L_max+1):
+        variance[i] = alms_shape[i]
+
+
+    for i in range(L_max+1, size_complex):
+        variance[2*i - (L_max+1)] = alms_shape[i]
+        variance[2*i - (L_max+1) +1] = alms_shape[i]
+
+    return variance
+
 def generate_var_cl(cls_):
     """
     compute the diagonal of the C matrix, see paper.
@@ -135,7 +160,6 @@ def unfold_bins(binned_cls_, bins):
     """
     n_per_bin = bins[1:] - bins[:-1]
     return np.repeat(binned_cls_, n_per_bin)
-
 
 
 

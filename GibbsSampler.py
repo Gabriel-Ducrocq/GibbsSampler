@@ -7,7 +7,7 @@ import time
 
 class GibbsSampler():
     def __init__(self, pix_map, noise, beam_fwhm_deg, nside, lmax, polarization = False, bins=None, n_iter = 10000,
-                 gibbs_cr = False, rj_step = False):
+                 gibbs_cr = False, rj_step = False, ula = False):
         """
         This is the basic Gibbs sampler class, from which any variant will inherit.
         The set of alm coefficients is in m major, as expected by the healpy library.
@@ -38,6 +38,7 @@ class GibbsSampler():
         self.n_iter = n_iter
         self.gibbs_cr = gibbs_cr
         self.rj_step = rj_step
+        self.ula = ula
         if bins is None:
             ## If the user provides no binning scheme, then each bin is made of only one \ell. This equivalent to
             ## no binning.
@@ -139,8 +140,12 @@ class GibbsSampler():
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
-            if i % 1 == 0:
-                print("Default Gibbs")
+            if i % 100 == 0:
+                if not self.ula:
+                    print("Default Gibbs")
+                else:
+                    print('ULA')
+
                 print(i)
 
             start_time = time.clock()
