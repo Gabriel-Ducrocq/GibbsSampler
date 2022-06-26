@@ -3,7 +3,7 @@ import os
 import healpy as hp
 
 
-#scratch_path = os.environ['SCRATCH'] #Scratch path to save and load data on NERSC
+scratch_path = os.environ['SCRATCH'] #Scratch path to save and load data on NERSC
 #slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"] #Slurm ID for using multiple machines on NERSC.
 
 
@@ -16,7 +16,7 @@ LENSING = 'yes'
 OUTPUT_CLASS = 'tCl pCl lCl'
 observations = None
 
-NSIDE = 128 # NSIDE for generating the pixel grid over the sphere.
+NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
 Npix = 12 * NSIDE ** 2 # Number of pixels
 L_MAX_SCALARS=int(2*NSIDE) # L_max
 ##The next lines are the paths to some sky masks. If no mask is used, set mask_path = None.
@@ -41,13 +41,13 @@ var_noise_pol = np.ones(Npix) * noise_covar_pol
 
 #The two next lines define the bins. Each integer in the arrays are the start of a bin and the end of another.
 bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
-#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 
 #The two next lines define the blocking scheme use for the non centered power spectrum sampling step.
 blocks_EE = [2, len(bins["EE"])]
-#blocks_BB = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
-blocks_BB = [2, len(bins["EE"])]
+blocks_BB = np.concatenate([[2, 279], np.arange(280, len(bins["BB"]), 1)])
+#blocks_BB = [2, len(bins["EE"])]
 
 blocks = {"EE":blocks_EE, "BB":blocks_BB}
 
