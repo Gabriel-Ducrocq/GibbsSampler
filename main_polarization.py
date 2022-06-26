@@ -149,8 +149,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    #h_cls_centered_ula, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
-    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
+    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
