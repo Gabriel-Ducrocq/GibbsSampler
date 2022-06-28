@@ -140,7 +140,7 @@ class GibbsSampler():
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
-            if i % 100 == 0:
+            if i % 10 == 0:
                 if not self.ula:
                     print("Default Gibbs")
                 else:
