@@ -291,6 +291,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.s_cls = cl
         self.bl_fwhm = bl_fwhm
+        self.tau = 0.1
 
         if self.mask_path is not None:
             _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
@@ -304,8 +305,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
             self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
             self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
-
-
 
 
     def sample_no_mask(self, all_dls):
@@ -346,13 +345,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         return {"EE": alms_E, "BB": alms_B}, 1 #Returning the sampled sky map and 1 because we always accept
 
-
-    def ULA_no_mask(self, all_dls, s_old):
-        #Right tau = 0.0000001
-        tau = 0.2
-        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
-        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
-
+    def compute_gradient_no_mask(self, var_cls_E, var_cls_B, s_old):
         inv_var_cls_E = np.zeros(len(var_cls_E))
         inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
 
@@ -374,12 +367,56 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         grad_E = -(1/sigma_E)*(s_old["EE"]- mean_E)
         grad_B = -(1/sigma_B)*(s_old["BB"]- mean_B)
+        return grad_E, grad_B
 
+    def compute_log_proposal(self, var_cls_E, var_cls_B, s_new, s_old):
+        grad_E, grad_B = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
+        return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*grad_E)**2)/(2*self.tau)\
+        -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*grad_B)**2)/(2*self.tau)
+
+    def compute_log_density(self, s, var_cls_E, var_cls_B):
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
+
+        sigma_E = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
+        sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
+
+        r_E = (self.Npix*self.inv_noise_pol[0]/(4*np.pi)) * self.pix_map["EE"] # Computing the "weiner" term of the system
+        r_B = (self.Npix * self.inv_noise_pol[0] /(4 * np.pi)) * self.pix_map["BB"] # same here
+
+        r_E = self.bl_map * r_E # same
+        r_B = self.bl_map * r_B # same
+
+
+        mean_E = sigma_E * r_E #computing the mean of the normal distribution
+        mean_B = sigma_B * r_B  # same here
+
+        return -(1/2)*np.sum((s["EE"] - mean_E)**2/var_cls_E) -(1/2)*np.sum((s["BB"] - mean_B)**2/var_cls_B)
+
+
+    def ULA_no_mask(self, all_dls, s_old):
+        #Right tau = 0.0000001
+        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
+        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
+
+        grad_E_old, grad_B_old = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
 
         s_new_EE = s_old["EE"] + tau*sigma_E*grad_E + np.sqrt(2*tau*sigma_E) * np.random.normal(size=len(mean_E))
         s_new_BB = s_old["BB"] + tau*sigma_B*grad_B + np.sqrt(2*tau*sigma_B) * np.random.normal(size=len(mean_B))
+        s_new = {"EE":s_new_EE, "BB":s_new_BB}
 
-        return {"EE":s_new_EE, "BB":s_new_BB}, 1
+        log_ratio = self.compute_log_density(s_new, var_cls_E, var_cls_B) \
+                    + self.compute_log_proposal(var_cls_E, var_cls_B, s_old, s_new)\
+                    - (self.compute_log_density(s_old, var_cls_E, var_cls_B) +
+                       self.compute_log_proposal(var_cls_E, var_cls_B, s_new, s_old))
+
+        if np.log(np.random.uniform()) < log_ratio:
+            return s_new, 1
+
+        return s_old, 0
 
     def sample_mask(self, all_dls):
         """
