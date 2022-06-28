@@ -172,7 +172,7 @@ class GibbsSampler():
             h_dls["EE"].append(binned_dls["EE"])
             h_dls["BB"].append(binned_dls["BB"])
 
-        if self.rj_step == True:
+        if self.rj_step == True or self.ula == True:
             print("Acception rate constrained realization:", np.mean(h_accept_cr))
 
         h_dls["EE"] = np.array(h_dls["EE"])
