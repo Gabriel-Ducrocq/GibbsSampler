@@ -433,8 +433,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
                        self.compute_log_proposal(var_cls_E, var_cls_B, s_new, s_old))
 
         if np.log(np.random.uniform()) < log_ratio:
+            print("Accept !")
             return s_new, 1
 
+        print("Reject !")
         return s_old, 0
 
     def sample_mask(self, all_dls):
