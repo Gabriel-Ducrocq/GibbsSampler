@@ -133,7 +133,7 @@ class GibbsSampler():
         h_dls = {"EE":[], "BB":[]}
         binned_dls = dls_init
         dls_unbinned = {"EE":utils.unfold_bins(binned_dls["EE"].copy(), self.bins["EE"]), "BB":utils.unfold_bins(binned_dls["BB"].copy(), self.bins["BB"])}
-        if self.rj_step == True or self.gibbs_cr == True:
+        if self.rj_step == True or self.gibbs_cr == True or self.ula==True:
             ## If we use a RJPO algo or auxiliary variable scheme instead of regular PCG, we need this initialization of the skymap.
             skymap, accept = self.constrained_sampler.sample(dls_unbinned)
 
@@ -149,7 +149,7 @@ class GibbsSampler():
                 print(i)
 
             start_time = time.clock()
-            if self.rj_step is False and self.gibbs_cr is False:
+            if self.rj_step is False and self.gibbs_cr is False and self.ula is False:
                 ## If we the PCG, CR step
                 skymap, _ = self.constrained_sampler.sample(dls_unbinned.copy())
             else:

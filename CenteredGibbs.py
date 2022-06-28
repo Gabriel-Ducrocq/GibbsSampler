@@ -753,7 +753,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None and self.mask_path is not None:
             return self.sample_mask_rj(all_dls, s_old)
-        if self.mask_path is None and s_old is not None and self.ula:
+        if self.mask_path is None and s_old is not None and self.ula == True:
             print("ULA no mask !")
             return self.ULA_no_mask(all_dls, s_old)
         if self.mask_path is None:
