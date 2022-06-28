@@ -423,8 +423,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         grad_E, grad_B = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
 
-        s_new_EE = s_old["EE"] + self.tau*sigma_E*grad_E + np.sqrt(2*self.tau*sigma_E) * np.random.normal(size=len(mean_E))
-        s_new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B) * np.random.normal(size=len(mean_B))
+        s_new_EE = s_old["EE"] + self.tau*sigma_E*grad_E + np.sqrt(2*self.tau*sigma_E) * np.random.normal(size=len(grad_E))
+        s_new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B) * np.random.normal(size=len(grad_B))
         s_new = {"EE":s_new_EE, "BB":s_new_BB}
 
         log_ratio = self.compute_log_density(s_new, var_cls_E, var_cls_B) \
