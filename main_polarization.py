@@ -109,8 +109,8 @@ if __name__ == "__main__":
                                    rj_step=False, gibbs_cr = False, overrelaxation=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
-                                   rj_step=False, gibbs_cr = True, overrelaxation=True, ula=True)
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
+                                   rj_step=False, gibbs_cr = False, overrelaxation=False, ula=True)
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
