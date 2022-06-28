@@ -375,7 +375,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         inv_var_cls_B = np.zeros(len(var_cls_B))
         inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
-        
+
         sigma_E = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_E)  # Computing the inverse of the Q
         sigma_B = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_B)  # same here
 
@@ -421,7 +421,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         sigma_E = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
         sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
 
-        grad_E_old, grad_B_old = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
+        grad_E, grad_B = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
 
         s_new_EE = s_old["EE"] + self.tau*sigma_E*grad_E + np.sqrt(2*self.tau*sigma_E) * np.random.normal(size=len(mean_E))
         s_new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B) * np.random.normal(size=len(mean_B))
