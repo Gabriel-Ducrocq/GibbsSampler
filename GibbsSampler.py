@@ -38,7 +38,7 @@ class GibbsSampler():
         self.n_iter = n_iter
         self.gibbs_cr = gibbs_cr
         self.rj_step = rj_step
-        self.ula = ula
+        self.ula = True
         if bins is None:
             ## If the user provides no binning scheme, then each bin is made of only one \ell. This equivalent to
             ## no binning.
@@ -140,7 +140,7 @@ class GibbsSampler():
         h_dls["EE"].append(binned_dls["EE"])
         h_dls["BB"].append(binned_dls["BB"])
         for i in range(self.n_iter):
-            if i % 1 == 0:
+            if i % 100 == 0:
                 if not self.ula:
                     print("Default Gibbs")
                 else:
