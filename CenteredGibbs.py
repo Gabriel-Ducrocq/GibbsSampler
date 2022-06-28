@@ -404,8 +404,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         grad_E_old, grad_B_old = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
 
-        s_new_EE = s_old["EE"] + tau*sigma_E*grad_E + np.sqrt(2*tau*sigma_E) * np.random.normal(size=len(mean_E))
-        s_new_BB = s_old["BB"] + tau*sigma_B*grad_B + np.sqrt(2*tau*sigma_B) * np.random.normal(size=len(mean_B))
+        s_new_EE = s_old["EE"] + self.tau*sigma_E*grad_E + np.sqrt(2*self.tau*sigma_E) * np.random.normal(size=len(mean_E))
+        s_new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B) * np.random.normal(size=len(mean_B))
         s_new = {"EE":s_new_EE, "BB":s_new_BB}
 
         log_ratio = self.compute_log_density(s_new, var_cls_E, var_cls_B) \
@@ -465,7 +465,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def sample_ula(self, all_dls, s_old):
-        tau = 0.0000001
         cls_EE = all_dls["EE"]*self.dls_to_cls_array # Convert D_\ell to C_\ell
         cls_BB = all_dls["BB"]*self.dls_to_cls_array # Same
 

@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_polarization.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_polarization.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testULA.py" beforeDir="false" afterPath="$PROJECT_DIR$/testULA.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,11 +48,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="256">
-              <caret line="416" column="27" lean-forward="true" selection-start-line="416" selection-start-column="27" selection-end-line="416" selection-end-column="27" />
+            <state relative-caret-position="446">
+              <caret line="402" column="68" lean-forward="true" selection-start-line="402" selection-start-column="68" selection-end-line="402" selection-end-column="68" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -75,11 +72,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main_polarization.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="515">
-              <caret line="111" column="118" selection-start-line="111" selection-start-column="118" selection-end-line="111" selection-end-column="118" />
+            <state relative-caret-position="1425">
+              <caret line="95" column="96" lean-forward="true" selection-start-line="95" selection-start-column="96" selection-end-line="95" selection-end-column="96" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -223,8 +220,8 @@
         <option value="$PROJECT_DIR$/utils.py" />
         <option value="$PROJECT_DIR$/config.py" />
         <option value="$PROJECT_DIR$/testULA.py" />
-        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
         <option value="$PROJECT_DIR$/main_polarization.py" />
+        <option value="$PROJECT_DIR$/CenteredGibbs.py" />
       </list>
     </option>
   </component>
@@ -629,22 +626,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
+    <entry file="file://$PROJECT_DIR$/main_polarization.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="256">
-          <caret line="416" column="27" lean-forward="true" selection-start-line="416" selection-start-column="27" selection-end-line="416" selection-end-column="27" />
+        <state relative-caret-position="1425">
+          <caret line="95" column="96" lean-forward="true" selection-start-line="95" selection-start-column="96" selection-end-line="95" selection-end-column="96" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#12#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main_polarization.py">
+    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="515">
-          <caret line="111" column="118" selection-start-line="111" selection-start-column="118" selection-end-line="111" selection-end-column="118" />
+        <state relative-caret-position="446">
+          <caret line="402" column="68" lean-forward="true" selection-start-line="402" selection-start-column="68" selection-end-line="402" selection-end-column="68" />
           <folding>
-            <element signature="e#0#12#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
