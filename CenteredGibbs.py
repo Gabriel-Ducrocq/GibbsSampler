@@ -370,9 +370,13 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return grad_E, grad_B
 
     def compute_log_proposal(self, var_cls_E, var_cls_B, s_new, s_old):
+        sigma_E = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_E)  # Computing the inverse of the Q
+        sigma_B = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_B)  # same here
+
         grad_E, grad_B = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
-        return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*grad_E)**2)/(2*self.tau)\
-        -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*grad_B)**2)/(2*self.tau)
+
+        return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*sigma_E*grad_E)**2)/(2*self.tau*sigma_E)\
+        -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*sigma_B*grad_B)**2)/(2*self.tau*sigma_B)
 
     def compute_log_density(self, s, var_cls_E, var_cls_B):
         inv_var_cls_E = np.zeros(len(var_cls_E))
@@ -401,6 +405,9 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         #Right tau = 0.0000001
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
+
+        sigma_E = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
+        sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
 
         grad_E_old, grad_B_old = self.compute_gradient_no_mask(var_cls_E, var_cls_B, s_old)
 
