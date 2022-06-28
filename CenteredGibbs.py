@@ -370,6 +370,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return grad_E, grad_B
 
     def compute_log_proposal(self, var_cls_E, var_cls_B, s_new, s_old):
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
+        
         sigma_E = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_E)  # Computing the inverse of the Q
         sigma_B = 1 / ((self.Npix / (self.noise_pol[0] * 4 * np.pi)) * self.bl_map ** 2 + inv_var_cls_B)  # same here
 
@@ -405,6 +411,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         #Right tau = 0.0000001
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
+
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
 
         sigma_E = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
         sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
