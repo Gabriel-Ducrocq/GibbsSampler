@@ -102,7 +102,8 @@ if __name__ == "__main__":
 
     # Set the noise maps.
     noise_temp = np.ones(config.Npix) * config.noise_covar_temp
-    noise_pol = np.ones(config.Npix) * config.noise_covar_pol
+
+    noise_pol = np.ones(config.Npix)*config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
                                     mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
