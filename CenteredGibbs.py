@@ -291,7 +291,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.s_cls = cl
         self.bl_fwhm = bl_fwhm
-        self.tau = 0.03
+        self.tau = 0.02
 
         if self.mask_path is not None:
             _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
