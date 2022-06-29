@@ -404,7 +404,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         mean_E = sigma_E * r_E #computing the mean of the normal distribution
         mean_B = sigma_B * r_B  # same here
 
-        return -(1/2)*np.sum((s["EE"] - mean_E)**2/var_cls_E) -(1/2)*np.sum((s["BB"] - mean_B)**2/var_cls_B)
+        return -(1/2)*np.sum((s["EE"] - mean_E)**2/sigma_E) -(1/2)*np.sum((s["BB"] - mean_B)**2/sigma_B)
 
 
     def ULA_no_mask(self, all_dls, s_old):
