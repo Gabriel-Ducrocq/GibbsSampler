@@ -307,6 +307,11 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             self.second_part_grad_E = utils.complex_to_real(second_part_grad_E)
             self.second_part_grad_B = utils.complex_to_real(second_part_grad_B)
 
+            self.grad_E_old = None
+            self.grad_B_old = None
+
+            self.
+
 
     def sample_no_mask(self, all_dls):
         """
@@ -409,7 +414,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def ULA_no_mask(self, all_dls, s_old):
-        #Right tau = 0.0000001
         var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
         var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
 
@@ -497,13 +501,13 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         first_term_EE = - var_cls_EE_inv*s_old["EE"]
         first_term_BB = - var_cls_BB_inv*s_old["BB"]
 
-        I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s_old["EE"]))) ,
+        I, s_E_pix, s_B_pix = hp.alm2map([utils.real_to_complex(np.zeros(len(s_old["EE"]))) ,
                               hp.almxfl(utils.real_to_complex(s_old["EE"]), self.bl_gauss),
                     hp.almxfl(utils.real_to_complex(s_old["BB"]), self.bl_gauss)],
                              pol=True, nside=self.nside, lmax=self.lmax)
 
-        Q *= self.inv_noise_pol
-        U *= self.inv_noise_pol
+        Q = self.inv_noise_pol*s_E_pix
+        U = self.inv_noise_pol*s_B_pix
 
         T, E, B = hp.map2alm([I, Q, U], lmax=self.lmax, pol=True, iter = 0)
         second_term_E = -hp.almxfl(E/config.w, self.bl_gauss, inplace =False)
@@ -512,7 +516,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         grad_E = first_term_EE + utils.complex_to_real(second_term_E) + self.second_part_grad_E
         grad_B = first_term_BB + utils.complex_to_real(second_term_B) + self.second_part_grad_B
 
-        return grad_E, grad_B
+        return grad_E, grad_B, s_E_pix, s_B_pix
 
 
     def propose_new_mala(self, s_old, grad_E, grad_B, sigma_E, sigma_B):
@@ -526,7 +530,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*sigma_E*grad_E_old)**2/(2*self.tau*sigma_E))\
                 -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*sigma_B*grad_B_old)**2/(2*self.tau*sigma_B))
 
-    def compute_log_density(self, all_dls, s):
+    def compute_log_density(self, all_dls, s, s_E_pix, s_B_pix):
         var_cls_EE = utils.generate_var_cl(all_dls["EE"]) #generate the C diagonal matrix
         var_cls_BB = utils.generate_var_cl(all_dls["BB"]) #same
         var_cls_EE_inv = np.zeros(len(var_cls_EE))
@@ -537,16 +541,13 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         first_term_EE = - (1/2)*np.sum(var_cls_EE_inv*s["EE"]**2)
         first_term_BB = - (1/2)*np.sum(var_cls_BB_inv*s["BB"]**2)
 
-        I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s["EE"]))) ,
-                              hp.almxfl(utils.real_to_complex(s["EE"]), self.bl_gauss),
-                    hp.almxfl(utils.real_to_complex(s["BB"]), self.bl_gauss)],
-                             pol=True, nside=self.nside, lmax=self.lmax)
+        #I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s["EE"]))) ,
+        #                      hp.almxfl(utils.real_to_complex(s["EE"]), self.bl_gauss),
+        #            hp.almxfl(utils.real_to_complex(s["BB"]), self.bl_gauss)],
+        #                     pol=True, nside=self.nside, lmax=self.lmax)
 
-        I *= I
-        Q *= Q
-
-        Q *= self.inv_noise_pol
-        U *= self.inv_noise_pol
+        Q = s_E_pix**2*self.inv_noise_pol
+        U = s_B_pix**2*self.inv_noise_pol
 
         second_term_E = -(1/2)*np.sum(Q)
         second_term_B = -(1/2)*np.sum(U)
@@ -569,17 +570,17 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
 
 
-        if grad_E_old is None and grad_B_old is None:
-            grad_E_old, grad_B_old = self.compute_gradient_mala(all_dls, s_old)
+        if self.grad_E_old is None and self.grad_B_old is None:
+            grad_E_old, grad_B_old, s_E_pix_old, s_B_pix_old = self.compute_gradient_mala(all_dls, s_old)
 
         s_new = self.propose_new_mala(s_old, grad_E_old, grad_B_old, sigma_E, sigma_B)
-        grad_E_new, grad_B_new = self.compute_gradient_mala(all_dls, s_new)
+        grad_E_new, grad_B_new, s_E_pix_new, s_B_pix_new = self.compute_gradient_mala(all_dls, s_new)
 
 
-        log_ratio = self.compute_log_density(all_dls, s_new)\
+        log_ratio = self.compute_log_density(all_dls, s_new, s_E_pix_new, s_B_pix_new)\
                     + self.compute_log_proposal(s_old, s_new, grad_E_new, grad_B_new, sigma_E, sigma_B) \
-                -(self.compute_log_density(all_dls, s_old) + self.compute_log_proposal(s_new, s_old, grad_E_old,
-                                                                    grad_B_old, sigma_E, sigma_B))
+                -(self.compute_log_density(all_dls, s_old, s_E_pix_old, s_B_pix_old)\
+                  + self.compute_log_proposal(s_new, s_old, grad_E_old,grad_B_old, sigma_E, sigma_B))
 
         if np.log(np.random.uniform()) < log_ratio:
             return s_new, 1
