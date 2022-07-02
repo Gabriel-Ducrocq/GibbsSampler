@@ -293,7 +293,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         self.bl_fwhm = bl_fwhm
         self.tau = 0.02
 
-        if self.mask_path is not None:
+        #if self.mask_path is not None:
+        if True:
             _, second_part_grad_E, second_part_grad_B = hp.map2alm([np.zeros(len(pix_map["Q"])), pix_map["Q"]*self.inv_noise_pol,
                                                 pix_map["U"]*self.inv_noise_pol], lmax=lmax, iter=0, pol=True)
 
@@ -369,7 +370,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         grad_B = -(1/sigma_B)*(s_old["BB"]- mean_B)
         return grad_E, grad_B
 
-    def compute_log_proposal(self, var_cls_E, var_cls_B, s_new, s_old):
+    def compute_log_proposal_no_mask(self, var_cls_E, var_cls_B, s_new, s_old):
         inv_var_cls_E = np.zeros(len(var_cls_E))
         inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
 
@@ -384,7 +385,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*sigma_E*grad_E)**2/(2*self.tau*sigma_E))\
         -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*sigma_B*grad_B)**2/(2*self.tau*sigma_B))
 
-    def compute_log_density(self, s, var_cls_E, var_cls_B):
+    def compute_log_density_no_mask(self, s, var_cls_E, var_cls_B):
         inv_var_cls_E = np.zeros(len(var_cls_E))
         inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
 
@@ -427,10 +428,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         s_new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B) * np.random.normal(size=len(grad_B))
         s_new = {"EE":s_new_EE, "BB":s_new_BB}
 
-        log_ratio = self.compute_log_density(s_new, var_cls_E, var_cls_B) \
-                    + self.compute_log_proposal(var_cls_E, var_cls_B, s_old, s_new)\
-                    - (self.compute_log_density(s_old, var_cls_E, var_cls_B) +
-                       self.compute_log_proposal(var_cls_E, var_cls_B, s_new, s_old))
+        log_ratio = self.compute_log_density_no_mask(s_new, var_cls_E, var_cls_B) \
+                    + self.compute_log_proposal_no_mask(var_cls_E, var_cls_B, s_old, s_new)\
+                    - (self.compute_log_density_no_mask(s_old, var_cls_E, var_cls_B) +
+                       self.compute_log_proposal_no_mask(var_cls_E, var_cls_B, s_new, s_old))
 
         if np.log(np.random.uniform()) < log_ratio:
             print("Accept !")
@@ -485,7 +486,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         return solution, 1 #returning solution and 1, to say we always accept.
 
 
-    def sample_ula(self, all_dls, s_old):
+    def compute_gradient_mala(self, all_dls, s_old):
         cls_EE = all_dls["EE"]*self.dls_to_cls_array # Convert D_\ell to C_\ell
         cls_BB = all_dls["BB"]*self.dls_to_cls_array # Same
 
@@ -515,13 +516,79 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         grad_E = first_term_EE + second_term_E + self.second_part_grad_E
         grad_B = first_term_BB + second_term_B + self.second_part_grad_B
 
+        return grad_E, grad_B
 
-        new_EE = s_old["EE"] + tau*grad_E + np.sqrt(2*tau)*np.random.normal(size=len(grad_E))
-        new_BB = s_old["BB"] + tau*grad_B + np.sqrt(2*tau) * np.random.normal(size=len(grad_B))
+
+    def propose_new_mala(self, s_old, grad_E, grad_B, sigma_E, sigma_B):
+        new_EE = s_old["EE"] + self.tau*sigma_E*grad_E + np.sqrt(2*self.tau*sigma_E)*np.random.normal(size=len(grad_E))
+        new_BB = s_old["BB"] + self.tau*sigma_B*grad_B + np.sqrt(2*self.tau*sigma_B)*np.random.normal(size=len(grad_B))
 
         return {"EE":new_EE, "BB":new_BB}
 
 
+    def compute_log_proposal(self, s_new, s_old, grad_E_old, grad_B_old, sigma_E, sigma_B):
+        return -(1/2)*np.sum((s_new["EE"] - s_old["EE"] - self.tau*sigma_E*grad_E_old)**2/(2*self.tau*sigma_E))\
+                -(1/2)*np.sum((s_new["BB"] - s_old["BB"] - self.tau*sigma_B*grad_B_old)**2/(2*self.tau*sigma_B))
+
+    def compute_log_density(self, all_dls, s):
+        var_cls_EE = utils.generate_var_cl(all_dls["EE"]) #generate the C diagonal matrix
+        var_cls_BB = utils.generate_var_cl(all_dls["BB"]) #same
+        var_cls_EE_inv = np.zeros(len(var_cls_EE))
+        var_cls_EE_inv[np.where(var_cls_EE !=0)] = 1/var_cls_EE[np.where(var_cls_EE != 0)] # invert the C diagonal matrix
+        var_cls_BB_inv = np.zeros(len(var_cls_BB))
+        var_cls_BB_inv[np.where(var_cls_BB !=0)] = 1/var_cls_BB[np.where(var_cls_BB != 0)] # same
+
+        first_term_EE = - (1/2)*np.sum(var_cls_EE_inv*s["EE"]**2)
+        first_term_BB = - (1/2)*np.sum(var_cls_BB_inv*s["BB"]**2)
+
+        I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s["EE"]))) ,
+                              hp.almxfl(utils.real_to_complex(s["EE"]), self.bl_gauss),
+                    hp.almxfl(utils.real_to_complex(s["BB"]), self.bl_gauss)],
+                             pol=True, nside=self.nside, lmax=self.lmax, iter=0)
+
+        I *= I
+        Q *= Q
+
+        Q *= self.inv_noise_pol
+        U *= self.inv_noise_pol
+
+        second_term_E = -(1/2)*np.sum(Q)
+        second_term_B = -(1/2)*np.sum(U)
+
+
+        return first_term_EE + first_term_BB + second_term_E + second_term_B + np.dot(s["EE"], self.second_part_grad_E)\
+                + np.dot(s["BB"], self.second_part_grad_B)
+
+    def sample_mala(self, all_dls, s_old, grad_E_old = None, grad_B_old = None):
+        var_cls_E = utils.generate_var_cl(all_dls["EE"]) # Generating the C diagonal matrix
+        var_cls_B = utils.generate_var_cl(all_dls["BB"]) # same here
+
+        inv_var_cls_E = np.zeros(len(var_cls_E))
+        inv_var_cls_E[var_cls_E != 0] = 1/var_cls_E[var_cls_E != 0] # Inverting the C matrix
+
+        inv_var_cls_B = np.zeros(len(var_cls_B))
+        inv_var_cls_B[var_cls_B != 0] = 1/var_cls_B[var_cls_B != 0] # same here
+
+        sigma_E = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_E ) # Computing the inverse of the Q
+        sigma_B = 1/ ((self.Npix/(self.noise_pol[0]*4*np.pi)) * self.bl_map**2 + inv_var_cls_B ) # same here
+
+
+        if grad_E_old is None and grad_B_old is None:
+            grad_E_old, grad_B_old = self.compute_gradient_mala(all_dls, s_old)
+
+        s_new = self.propose_new_mala(s_old, grad_E_old, grad_B_old, sigma_E, sigma_B)
+        grad_E_new, grad_B_new = self.compute_gradient_mala(all_dls, s_new)
+
+
+        log_ratio = self.compute_log_density(all_dls, s_new)\
+                    + self.compute_log_proposal(s_old, s_new, grad_E_new, grad_B_new, sigma_E, sigma_B) \
+                -(self.compute_log_density(all_dls, s_old) + self.compute_log_proposal(s_new, s_old, grad_E_old,
+                                                                    grad_B_old, sigma_E, sigma_B))
+
+        if np.log(np.random.uniform()) < log_ratio:
+            return s_new, 1
+
+        return s_old, 0
 
 
     def sample_mask_rj(self, all_dls, s_old):
@@ -753,9 +820,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             return self.sample_gibbs_change_variable(all_dls, s_old)
         if s_old is not None and self.mask_path is not None:
             return self.sample_mask_rj(all_dls, s_old)
-        if self.mask_path is None and s_old is not None and self.ula == True:
+        if self.mask_path is None and s_old is not None and False:
             print("ULA no mask !")
             return self.ULA_no_mask(all_dls, s_old)
+        if self.mask_path is None and s_old is not None and self.ula == True:
+            print("MALA !")
+            return self.sample_mala(all_dls, s_old)
         if self.mask_path is None:
             print("No Mask !")
             return self.sample_no_mask(all_dls)
