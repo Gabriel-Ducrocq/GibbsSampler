@@ -509,8 +509,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         second_term_E = -hp.almxfl(E/config.w, self.bl_gauss, inplace =False)
         second_term_B = -hp.almxfl(B/config.w, self.bl_gauss, inplace=False)
 
-        grad_E = first_term_EE + second_term_E + self.second_part_grad_E
-        grad_B = first_term_BB + second_term_B + self.second_part_grad_B
+        grad_E = first_term_EE + utils.complex_to_real(second_term_E) + self.second_part_grad_E
+        grad_B = first_term_BB + utils.complex_to_real(second_term_B) + self.second_part_grad_B
 
         return grad_E, grad_B
 
