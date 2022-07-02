@@ -826,7 +826,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         if self.mask_path is None and s_old is not None and self.ula == True:
             print("MALA !")
             return self.sample_mala(all_dls, s_old)
-        if self.mask_path is None:
+        if self.mask_path is None and False:
             print("No Mask !")
             return self.sample_no_mask(all_dls)
         else:
