@@ -310,7 +310,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             self.grad_E_old = None
             self.grad_B_old = None
 
-            self.
+            self.s_E_pix_old = None
+            self.s_B_pix_old = None
 
 
     def sample_no_mask(self, all_dls):
@@ -572,17 +573,25 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         if self.grad_E_old is None and self.grad_B_old is None:
             grad_E_old, grad_B_old, s_E_pix_old, s_B_pix_old = self.compute_gradient_mala(all_dls, s_old)
+            self.grad_E_old = grad_E_old
+            self.grad_B_old = grad_B_old
+            self.s_E_pix_old = s_E_pix_old
+            self.s_B_pix_old = s_B_pix_old
 
-        s_new = self.propose_new_mala(s_old, grad_E_old, grad_B_old, sigma_E, sigma_B)
+        s_new = self.propose_new_mala(s_old, self.grad_E_old, self.grad_B_old, sigma_E, sigma_B)
         grad_E_new, grad_B_new, s_E_pix_new, s_B_pix_new = self.compute_gradient_mala(all_dls, s_new)
 
 
         log_ratio = self.compute_log_density(all_dls, s_new, s_E_pix_new, s_B_pix_new)\
                     + self.compute_log_proposal(s_old, s_new, grad_E_new, grad_B_new, sigma_E, sigma_B) \
-                -(self.compute_log_density(all_dls, s_old, s_E_pix_old, s_B_pix_old)\
-                  + self.compute_log_proposal(s_new, s_old, grad_E_old,grad_B_old, sigma_E, sigma_B))
+                -(self.compute_log_density(all_dls, s_old, self.s_E_pix_old, self.s_B_pix_old)\
+                  + self.compute_log_proposal(s_new, s_old, self.grad_E_old,self.grad_B_old, sigma_E, sigma_B))
 
         if np.log(np.random.uniform()) < log_ratio:
+            self.grad_E_old = grad_E_new
+            self.grad_B_old = grad_B_new
+            self.s_E_pix_old = s_E_pix_new
+            self.s_B_pix_old = s_B_pix_new
             return s_new, 1
 
         return s_old, 0
