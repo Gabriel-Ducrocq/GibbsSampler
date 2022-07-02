@@ -487,10 +487,6 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
 
     def compute_gradient_mala(self, all_dls, s_old):
-        cls_EE = all_dls["EE"]*self.dls_to_cls_array # Convert D_\ell to C_\ell
-        cls_BB = all_dls["BB"]*self.dls_to_cls_array # Same
-
-
         var_cls_EE = utils.generate_var_cl(all_dls["EE"]) #generate the C diagonal matrix
         var_cls_BB = utils.generate_var_cl(all_dls["BB"]) #same
         var_cls_EE_inv = np.zeros(len(var_cls_EE))
@@ -504,7 +500,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s_old["EE"]))) ,
                               hp.almxfl(utils.real_to_complex(s_old["EE"]), self.bl_gauss),
                     hp.almxfl(utils.real_to_complex(s_old["BB"]), self.bl_gauss)],
-                             pol=True, nside=self.nside, lmax=self.lmax, iter=0)
+                             pol=True, nside=self.nside, lmax=self.lmax)
 
         Q *= self.inv_noise_pol
         U *= self.inv_noise_pol
@@ -544,7 +540,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         I, Q, U = hp.alm2map([utils.real_to_complex(np.zeros(len(s["EE"]))) ,
                               hp.almxfl(utils.real_to_complex(s["EE"]), self.bl_gauss),
                     hp.almxfl(utils.real_to_complex(s["BB"]), self.bl_gauss)],
-                             pol=True, nside=self.nside, lmax=self.lmax, iter=0)
+                             pol=True, nside=self.nside, lmax=self.lmax)
 
         I *= I
         Q *= Q
