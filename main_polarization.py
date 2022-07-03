@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #            "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ULA" + str(config.slurm_task_id) + ".npy" # Save path
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ula" + str(config.slurm_task_id) + ".npy" # Save path
+                "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedMala/ula" + str(config.slurm_task_id) + ".npy" # Save path
 
     d = {"h_cls":h_cls_centered, "h_accept_nc":h_accept_cr, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
