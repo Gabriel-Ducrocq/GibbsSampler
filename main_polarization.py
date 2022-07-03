@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
          "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
+         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS}#, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
 
     np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
