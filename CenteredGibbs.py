@@ -291,7 +291,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.s_cls = cl
         self.bl_fwhm = bl_fwhm
-        self.tau = 0.0000001
+        self.tau = 0.001
 
         #if self.mask_path is not None:
         if True:
@@ -587,11 +587,15 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
                 -(self.compute_log_density(all_dls, s_old, self.s_E_pix_old, self.s_B_pix_old)\
                   + self.compute_log_proposal(s_new, s_old, self.grad_E_old,self.grad_B_old, sigma_E, sigma_B))
 
+        self.grad_E_old = None
+        self.grad_B_old = None
+        self.s_E_pix_old = None
+        self.s_B_pix_old = None
         if np.log(np.random.uniform()) < log_ratio:
-            self.grad_E_old = grad_E_new
-            self.grad_B_old = grad_B_new
-            self.s_E_pix_old = s_E_pix_new
-            self.s_B_pix_old = s_B_pix_new
+            #self.grad_E_old = grad_E_new
+            #self.grad_B_old = grad_B_new
+            #self.s_E_pix_old = s_E_pix_new
+            #self.s_B_pix_old = s_B_pix_new
             print("Accepted MALA!")
             return s_new, 1
 
