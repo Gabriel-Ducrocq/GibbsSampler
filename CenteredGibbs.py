@@ -824,12 +824,12 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             return self.overrelaxation_sampler(all_dls, s_old)
         if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None:
             return self.sample_gibbs_change_variable(all_dls, s_old)
-        if s_old is not None and self.mask_path is not None:
+        if s_old is not None and self.mask_path is not None and False:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None and s_old is not None and False:
             print("ULA no mask !")
             return self.ULA_no_mask(all_dls, s_old)
-        if self.mask_path is None and s_old is not None and self.ula == True:
+        if self.mask_path is not None and s_old is not None and self.ula == True:
             print("MALA !")
             return self.sample_mala(all_dls, s_old)
         if self.mask_path is None and False:
