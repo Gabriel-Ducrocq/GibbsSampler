@@ -16,8 +16,7 @@ LENSING = 'yes'
 OUTPUT_CLASS = 'tCl pCl lCl'
 observations = None
 
-#NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
-NSIDE = 32
+NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
 Npix = 12 * NSIDE ** 2 # Number of pixels
 L_MAX_SCALARS=int(2*NSIDE) # L_max
 ##The next lines are the paths to some sky masks. If no mask is used, set mask_path = None.
@@ -36,8 +35,7 @@ def noise_covariance_in_freq(nside):
 
 noise_covar_temp = 40**2 # temperature noise covariance (NOT stdd)
 #Think about changing the noise level again !
-##noise_covar_pol = 0.2**2 # polarization noise covariance.
-noise_covar_pol = 0.002**2
+noise_covar_pol = 0.2**2 # polarization noise covariance.
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 
