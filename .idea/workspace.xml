@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="acecbee4-8f57-48a2-9f87-5820127f1783" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/CenteredGibbs.py" beforeDir="false" afterPath="$PROJECT_DIR$/CenteredGibbs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main_polarization.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_polarization.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -48,11 +49,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="217">
-              <caret line="831" column="29" selection-start-line="831" selection-start-column="29" selection-end-line="831" selection-end-column="29" />
+            <state relative-caret-position="-7744">
+              <caret line="293" column="23" selection-start-line="293" selection-start-column="23" selection-end-line="293" selection-end-column="23" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -72,11 +73,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main_polarization.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="263">
-              <caret line="56" column="13" lean-forward="true" selection-start-line="56" selection-start-column="13" selection-end-line="56" selection-end-column="13" />
+            <state relative-caret-position="148">
+              <caret line="113" column="117" selection-start-line="113" selection-start-column="117" selection-end-line="113" selection-end-column="117" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -143,7 +144,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>generate_var_cl</find>
       <find>scale</find>
       <find>compute_init_values_pol</find>
       <find>binned_variances_pol</find>
@@ -173,6 +173,7 @@
       <find>tau</find>
       <find>compute_log_</find>
       <find>self.ula</find>
+      <find>self.tau</find>
     </findStrings>
     <replaceStrings>
       <replace>config.L_MAX_SCALARS</replace>
@@ -219,9 +220,9 @@
         <option value="$PROJECT_DIR$/utils.py" />
         <option value="$PROJECT_DIR$/testULA.py" />
         <option value="$PROJECT_DIR$/GibbsSampler.py" />
-        <option value="$PROJECT_DIR$/main_polarization.py" />
         <option value="$PROJECT_DIR$/config.py" />
         <option value="$PROJECT_DIR$/CenteredGibbs.py" />
+        <option value="$PROJECT_DIR$/main_polarization.py" />
       </list>
     </option>
   </component>
@@ -627,22 +628,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main_polarization.py">
+    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="263">
-          <caret line="56" column="13" lean-forward="true" selection-start-line="56" selection-start-column="13" selection-end-line="56" selection-end-column="13" />
+        <state relative-caret-position="-7744">
+          <caret line="293" column="23" selection-start-line="293" selection-start-column="23" selection-end-line="293" selection-end-column="23" />
           <folding>
-            <element signature="e#0#12#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
+    <entry file="file://$PROJECT_DIR$/main_polarization.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="217">
-          <caret line="831" column="29" selection-start-line="831" selection-start-column="29" selection-end-line="831" selection-end-column="29" />
+        <state relative-caret-position="148">
+          <caret line="113" column="117" selection-start-line="113" selection-start-column="117" selection-end-line="113" selection-end-column="117" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#12#0" expanded="true" />
           </folding>
         </state>
       </provider>
