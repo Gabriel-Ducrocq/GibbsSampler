@@ -16,7 +16,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1580">
+            <state relative-caret-position="-1121">
               <caret line="40" column="23" lean-forward="true" selection-start-line="40" selection-start-column="23" selection-end-line="40" selection-end-column="23" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
@@ -52,8 +52,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="161">
-              <caret line="293" column="27" selection-start-line="293" selection-start-column="27" selection-end-line="293" selection-end-column="27" />
+            <state relative-caret-position="389">
+              <caret line="597" column="23" selection-start-line="597" selection-start-column="23" selection-end-line="597" selection-end-column="23" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -76,8 +76,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/testULANonCentered.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="195">
-              <caret line="13" column="57" lean-forward="true" selection-start-line="13" selection-start-column="57" selection-end-line="13" selection-end-column="57" />
+            <state relative-caret-position="105">
+              <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -116,6 +116,18 @@
               <caret line="68" lean-forward="true" selection-start-line="68" selection-end-line="68" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/main_polarization.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="134">
+              <caret line="109" column="119" lean-forward="true" selection-start-line="109" selection-start-column="119" selection-end-line="109" selection-end-column="119" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -160,8 +172,8 @@
       <find>mu_star</find>
       <find>tau</find>
       <find>compute_log_</find>
-      <find>self.ula</find>
       <find>self.tau</find>
+      <find>self.ula</find>
     </findStrings>
     <replaceStrings>
       <replace>config.L_MAX_SCALARS</replace>
@@ -411,12 +423,12 @@
     <frame x="0" y="25" width="1440" height="823" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4978903" visible="true" weight="0.18322763" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.4978903" visible="true" weight="0.18322763" />
       <window_info id="Structure" order="1" sideWeight="0.5021097" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32956153" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.22896552" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.22896552" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39886847" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -566,16 +578,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1580">
-          <caret line="40" column="23" lean-forward="true" selection-start-line="40" selection-start-column="23" selection-end-line="40" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-373">
@@ -596,9 +598,19 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="355">
+          <caret line="68" lean-forward="true" selection-start-line="68" selection-end-line="68" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/main_polarization.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="661">
+        <state relative-caret-position="134">
           <caret line="109" column="119" lean-forward="true" selection-start-line="109" selection-start-column="119" selection-end-line="109" selection-end-column="119" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
@@ -606,12 +618,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config.py">
+    <entry file="file://$PROJECT_DIR$/GibbsSampler.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="355">
-          <caret line="68" lean-forward="true" selection-start-line="68" selection-end-line="68" />
+        <state relative-caret-position="-1121">
+          <caret line="40" column="23" lean-forward="true" selection-start-line="40" selection-start-column="23" selection-end-line="40" selection-end-column="23" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#13#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -628,8 +640,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/testULANonCentered.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="195">
-          <caret line="13" column="57" lean-forward="true" selection-start-line="13" selection-start-column="57" selection-end-line="13" selection-end-column="57" />
+        <state relative-caret-position="105">
+          <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -638,8 +650,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/CenteredGibbs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="161">
-          <caret line="293" column="27" selection-start-line="293" selection-start-column="27" selection-end-line="293" selection-end-column="27" />
+        <state relative-caret-position="389">
+          <caret line="597" column="23" selection-start-line="597" selection-start-column="23" selection-end-line="597" selection-end-column="23" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>

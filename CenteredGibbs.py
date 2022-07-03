@@ -592,8 +592,10 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             self.grad_B_old = grad_B_new
             self.s_E_pix_old = s_E_pix_new
             self.s_B_pix_old = s_B_pix_new
+            print("Accepted MALA!")
             return s_new, 1
 
+        print("Rejected MALA!")
         return s_old, 0
 
 
@@ -827,7 +829,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
         if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None and self.ula==True:
             print("Composition !")
             s_intermediate, _ = self.sample_gibbs_change_variable(all_dls, s_old)
-            return self.sample_mala(all_dls, s_intermediate)
+            return self.sample_mala(all_dls, copy.deepcopy(s_intermediate))
         if s_old is not None and self.mask_path is not None and False:
             return self.sample_mask_rj(all_dls, s_old)
         if self.mask_path is None and s_old is not None and False:

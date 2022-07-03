@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 dim = 10
 alpha_star = 0.1
 tau = 0.1
-sig = 0.01
+sig = 0.05
 
 s_star = np.random.normal(size=dim)*np.sqrt(alpha_star)
 d = s_star + np.random.normal(size=dim)
@@ -50,8 +50,8 @@ for i in range(100000):
     print(alpha)
     alpha, acc = sample_param(alpha, s)
     h_accept.append(acc)
-    #s = ula(s, alpha)
-    s = sample_latent(alpha)
+    s = ula(s, alpha)
+    #s = sample_latent(alpha)
     h_gibbs.append(alpha)
     #h_gibbs.append(alpha)
 
