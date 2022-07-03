@@ -112,6 +112,7 @@ def sample_latent(alpha):
     mu = sigma*d
     return np.sqrt(sigma)*np.random.normal(size=dim) + mu
 
+
 def ula(s, alpha):
     sigma = 1/(1+(1/alpha))
     mu = sigma*d
