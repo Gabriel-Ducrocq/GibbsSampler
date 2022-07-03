@@ -16,16 +16,17 @@ LENSING = 'yes'
 OUTPUT_CLASS = 'tCl pCl lCl'
 observations = None
 
-NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
+#NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
+NSIDE = 24
 Npix = 12 * NSIDE ** 2 # Number of pixels
 L_MAX_SCALARS=int(2*NSIDE) # L_max
 ##The next lines are the paths to some sky masks. If no mask is used, set mask_path = None.
 #mask_path = scratch_path + "/data/non_isotropic_runs/skymask/wamp_temperature_kq85_analysis_mask_r9_9yr_v5.fits"
 #mask_path = "wmap_temperature_kq85_analysis_mask_r9_9yr_v5(1).fits"
 #mask_path = "HFI_Mask_GalPlane-apo0_2048_R2.00.fits"
-mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
+#mask_path = scratch_path + "/data/non_isotropic_runs/skymask/HFI_Mask_GalPlane-apo0_2048_R2_80%_bis.00.fits"
 #mask_path = scratch_path + "/data/simon/cut-sky/skymask/mask_SO_for_Gabriel.fits"
-#mask_path = None
+mask_path = None
 
 
 def noise_covariance_in_freq(nside):
@@ -40,8 +41,10 @@ var_noise_pol = np.ones(Npix) * noise_covar_pol
 
 
 #The two next lines define the bins. Each integer in the arrays are the start of a bin and the end of another.
-bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
+##Planck bins:
+#bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 #bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 
 #The two next lines define the blocking scheme use for the non centered power spectrum sampling step.
