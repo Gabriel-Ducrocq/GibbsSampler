@@ -291,7 +291,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
 
         self.s_cls = cl
         self.bl_fwhm = bl_fwhm
-        self.tau = 0.05
+        self.tau = 0.01
 
         #if self.mask_path is not None:
         if True:
