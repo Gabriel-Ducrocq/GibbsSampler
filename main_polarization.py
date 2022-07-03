@@ -66,18 +66,18 @@ if __name__ == "__main__":
     cls_ = np.array([cls for cls in cls_])
     cls_[0] = np.zeros(len(cls_[0])) # Set the TT pow spec to 0
     cls_[3] = np.zeros(len(cls_[0])) # Same for TE
-    #s_true, pix_map, pix_map_pix = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
+    s_true, pix_map, pix_map_pix = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
 
 
-    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
+    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
 
-    #np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
+    np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
     #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
 
-
+    """
     data_path = config.scratch_path + "/data/skymap.npy"# Load the skymap.
     #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
@@ -183,3 +183,4 @@ if __name__ == "__main__":
          } # All the information we save about the run.
 
     np.save(save_path, d, allow_pickle=True) # Actual saving.
+    """

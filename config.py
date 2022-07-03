@@ -35,7 +35,9 @@ def noise_covariance_in_freq(nside):
     return cov
 
 noise_covar_temp = 40**2 # temperature noise covariance (NOT stdd)
-noise_covar_pol = 0.2**2 # polarization noise covariance.
+#Think about changing the noise level again !
+##noise_covar_pol = 0.2**2 # polarization noise covariance.
+noise_covar_pol = 0.02**2
 var_noise_temp = np.ones(Npix) * noise_covar_temp
 var_noise_pol = np.ones(Npix) * noise_covar_pol
 
