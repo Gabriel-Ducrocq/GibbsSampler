@@ -107,7 +107,7 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix)*config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -151,8 +151,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
-    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #            "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ULA" + str(config.slurm_task_id) + ".npy" # Save path
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedMala/ula" + str(config.slurm_task_id) + ".npy" # Save path
+                "/data/polarization_runs/cut_sky/planck_mask_runs/centered/centered" + str(config.slurm_task_id) + ".npy" # Save path
 
     d = {"h_cls":h_cls_centered, "h_accept_nc":h_accept_cr, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
