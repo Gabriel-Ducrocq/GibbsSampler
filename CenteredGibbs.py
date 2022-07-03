@@ -837,6 +837,8 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
             return self.sample_no_mask(all_dls)
         else:
             print("Regular CR sampler")
+            print(self.ula)
+            print(s_old)
             return self.sample_mask(all_dls)
 
 
