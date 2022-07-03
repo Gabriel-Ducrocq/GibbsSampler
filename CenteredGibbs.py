@@ -241,7 +241,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     ##Note that we ALWAYS assume a noise covariance matrix proportional to the identity matrix. On top of this, we may or
     ##may not apply a skymask.
     def __init__(self, pix_map, noise_temp, noise_pol, bl_map, lmax, Npix, bl_fwhm, mask_path=None,
-                 gibbs_cr = False, n_gibbs = 1, alpha = -0.995, overrelaxation = False, ula=False):
+                 gibbs_cr = False, n_gibbs = 1, alpha = -0.995, overrelaxation = False, ula=True):
         """
 
         :param pix_map: array of floats, size Npix, observed skymap d.
