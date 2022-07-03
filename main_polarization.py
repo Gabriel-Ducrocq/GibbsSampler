@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
 
     #data_path = config.scratch_path + "/data/skymap.npy"# Load the skymap.
-    data_path = config.scratch_path + "data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
