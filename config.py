@@ -17,7 +17,7 @@ OUTPUT_CLASS = 'tCl pCl lCl'
 observations = None
 
 #NSIDE = 256 # NSIDE for generating the pixel grid over the sphere.
-NSIDE = 24
+NSIDE = 32
 Npix = 12 * NSIDE ** 2 # Number of pixels
 L_MAX_SCALARS=int(2*NSIDE) # L_max
 ##The next lines are the paths to some sky masks. If no mask is used, set mask_path = None.
