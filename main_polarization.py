@@ -83,7 +83,7 @@ if __name__ == "__main__":
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
-    pix_map = d["pix_map"] # Getting the map.
+    pix_map = d["pix_map_pix"] # Getting the map.
     print("SKY MAP")
     print(pix_map)
 
