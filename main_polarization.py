@@ -107,7 +107,7 @@ if __name__ == "__main__":
     noise_pol = np.ones(config.Npix)*config.noise_covar_pol
 
     centered_gibbs = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
