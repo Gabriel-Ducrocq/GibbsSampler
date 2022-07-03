@@ -66,18 +66,18 @@ if __name__ == "__main__":
     cls_ = np.array([cls for cls in cls_])
     cls_[0] = np.zeros(len(cls_[0])) # Set the TT pow spec to 0
     cls_[3] = np.zeros(len(cls_[0])) # Same for TE
-    s_true, pix_map, pix_map_pix = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
+    #s_true, pix_map, pix_map_pix = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
 
 
-    d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
-         "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
-         "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
+    #d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
+    #     "noise_var_temp":config.noise_covar_temp, "noise_var_pol":config.noise_covar_pol, "mask_path":config.mask_path,
+    #     "NSIDE":config.NSIDE, "lmax":config.L_MAX_SCALARS, "pix_map_pix":pix_map_pix} #Save the map and its parameters.
 
-    np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
+    #np.save(config.scratch_path + "/data/skymap.npy", d, allow_pickle=True) #Actual saving.
     #np.save(config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy", d, allow_pickle=True)
     #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
 
-    """
+
     data_path = config.scratch_path + "/data/skymap.npy"# Load the skymap.
     #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 1000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10,
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=True)
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
@@ -151,8 +151,8 @@ if __name__ == "__main__":
 
     start = time.time()
     start_cpu = time.clock()
-    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
-    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
+    h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs_ula.run(starting_point)
+    #h_cls_centered, h_accept_cr, h_duration_cr, h_duration_cls_sampling = centered_gibbs.run(starting_point)
     #h_cls_asis, h_accept_asis, h_accept_cr, h_it_duration, h_duration_cr, h_duration_centered, h_duration_nc = asis.run(starting_point) # Actual sampling.
     #h_cls_noncentered, h_accept_cr_noncentered, h_duration_cr, h_duration_cls_sampling = non_centered_gibbs.run(starting_point)
     end = time.time()
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #            "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedUlaNoMask/ULA" + str(config.slurm_task_id) + ".npy" # Save path
 
     save_path = config.scratch_path + \
-                "/data/polarization_runs/cut_sky/planck_mask_runs/centered/centered_test" + str(config.slurm_task_id) + ".npy" # Save path
+                "/data/polarization_runs/cut_sky/planck_mask_runs/preconditionedMala/mala" + str(config.slurm_task_id) + ".npy" # Save path
 
     d = {"h_cls":h_cls_centered, "h_accept_nc":h_accept_cr, "h_duration_cls_centered":None,
          "h_duration_cr":h_duration_cr, "bins_EE":config.bins["EE"], "bins_BB":config.bins["BB"],
@@ -183,4 +183,3 @@ if __name__ == "__main__":
          } # All the information we save about the run.
 
     np.save(save_path, d, allow_pickle=True) # Actual saving.
-    """
