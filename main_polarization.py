@@ -78,8 +78,8 @@ if __name__ == "__main__":
     #np.save(config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymapTest.npy", d, allow_pickle=True)
 
 
-    data_path = config.scratch_path + "/data/skymap.npy"# Load the skymap.
-    #data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
+    #data_path = config.scratch_path + "/data/skymap.npy"# Load the skymap.
+    data_path = config.scratch_path + "/data/polarization_runs/cut_sky/skymap_planck_mask/skymap.npy"
     #data_path = config.scratch_path + "/data/simon/cut-sky/skymap/skymap.npy"
     d = np.load(data_path, allow_pickle=True) # Loading the skymap.
     d = d.item()
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=False) # Create  centered Gibbs sampler with auxiliary variable step.
 
     centered_gibbs_ula = CenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
-                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 10000,
+                                    mask_path = config.mask_path, polarization = True, bins=config.bins, n_iter = 100,
                                    rj_step=False, gibbs_cr = False, overrelaxation=False, ula=True)
     ### ALL SPH ACTIVATED
     non_centered_gibbs = NonCenteredGibbs(pix_map, noise_temp, noise_pol, config.beam_fwhm, config.NSIDE, config.L_MAX_SCALARS, config.Npix,
