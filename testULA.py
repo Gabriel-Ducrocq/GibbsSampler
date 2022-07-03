@@ -94,8 +94,8 @@ plt.show()
 """
 
 dim = 10
-alpha_star = 1
-tau = 0.01
+alpha_star = 10
+tau = 0.001
 
 s_star = np.random.normal(size=dim)*np.sqrt(alpha_star)
 d = s_star + np.random.normal(size=dim)
@@ -116,7 +116,7 @@ def sample_latent(alpha):
 def ula(s, alpha):
     sigma = 1/(1+(1/alpha))
     mu = sigma*d
-    tau = 0.9*(1/(2*sigma))
+    #tau = 0.9*(1/(2*sigma))
     grad = -(1/sigma)*(s-mu)
     return s + tau*grad + np.sqrt(2*tau)*np.random.normal()
 
