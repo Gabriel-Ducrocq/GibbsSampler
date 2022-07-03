@@ -822,7 +822,7 @@ class PolarizedCenteredConstrainedRealization(ConstrainedRealization):
     def sample(self, all_dls, s_old = None):
         if self.gibbs_cr == True and s_old is not None and self.overrelaxation == True and self.mask_path is not None:
             return self.overrelaxation_sampler(all_dls, s_old)
-        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None:
+        if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None and self.ula==False:
             return self.sample_gibbs_change_variable(all_dls, s_old)
         if self.gibbs_cr == True and s_old is not None and self.overrelaxation == False and self.mask_path is not None and self.ula==True:
             print("Composition !")
