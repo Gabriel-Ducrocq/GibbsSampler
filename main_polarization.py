@@ -66,7 +66,7 @@ if __name__ == "__main__":
     cls_ = np.array([cls for cls in cls_])
     cls_[0] = np.zeros(len(cls_[0])) # Set the TT pow spec to 0
     cls_[3] = np.zeros(len(cls_[0])) # Same for TE
-    s_true, pix_map, pix_map_pix = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
+    s_true, pix_map = generate_dataset(cls_, polarization=True, mask_path=config.mask_path) # Generate an observed map.
 
 
     d = {"pix_map":pix_map, "params_":theta_, "skymap_true": s_true, "cls_":cls_, "fwhm_arcmin_beam":config.beam_fwhm,
