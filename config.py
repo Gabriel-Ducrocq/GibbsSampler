@@ -42,9 +42,9 @@ var_noise_pol = np.ones(Npix) * noise_covar_pol
 
 #The two next lines define the bins. Each integer in the arrays are the start of a bin and the end of another.
 ##Planck bins:
-#bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
-#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
-bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
+bins_BB = np.concatenate([range(0, 396), np.array([396, 398, 400, 402, 406, 410, 415, 420, 425, 430, 435, 440, 445, 460, 475, 495, 513])])
+bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":bins_BB}
+#bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 #bins = {"EE":np.array(range(0, L_MAX_SCALARS+2)), "BB":np.array(range(0, L_MAX_SCALARS+2))}
 
 #The two next lines define the blocking scheme use for the non centered power spectrum sampling step.
