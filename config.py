@@ -4,7 +4,7 @@ import healpy as hp
 
 
 scratch_path = os.environ['SCRATCH'] #Scratch path to save and load data on NERSC
-#slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"] #Slurm ID for using multiple machines on NERSC.
+slurm_task_id = os.environ["SLURM_ARRAY_TASK_ID"] #Slurm ID for using multiple machines on NERSC.
 
 
 COSMO_PARAMS_NAMES = ["n_s", "omega_b", "omega_cdm", "100*theta_s", "ln10^{10}A_s", "tau_reio"] # Parameters names
